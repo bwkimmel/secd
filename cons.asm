@@ -5,10 +5,10 @@ cons		resd	16384
 
 
 segment .text
-	global	cons_alloc
-	global	cons_free
+	global	_cons_alloc
+	global	_cons_free
 
-cons_free:
+_cons_free:
 	enter	0, 0
 
 	; EAX contains a pointer to a cons cell.
@@ -27,7 +27,7 @@ cons_free:
 	leave
 	ret
 
-cons_alloc:
+_cons_alloc:
 	enter	0, 0
 
 	; Loop through the free list to find an entry that has

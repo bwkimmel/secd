@@ -10,7 +10,7 @@ ASFLAGS=-f $(ARCH)
 
 all: $(TARGETS)
 
-lisp: driver.o lisp.o cons.o
+lisp: driver.o main.o lisp.o cons.o
 	gcc -o lisp $^
 
 clean:
