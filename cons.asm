@@ -1,12 +1,25 @@
 segment .bss
+	global cons
 
 free		resb	2048
 cons		resd	16384
 
 
 segment .text
-	global	_cons_alloc
-	global	_cons_free
+	global _cons_alloc
+	global _cons_free
+	global _cons_init
+
+_cons_init:
+	enter	0, 0
+	mov		eax, 0xffffffff
+	mov		edi, dword free
+	mov		ecx, 512
+	cld
+	rep		stosd
+	leave
+	ret
+
 
 _cons_free:
 	enter	0, 0
@@ -22,7 +35,7 @@ _cons_free:
 	and		edx, 0x1f			; EDX <-- bit to reset
 
 	; Mark the cons cell as free
-	btr		[free + eax*4], edx
+	bts		[free + eax*4], edx
 
 	leave
 	ret
@@ -31,54 +44,51 @@ _cons_alloc:
 	enter	0, 0
 
 	; Loop through the free list to find an entry that has
-	; a bit that is not set (i.e., the corresponding cons
-	; cell is free).
-	push	ebx
-	mov		ebx, dword free 
-	
+	; a bit that is set (i.e., the corresponding cons cell
+	; is free).
+	mov		eax, 0
+	mov		edi, dword free 
 	mov		ecx, 512
-.search:
-		mov		eax, [ebx + (ecx-1)*4]
-		cmp		eax, 0xffffffff
-		loope	.search
-	
-; End of loop
-
-	pop		ebx
+	cld
+	repz	scasd
 
 	; If ZF is set (i.e., the last comparison in the above
-	; loop was satisfied (EAX = 0xFFFFFFFF), then all space
-	; in the cons cell array has been exhausted.
-	je		.out_of_space
-	
-	; ECX holds index to a 32-bit field with at least
-	; one bit NOT set (i.e., at least one field is free).
+	; loop was satisfied (EAX = 0), then all space in the
+	; cons cell array has been exhausted.
+	jz		.out_of_space
 
-	; Find a bit that's not set
-	mov		edx, eax
-	not		edx
-	bsf		edx, edx		; EDX <-- free bit in EAX
+	sub		edi, 4
+	
+	; EDI holds offset to a 32-bit field with at least
+	; one bit set (i.e., at least one field is free).
+
+	; Find a bit that's set
+	bsf		eax, [edi]		; EAX <-- free bit in [EDI] 
 
 	; Mark the cons cell as allocated
-	bts		eax, edx
-	mov		[free + ecx*4], eax
+	btr		[edi], eax
 
 	; Return pointer to cons cell:
-	;   ECX: index into free array of 32-bit integers
-	;   EDX: bit index into integer from free (each bit
+	;   EDI: offset into free array of 32-bit integers
+	;   EAX: bit index into integer from free (each bit
 	;        represents the free state of a cons cell).
-	;   ==> The index of the cons cell is ECX*32 + EDX
-	;   ==> The address of the cons cell is cons + ECX*128 + EDX*4
+	;   ==> The index of the cons cell is EDI*8 + EDX
+	;   ==> The address of the cons cell is cons + EDI*32 + EDX*4
 	; 
-	shl		ecx, $7			; ECX <-- ECX * 128
-	lea		eax, [cons + ecx + edx*4]
+
+	shl		edi, 5
+	lea		eax, [cons + edi + eax*4]
+	
+;	mov		eax, ecx
+;	shl		eax, 5
+;	add		eax, edx
 
 	leave
 	ret	
 
 .out_of_space:
 	; No more space left (raise error)
-	mov		eax, 0
+	mov		eax, 0 
 	
 	leave
 	ret
