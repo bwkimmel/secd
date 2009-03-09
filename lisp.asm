@@ -70,62 +70,25 @@ _eval:
 	ret
 
 _add:
-	enter	4, 0
-
-	mov		[esp + 0], 0
-
-.loop:
-		lcons	eax
-		
-		mov		ebx, eax
-		car		eax
-
-		call	_eval_int
-
-		unmask_int eax
-		add		[esp + 0], eax
-
-		mov		eax, ebx
-		cdr		eax
-		cmp		eax, NULL
-		jne		.loop
-
-	mov		eax, [esp + 0]
-	mask_int eax
-	leave
+	lcons	eax
+	mov		edx, eax
+	car		eax
+	cdr		edx
+	add_masked_ints eax, edx
 	ret
-	
+
 _mul:
-	enter	4, 0
+	lcons	eax
+	mov		edx, eax
 
-	mov		[esp + 0], 1
+	car		eax
+	unmask_int eax
 
-.loop:
-		lcons	eax
-		
-		mov		ebx, eax
-		car		eax
+	cdr		edx
+	unmask_int edx
 
-		call	_eval_int
-
-		unmask_int eax
-		jz		.zero
-		mul		[esp + 0], eax
-
-		mov		eax, ebx
-		cdr		eax
-		cmp		eax, NULL
-		jne		.loop
-
-	mov		eax, [esp + 0]
+	mul		eax, edx
 	mask_int eax
-	leave
-	ret
-
-.zero:
-	mov		eax, INT_ZERO
-	leave
-	ret
 	
 _eval_int:
 	mov		edx, eax
@@ -143,8 +106,6 @@ _eval_int:
 .error:
 	; Print error message
 	ret
-	
-	
 
 _car:
 	lcar	eax
