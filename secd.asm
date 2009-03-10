@@ -90,8 +90,8 @@ _exec:
 	symbol	[false], dword fstr
 	symbol	eax, dword nilstr
 	mov		[nil], eax
-	pop		C				; C <-- fn
-	pop		S				; S <-- args
+	mov		C, [ebp + 8]	; C <-- fn
+	mov		S, [ebp + 12]	; S <-- args
 	cons	S, eax
 	mov		[E], eax
 	mov		[D], eax
