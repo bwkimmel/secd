@@ -1,3 +1,11 @@
+segment .data
+tstr		db		"#t"
+tstr_len	equ		$ - tstr
+fstr		db		"#f"
+fstr_len	equ		$ - fstr
+nilstr		db		"nil"
+nilstr_len	equ		$ - nilstr
+
 segment .bss
 values		resd	65536
 flags		resb	16384
@@ -9,9 +17,9 @@ false		resd	1
 nil			resd	1
 
 segment .text
+	global _exec
 	extern _exit
 
-_exec:
 
 	; EAX - (S)tack
 	; EBX - (E)nvironment
@@ -56,20 +64,43 @@ _exec:
 	cdr		ff, ff
 %endmacro
 
+%macro alloc 2
+	cmp		ff, 0
+	jne		%%nogc
+	call	_gc
+%%nogc:
+	mov		[dword values + ff * 4], %2
+	mov		%1, ff
+	cdr		ff, ff
+%endmacro
+
 %macro cons 2
 	shl		%1, 16
 	or		%1, %2
-	mov		[dword values + ff * 4], %1
-	mov		%1, ff
-	cdr		ff, ff
+	alloc	%1, %1
 %endmacro
 
-%macro number 1
-	mov		[dword values + ff * 4], %1
-	mov		%1, ff
-	cdr		ff, ff
+%macro number 2
+	alloc	%1, %2
 %endmacro
 
+%macro symbol 2
+	alloc	%1, %2
+%endmacro
+
+_exec:
+	enter	0, 0
+	pusha
+	symbol	[true], dword tstr
+	symbol	[false], dword fstr
+	symbol	eax, dword nilstr
+	mov		[nil], eax
+	pop		C				; C <-- fn
+	pop		S				; S <-- args
+	cons	S, eax
+	mov		[E], eax
+	mov		[D], eax
+	
 _cycle:
 	carcdr	eax, C
 	ivalue	eax	
@@ -269,7 +300,7 @@ _instr_ADD:
 	ivalue	eax
 	ivalue	edx
 	add		eax, edx
-	number	eax
+	number	eax, eax
 	cons	eax, S
 	mov		S, eax
 	jmp		_cycle
@@ -280,7 +311,7 @@ _instr_SUB:
 	ivalue	eax
 	ivalue	edx
 	sub		eax, edx
-	number	eax
+	number	eax, eax
 	cons	eax, S
 	mov		S, eax
 	jmp		_cycle
@@ -291,7 +322,7 @@ _instr_MUL:
 	ivalue	eax
 	ivalue	edx
 	imul	edx
-	number	eax
+	number	eax, eax
 	cons	eax, S
 	mov		S, eax
 	jmp		_cycle
@@ -304,7 +335,7 @@ _instr_DIV:
 	mov		edx, eax
 	sar		edx, 31		; Extend sign of EAX into all bits of EDX
 	div		ecx			; Compute EAX <-- EDX:EAX / ECX
-	number	eax
+	number	eax, eax
 	cons	eax, S
 	mov		S, eax
 	jmp		_cycle
@@ -317,7 +348,7 @@ _instr_REM:
 	mov		edx, eax
 	sar		edx, 31		; Extend sign of EAX into all bits of EDX
 	div		ecx			; Compute EDX <-- EDX:EAX % ECX
-	number	edx
+	number	edx, edx
 	cons	edx, S
 	mov		S, edx
 	jmp		_cycle
@@ -335,6 +366,12 @@ _instr_LEQ:
 	jmp		_cycle
 
 _instr_STOP:
-	call	_exit
+	popa
+	car		eax, S
+	leave
+	ret
 
+_gc:
+	; TODO: Implement this
+	ret
 
