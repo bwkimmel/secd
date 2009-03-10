@@ -9,6 +9,7 @@ false		resd	1
 nil			resd	1
 
 segment .text
+	extern _exit
 
 _exec:
 
