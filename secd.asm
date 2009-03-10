@@ -28,14 +28,6 @@ _exec:
 	shr		%1, 16
 %endmacro
 
-%macro setcar 2
-%endmacro
-
-%macro setcdr 2
-	
-%endmacro
-	
-
 %macro cdr 2
 	mov		%1, [dword values + %2 * 4]
 	and		%1, 0xffff
@@ -167,8 +159,12 @@ _instr_RAP:
 	cons	S, eax		; D' <-- cons(cdr(cdr(S)),
 	mov		[D], S		;             cons(cdr(E), cons(cdr(C), D)))
 	
-	setcar	edx, ecx	
-	
+	; car(EDX) <-- ECX, S used as temporary register
+	mov		S, [dword values + edx * 4]
+	and		S, 0x0000ffff
+	shl		ecx, 16
+	or		S, ecx
+	mov		[dword values + edx * 4], S
 
 	cons	eax, C		; EAX <-- cons(cdr(E)
 	
