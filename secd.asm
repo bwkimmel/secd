@@ -1,31 +1,7 @@
-segment .data
-tstr		db		"#t"
-tstr_len	equ		$ - tstr
-fstr		db		"#f"
-fstr_len	equ		$ - fstr
-nilstr		db		"nil"
-nilstr_len	equ		$ - nilstr
-
-segment .bss
-values		resd	65536
-flags		resb	16384
-
-E			resd	1
-D			resd	1
-true		resd	1
-false		resd	1
-nil			resd	1
-
-segment .text
-	global _exec
-	extern _exit
-
-
-	; EAX - (S)tack
-	; EBX - (E)nvironment
-	; ESI - (C)ontrol
-	; EDI - (D)ump
-	; EDX - (W)orking
+; Reserved registers:
+; EBX - (S)tack
+; ESI - (C)ontrol
+; EDI - Head of free list (ff)
 
 %define S ebx
 %define C esi
@@ -59,11 +35,6 @@ segment .text
 	mov		%1, [dword values + %1 * 4]
 %endmacro
 
-%macro newcons 1
-	mov		%1, ff 
-	cdr		ff, ff
-%endmacro
-
 %macro alloc 2
 	cmp		ff, 0
 	jne		%%nogc
@@ -87,6 +58,30 @@ segment .text
 %macro symbol 2
 	alloc	%1, %2
 %endmacro
+
+
+segment .data
+tstr		db		"#t"
+tstr_len	equ		$ - tstr
+fstr		db		"#f"
+fstr_len	equ		$ - fstr
+nilstr		db		"nil"
+nilstr_len	equ		$ - nilstr
+
+
+segment .bss
+values		resd	65536	; Storage for cons cells and ivalues
+flags		resb	16384	; Storage for isatom and isnumber bits
+
+E			resd	1		; (E)nvironment register
+D			resd	1		; (D)ump register
+true		resd	1		; true register
+false		resd	1		; false register
+nil			resd	1		; nil register
+
+
+segment .text
+	global _exec
 
 _exec:
 	enter	0, 0
