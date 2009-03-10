@@ -86,6 +86,19 @@ segment .text
 _exec:
 	enter	0, 0
 	pusha
+
+	; Initialize free list
+	mov		eax, 1
+	lea		edi, [dword values + 4]
+	mov		ecx, 65534
+	cld
+.init:
+		inc		eax
+		stosd
+		loop	.init
+	mov		[edi], 0
+	mov		ff, 1
+
 	symbol	[true], dword tstr
 	symbol	[false], dword fstr
 	symbol	eax, dword nilstr
