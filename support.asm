@@ -1,3 +1,5 @@
+%include 'system.inc'
+
 %define INBUF_SIZE	80
 %define OUTBUF_SIZE	80
 
@@ -23,15 +25,15 @@ section .text
 _isws:
 	enter	0, 0
 	mov		eax, [ebp + 8]
-	cmp		eax, '\n'
+	cmp		eax, 13		; \n
 	je		.true
-	cmp		eax, '\r'
+	cmp		eax, 10		; \r 
 	je		.true
-	cmp		eax, '\t'
+	cmp		eax, 9		; \t
 	je		.true
-	cmp		eax, ' '
+	cmp		eax, 32		; space 
 	je		.true
-	cmp		eax, 0
+	cmp		eax, 0		; \0
 	je		.true
 	mov		eax, 0
 	leave
@@ -60,17 +62,17 @@ _getline:
 		jl		.error
 		je		.eof
 		mov		dl, byte [ebx]
-		cmp		dl, '\n'
+		cmp		dl, 13			; \n
 		je		.done
-		cmp		dl, '\r'
+		cmp		dl, 10			; \r
 		je		.lineloop
-		cmp		dl, '\0'
+		cmp		dl, 0			; \0
 		je		.done
 		mov		byte [edi], dl
 		inc		edi	
 		loop	.lineloop
 .eof:
-	mov		[eof], 1
+	mov		dword [eof], 1
 .done:
 	mov		eax, edi
 	sub		eax, [ebp + 8]
@@ -128,15 +130,19 @@ _gettoken:
 		jmp		.loop
 .endloop:
 	mov		ebx, dword [char]
-	push	ebx
 
+	push	ebx
 	call	_isdigit
+	add		esp, 4
+
 	cmp		eax, 0
 	jne		.digit
 	cmp		ebx, '-'
 	je		.digit
 
+	push	ebx
 	call	_isletter
+	add		esp, 4
 	cmp		eax, 0
 	jne		.letter
 
@@ -145,6 +151,10 @@ _gettoken:
 	mov		byte [edi], bl 
 	inc		edi
 	call	_getchar	
+	jmp		.done
+	
+.eof:
+	mov		[ebp + 16], dword tt_eof
 	jmp		.done
 
 .digit:
@@ -191,10 +201,6 @@ _gettoken:
 		jmp		.alpha_loop
 .alpha_endloop:
 	mov		[ebp + 16], dword tt_alpha
-	jmp		.done
-	
-.eof:
-	mov		[ebp + 16], dword tt_eof
 
 .done:
 	mov		eax, edi
@@ -206,9 +212,9 @@ _gettoken:
 
 _scan:
 	enter	0, 0
-	push	[ebp + 16]
-	push	[ebp + 12]
-	push	[ebp + 8]
+	push	dword [ebp + 16]
+	push	dword [ebp + 12]
+	push	dword [ebp + 8]
 	call	_gettoken
 	mov		edx, [esp + 8]
 	add		esp, 12
@@ -288,6 +294,7 @@ _putchar:
 		push	dword outbuf
 		push	dword stdout
 		sys.write
+		add		esp, 12
 		mov		ecx, 0
 .endif:
 	mov		byte [outbuf + ecx], al
