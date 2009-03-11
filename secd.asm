@@ -340,8 +340,7 @@ _instr_DIV:
 	carcdr	eax, S		; EAX = car(cdr(S)), ECX = car(S), S' = cdr(cdr(S))
 	ivalue	eax
 	ivalue	ecx
-	mov		edx, eax
-	sar		edx, 31		; Extend sign of EAX into all bits of EDX
+	cdq					; Extend sign of EAX into all bits of EDX
 	div		ecx			; Compute EAX <-- EDX:EAX / ECX
 	number	eax, eax
 	cons	eax, S
