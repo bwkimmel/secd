@@ -72,7 +72,9 @@ _store:
 		; store.  If so, return that string
 		inc		edx
 		cmp		edx, HASH_SIZE
-		cmove	edx, 0
+		jne		.endif
+			mov		edx, 0
+	.endif:
 		loop	.probe_loop
 		jmp		.full
 .probe_endloop:
