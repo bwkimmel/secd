@@ -63,13 +63,14 @@ _test3:
 	enter	0, 0
 	push	esi
 	push	ebx
-	push	dword 0
+	sub		esp, 4
+	push	esp
 	push	dword 1024
 	push	dword buf
 	call	_gettoken
 	add		esp, 12
 .loop:
-		mov		ebx, [esp - 4]
+		mov		ebx, [esp]
 		cmp		ebx, dword tt_eof
 		je		.endloop
 
@@ -92,7 +93,7 @@ _test3:
 
 		call	_flush
 
-		push	dword 0
+		push	esp 
 		push	dword 1024
 		push	dword buf
 		call	_gettoken
@@ -100,6 +101,7 @@ _test3:
 		jmp		.loop
 .endloop:
 	
+	add		esp, 4
 	pop		ebx
 	pop		esi
 	leave
@@ -110,18 +112,18 @@ _test4:
 	push	esi
 	push	ebx
 	call	_init_strings
-	push	dword 0
+	sub		esp, 4
+	push	esp
 	push	dword 1024
 	push	dword buf
 	call	_gettoken
 	add		esp, 12
 .loop:
-		mov		ebx, [esp - 4]
+		mov		ebx, [esp]
 		cmp		ebx, dword tt_eof
 		jne		.continue
 		jmp		.endloop
 .continue:
-		
 
 		push	eax
 		push	dword buf
@@ -187,7 +189,7 @@ _test4:
 
 		call	_flush
 
-		push	dword 0
+		push	esp
 		push	dword 1024
 		push	dword buf
 		call	_gettoken
@@ -195,6 +197,7 @@ _test4:
 		jmp		.loop
 .endloop:
 	
+	add		esp, 4
 	pop		ebx
 	pop		esi
 	leave

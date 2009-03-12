@@ -1,8 +1,9 @@
 %include 'system.inc'
 %include 'secd.inc'
 
-%define INBUF_SIZE	1024
-%define OUTBUF_SIZE	1024
+%define INBUF_SIZE		1024
+%define OUTBUF_SIZE		1024
+%define MAX_TOKEN_SIZE	1024
 
 section .data
 	global tt_eof, tt_num, tt_alpha, tt_delim
@@ -24,6 +25,8 @@ outbuf		resb	OUTBUF_SIZE
 inbufptr	resd	1
 inbufend	resd	1
 char		resd	1
+token		resb	MAX_TOKEN_SIZE
+type		resd	1
 
 section .text
 	global _putchar, _length, _puttoken, _tostring, _tointeger, \
@@ -205,14 +208,16 @@ _gettoken:
 	jne		.letter
 
 .delimiter:
-	mov		[ebp + 16], dword tt_delim
+	mov		edx, [ebp + 16]
+	mov		[edx], dword tt_delim
 	mov		byte [edi], bl 
 	inc		edi
 	call	_getchar	
 	jmp		.done
 	
 .eof:
-	mov		[ebp + 16], dword tt_eof
+	mov		edx, [ebp + 16]
+	mov		[edx], dword tt_eof
 	jmp		.done
 
 .digit:
@@ -232,7 +237,8 @@ _gettoken:
 		mov		ebx, dword [char]
 		jmp		.digit_loop
 .digit_endloop:
-	mov		[ebp + 16], dword tt_num
+	mov		edx, [ebp + 16]
+	mov		[edx], dword tt_num
 	jmp		.done
 
 .letter:
@@ -258,7 +264,8 @@ _gettoken:
 		mov		ebx, dword [char]
 		jmp		.alpha_loop
 .alpha_endloop:
-	mov		[ebp + 16], dword tt_alpha
+	mov		edx, [ebp + 16]
+	mov		[edx], dword tt_alpha
 
 .done:
 	mov		eax, edi
@@ -271,20 +278,16 @@ _gettoken:
 
 _scan:
 	enter	0, 0
-	push	dword [ebp + 16]
-	push	dword [ebp + 12]
-	push	dword [ebp + 8]
+	push	dword type
+	push	dword MAX_TOKEN_SIZE
+	push	dword token
 	call	_gettoken
-	mov		edx, [esp + 8]
 	add		esp, 12
-	cmp		edx, tt_eof
+	cmp		[type], dword tt_eof
 	jne		.endif
-		push	edi
-		mov		edi, [ebp + 8]
-		mov		byte [edi], ')'
-		mov		eax, 1
+		mov		[type], byte ')'
+		mov		[type + 1], byte 0
 .endif:
-	mov		[ebp + 16], edx
 	leave
 	ret
 
