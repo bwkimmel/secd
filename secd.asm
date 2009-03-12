@@ -75,7 +75,7 @@ tstr		db		"T"
 tstr_len	equ		$ - tstr
 fstr		db		"F"
 fstr_len	equ		$ - fstr
-nilstr		db		"nil"
+nilstr		db		"NIL"
 nilstr_len	equ		$ - nilstr
 err_ii		db		"Illegal instruction", 10
 err_ii_len	equ		$ - err_ii
