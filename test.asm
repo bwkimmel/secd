@@ -14,7 +14,7 @@ segment .text
 	global start
 	extern _getchar, _putchar, _flush, _gettoken, _puttoken, _tointeger, \
 		_tostring, _store, _init_strings, _init, _cons, _car, _cdr, _ivalue, \
-		_number
+		_number, _scan, _putexp, _getexp, _exec, _getexplist
 	extern _putexp
 
 start:
@@ -23,7 +23,7 @@ start:
 	push	dword stdout
 	sys.write
 	add		esp, 12
-	call	_test6
+	call	_test9
 	push	dword 0
 	sys.exit
 
@@ -267,6 +267,65 @@ _test6:
 		cmp		ecx, 10
 		jle		.loop
 	push	edx
+	call	_putexp
+	add		esp, 4
+	call	_flush
+	leave
+	ret
+	
+_test7:
+	enter	0, 0
+	call	_init
+	call	_init_strings
+	call	_scan
+	call	_getexp
+	push	eax
+	call	_putexp
+	add		esp, 8
+	call	_flush
+	leave
+	ret
+	
+_test8:
+	enter	0, 0
+	call	_init_strings
+	call	_init
+	call	_scan
+.loop:
+	call	_getexp
+	push	eax
+	call	_putexp
+	add		esp, 8
+	call	_flush
+	jmp		.loop
+	leave
+	ret
+
+_test9:
+	enter	0, 0
+	call	_init_strings
+	call	_init
+	call	_scan
+	call	_getexp
+	mov		ebx, eax
+	call	_getexplist
+
+;	push	eax
+;	call	_putexp
+;	add		esp, 4
+;	push	ebx
+;	call	_putexp
+;	add		esp, 4
+;	call	_flush
+;	leave
+;	ret
+
+
+	push	eax
+	push	ebx
+	call	_exec
+	add		esp, 8
+	push	eax
 	call	_putexp
 	add		esp, 4
 	call	_flush

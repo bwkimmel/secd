@@ -4,6 +4,7 @@
 ; EDI - Head of free list (ff)
 
 %include 'secd.inc'
+%include 'system.inc'
 
 %define S ebx
 %define C esi
@@ -70,12 +71,14 @@
 
 
 segment .data
-tstr		db		"#t"
+tstr		db		"T"
 tstr_len	equ		$ - tstr
-fstr		db		"#f"
+fstr		db		"F"
 fstr_len	equ		$ - fstr
 nilstr		db		"nil"
 nilstr_len	equ		$ - nilstr
+err_ii		db		"Illegal instruction", 10
+err_ii_len	equ		$ - err_ii
 
 
 segment .bss
@@ -95,7 +98,8 @@ ffreg		resd	1
 
 segment .text
 	global _exec, _flags, _car, _cdr, _ivalue, _issymbol, _isnumber, \
-		_iscons, _cons, _svalue, _init, _number
+		_iscons, _cons, _svalue, _init, _number, _symbol
+	extern _store
 
 _car:
 	car		eax, eax
@@ -122,6 +126,12 @@ _cons:
 _number:
 	xchg	ff, [ffreg]
 	number	eax, eax
+	xchg	ff, [ffreg]
+	ret
+
+_symbol:
+	xchg	ff, [ffreg]
+	symbol	eax, eax
 	xchg	ff, [ffreg]
 	ret
 
@@ -161,11 +171,23 @@ _init:
 		loop	.init
 	mov		[edi], dword 0
 	mov		ff, 1
-	symbol	eax, dword tstr
+	push	dword tstr_len
+	push	dword tstr
+	call	_store
+	add		esp, 8
+	symbol	eax, eax
 	mov		[true], eax
-	symbol	eax, dword fstr
+	push	dword fstr_len
+	push	dword fstr
+	call	_store
+	add		esp, 8
+	symbol	eax, eax
 	mov		[false], eax
-	symbol	eax, dword nilstr
+	push	dword nilstr_len
+	push	dword nilstr
+	call	_store
+	add		esp, 8
+	symbol	eax, eax
 	mov		[nil], eax
 	mov		[ffreg], ff
 	leave
@@ -173,7 +195,9 @@ _init:
 
 _exec:
 	enter	0, 0
-	pusha
+	push	ebx
+	push	esi
+	push	edi
 	mov		ff, [ffreg]
 	mov		eax, [nil]
 	mov		C, [ebp + 8]	; C <-- fn
@@ -185,7 +209,23 @@ _exec:
 _cycle:
 	carcdr	eax, C
 	ivalue	eax	
+	cmp		eax, 1
+	jl		_illegal
+	cmp		eax, dword numinstr
+	jge		_illegal	
 	jmp		[dword _instr + eax * 4]
+
+_illegal:
+	push	dword err_ii_len
+	push	dword err_ii
+	push	dword stderr
+	sys.write
+	add		esp, 12
+	push	dword 1
+	sys.exit
+.stop:
+	jmp		.stop
+	
 
 _instr \
 	dd	0, \
@@ -194,21 +234,28 @@ _instr \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
 		_instr_STOP
+numinstr	equ		($ - _instr) >> 2
 	
 _instr_LD:
 	mov		eax, [E]	; W <-- E
-	mov		edx, C		; EDX <-- car(cdr(C)), C' <-- cdr(cdr(C))
+	carcdr	edx, C		; EDX <-- car(cdr(C)), C' <-- cdr(cdr(C))
 
 	carcdr	ecx, edx	; ECX <-- car(car(cdr(C))), EDX <-- cdr(car(cdr(C)))
+	ivalue	ecx
+	jcxz	.endloop1
 .loop1:					; FOR i = 1 TO car(car(cdr(C)))
 		cdr		eax, eax	; W <-- cdr(W)
 		loop	.loop1
+.endloop1:
 
 	car		eax, eax	; W <-- car(W)
 	mov		ecx, edx	; ECX <-- cdr(car(cdr(C)))
+	ivalue	ecx
+	jcxz	.endloop2
 .loop2:					; FOR i = 1 TO cdr(car(cdr(C)))
 		cdr		eax, eax	; W <-- cdr(W)
 		loop	.loop2
+.endloop2:
 
 	car		eax, eax	; W <-- car(W)
 	cons	eax, S
@@ -216,7 +263,7 @@ _instr_LD:
 	jmp		_cycle
 	
 _instr_LDC:
-	cdrcar	C, eax
+	carcdr	eax, C
 	xchg	S, eax
 	cons	S, eax
 	jmp		_cycle
@@ -249,7 +296,7 @@ _instr_RTN:
 	cons	S, eax		; S' <-- cons(car(S), car(D))
 	carcdr	eax, edx	; EAX <-- car(cdr(D)), EDX <-- cdr(cdr(D))
 	mov		[E], eax	; E' <-- car(cdr(D))
-	car		C, edx		; C' <-- car(cdr(cdr(D))), EDX <-- cdr(cdr(cdr(D)))
+	carcdr	C, edx		; C' <-- car(cdr(cdr(D))), EDX <-- cdr(cdr(cdr(D)))
 	mov		[D], edx	; D' <-- cdr(cdr(cdr(D)))
 	jmp		_cycle
 	
@@ -287,11 +334,17 @@ _instr_SEL:
 	mov		eax, C
 	carcdr	edx, eax	; EDX <-- car(cdr(C))
 	carcdr	ecx, eax	; ECX <-- car(cdr(cdr(C)), EAX <-- cdr(cdr(cdr(C)))
-	cons	eax, [D]	; D' <-- cons(cdr(cdr(cdr(C))), D)	
+	cons	eax, [D]	
+	mov		[D], eax	; D' <-- cons(cdr(cdr(cdr(C))), D)	
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
-	cmp		eax, [true]
+	push	S
+	mov		S, [true]
+	ivalue	S	
+	ivalue	eax
+	cmp		eax, S 
 	cmove	C, edx		; IF car(S) == true THEN C' <-- car(cdr(C))
 	cmovne	C, ecx		; IF car(S) != true THEN C' <-- car(cdr(cdr(C)))
+	pop		S
 	jmp		_cycle
 
 _instr_JOIN:
@@ -332,34 +385,16 @@ _instr_CONS:
 	
 _instr_EQ:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
-
-	push	eax
-	mov		ecx, eax	
-	and		ecx, 0x00000003
-	shl		ecx, 1
-	shr		eax, 2
 	mov		dl, byte [flags + eax]
-	shr		dl, cl		; DL <-- flags for car(S)
-
-	carcdr	eax, S		; EAX <-- car(cdr(S)), S' <-- cdr(cdr(S))
-	push	eax
-
-	mov		ecx, eax
-	and		ecx, 0x00000003
-	shl		ecx, 1
-	shr		eax, 2
-	mov		dh, byte [flags + eax]
-	shr		dh, cl		; DH <-- flags for car(cdr(S))
+	carcdr	ecx, S		; ECX <-- car(cdr(S)), S' <-- cdr(cdr(S))
+	mov		dh, byte [flags + ecx]
 	
-	pop		ecx			; ECX <-- car(cdr(S))
-	pop		eax			; EAX <-- car(S)
-
 	and		dx, 0x0101
 	cmp		dx, 0x0101
 	jne		.else
 	ivalue	eax
 	ivalue	ecx
-	cmp		eax, edx
+	cmp		eax, ecx
 	jne		.else		; IF isatom(car(S)) AND isatom(car(cdr(S))) AND
 						;    ivalue(car(S)) == ivalue(car(cdr(S))) THEN ...
 		mov		eax, [true]
@@ -442,8 +477,10 @@ _instr_LEQ:
 	jmp		_cycle
 
 _instr_STOP:
-	popa
 	car		eax, S
+	pop		edi
+	pop		esi
+	pop		ebx
 	leave
 	ret
 

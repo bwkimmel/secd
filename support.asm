@@ -31,16 +31,76 @@ type		resd	1
 section .text
 	global _putchar, _length, _puttoken, _tostring, _tointeger, \
 		_getchar, _gettoken, _isdigit, _isletter, _scan, _isws, \
-		_flush, _putexp, _getexp
-	extern _flags, _ivalue, _svalue, _car, _cdr
+		_flush, _putexp, _getexp, _getexplist
+	extern _flags, _ivalue, _svalue, _car, _cdr, _store, _cons, _symbol, \
+		_number
 
 _getexp:
 	enter	0, 0
+	cmp		[token], byte '('
+	jne		.elseif
+	cmp		[token + 1], byte 0
+	jne		.elseif
+		call	_scan
+		call	_getexplist
+		jmp		.endif
+
+.elseif:
+	cmp		[type], dword tt_num
+	jne		.else
+		push	dword MAX_TOKEN_SIZE
+		push	dword token
+		call	_tointeger
+		add		esp, 8
+		call	_number
+		jmp		.endif
+
+.else:
+		push	dword token
+		call	_length
+		add		esp, 4
+		push	eax
+		push	dword token
+		call	_store
+		add		esp, 8
+		call	_symbol
+	
+.endif:
+	push	eax
+	call	_scan
+	pop		eax
 	leave
 	ret
 
 _getexplist:
 	enter	0, 0
+	push	ebx
+	call	_getexp
+	mov		ebx, eax
+	cmp		[token], byte '.'
+	jne		.elseif
+	cmp		[token + 1], byte 0
+	jne		.else
+		call	_scan
+		call	_getexp
+		jmp		.endif		
+
+.elseif:
+	cmp		[token], byte ')'
+	jne		.else
+	cmp		[token + 1], byte 0
+	jne		.else
+		mov		eax, [nil]
+		jmp		.endif
+
+.else:
+	call	_getexplist
+
+.endif:
+	mov		edx, eax
+	mov		eax, ebx
+	call	_cons
+	pop		ebx
 	leave
 	ret
 
@@ -285,9 +345,11 @@ _scan:
 	add		esp, 12
 	cmp		[type], dword tt_eof
 	jne		.endif
-		mov		[type], byte ')'
-		mov		[type + 1], byte 0
+		mov		[type], dword tt_delim
+		mov		[token], byte ')'
+		mov		[token + 1], byte 0
 .endif:
+_xxx:
 	leave
 	ret
 
@@ -476,13 +538,15 @@ _length:
 	push	edi
 	mov		edx, [ebp + 8]
 	mov		edi, edx
+	mov		ecx, -1
 	mov		eax, 0
 	cld
-	rep		scasb
+.scan:
+	scasb
+	jnz		.scan
 	dec		edi
 	mov		eax, edi
 	sub		eax, edx
-	leave
 	pop		edi
 	leave
 	ret	
