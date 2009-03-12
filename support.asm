@@ -1,26 +1,113 @@
 %include 'system.inc'
+%include 'secd.inc'
 
-%define INBUF_SIZE	80
-%define OUTBUF_SIZE	80
+%define INBUF_SIZE	1024
+%define OUTBUF_SIZE	1024
 
 section .data
+	global tt_eof, tt_num, tt_alpha, tt_delim
+	extern nil
+
 tt_eof		db		"ENDFILE", 0
 tt_num		db		"NUMERIC", 0
 tt_alpha	db		"ALPHANUMERIC", 0
 tt_delim	db		"DELIMITER", 0
 eof			dd		0
+outbufind	dd		0
+open_paren	db		"("
+close_paren	db		")"
+dot			db		"."
 
 section .bss
 inbuf		resb	INBUF_SIZE
 outbuf		resb	OUTBUF_SIZE
-inbufend	resd	1
 inbufptr	resd	1
-outbufptr	resd	1
+inbufend	resd	1
 char		resd	1
 
 section .text
 	global _putchar, _length, _puttoken, _tostring, _tointeger, \
-		_getchar, _gettoken, _isdigit, _isletter, _getline, _scan, _isws
+		_getchar, _gettoken, _isdigit, _isletter, _scan, _isws, \
+		_flush, _putexp
+	extern _flags, _ivalue, _svalue, _car, _cdr
+
+_putexp:
+	enter	12, 0
+	push	ebx
+	mov		ebx, [ebp + 8]
+	mov		eax, ebx
+	call	_flags
+	test	eax, SECD_ATOM
+	jz		.putcons
+	test	eax, SECD_NUMBER
+	jz		.putsym
+.putint:
+	mov		eax, ebx
+	call	_ivalue
+	lea		ebx, [ebp - 12]
+	push	ebx
+	push	eax
+	call	_tostring
+	add		esp, 8
+	push	dword 12
+	push	ebx
+	call	_puttoken
+	add		esp, 8
+	jmp		.done
+.putsym:
+	mov		eax, ebx
+	call	_ivalue
+	mov		ebx, eax
+	push	eax
+	call	_length
+	add		esp, 4
+	push	eax
+	push	ebx
+	call	_puttoken
+	add		esp, 8
+	jmp		.done
+.putcons:
+	push	dword 1
+	push	dword open_paren
+	call	_puttoken
+	add		esp, 8	
+.consloop:
+		mov		eax, ebx
+		call	_car
+		push	eax		
+		call	_putexp
+		add		esp, 4
+		mov		eax, ebx
+		call	_cdr
+		mov		ebx, eax
+		call	_flags
+		cmp		eax, 0
+		je		.consloop	
+	cmp		eax, SECD_ATOM
+	jne		.cons_end
+	mov		eax, ebx
+	call	_ivalue	
+	cmp		eax, [nil]
+	push	dword 1
+	push	dword dot
+	call	_puttoken
+	add		esp, 8
+	push	ebx
+	call	_length
+	add		esp, 4
+	push	eax
+	push	ebx
+	call	_puttoken
+	add		esp, 8
+.cons_end:
+	push	dword 1
+	push	dword close_paren
+	call	_puttoken
+	add		esp, 8
+.done:
+	pop		ebx
+	leave
+	ret
 
 _isws:
 	enter	0, 0
@@ -43,74 +130,38 @@ _isws:
 	leave
 	ret
 
-_getline:
+_getchar:
 	enter	0, 0
-	push	ebx
-	push	edi
-	sub		esp, 4
-	mov		ebx, esp
-	mov		edi, [ebp + 8]		; destination buffer
-	mov		ecx, [ebp + 12]		; maximum length
-.lineloop:
-		push	dword 0			; offset
-		push	dword 1			; number of bytes
-		push	ebx				; buffer
-		push	dword stdin		; file descriptor
-		sys.read	
-		add		esp, 16
+	push	esi
+	mov		esi, [inbufptr]
+	cmp		esi, [inbufend]
+	jl		.endif
+		push	dword 0
+		push	dword INBUF_SIZE
+		push	dword inbuf
+		push	dword stdin
+		sys.read
+		add		esp, 12
 		cmp		eax, 0
-		jl		.error
 		je		.eof
-		mov		dl, byte [ebx]
-		cmp		dl, 13			; \n
-		je		.done
-		cmp		dl, 10			; \r
-		je		.lineloop
-		cmp		dl, 0			; \0
-		je		.done
-		mov		byte [edi], dl
-		inc		edi	
-		loop	.lineloop
-.eof:
-	mov		dword [eof], 1
+		jl		.error
+		mov		esi, dword inbuf
+		add		eax, esi
+		mov		[inbufend], eax
+.endif:
+	mov		eax, 0
+	mov		al, byte [esi]
+	mov		[char], eax
+	inc		esi
+	mov		[inbufptr], esi
 .done:
-	mov		eax, edi
-	sub		eax, [ebp + 8]
-	add		esp, 4
-	pop		edi
-	pop		ebx
+	pop		esi
 	leave
 	ret
 .error:
-	mov		eax, -1
-	add		esp, 4
-	pop		edi
-	pop		ebx
-	leave
-	ret
-
-_getchar:
-	enter	0, 0
-	mov		ecx, [inbufptr]
-	cmp		ecx, [inbufend]
-	jle		.endif
-		; getline
-		push	dword OUTBUF_SIZE
-		push	dword inbuf
-		call	_getline
-		add		esp, 8
-		mov		ecx, 0
-		; FIXME: check for EAX < 0 (error)
-		;cmp		eax, 0
-		;jl		.error
-.endif:
-	mov		eax, 0
-	mov		al, byte [inbuf + ecx]
-	mov		dword [char], eax
-	inc		ecx
-	mov		[inbufptr], ecx
-	leave
-	ret	
+.eof:
+	mov		[eof], dword 1
+	jmp		.done
 
 _gettoken:
 	enter	0, 0
@@ -161,7 +212,7 @@ _gettoken:
 	mov		byte [edi], bl
 	inc		edi
 	call	_getchar
-	mov		ebx, dword [char]	
+	mov		ebx, dword [char]
 .digit_loop:
 		push	ebx
 		call	_isdigit
@@ -205,6 +256,7 @@ _gettoken:
 .done:
 	mov		eax, edi
 	sub		eax, [ebp + 8]
+	mov		[edi], byte 0
 	pop		edi
 	pop		ebx
 	leave
@@ -266,31 +318,48 @@ _isletter:
 
 _puttoken:
 	enter	0, 0
+	push	ebx
 	mov		edx, [ebp + 8]
-	mov		ecx, [ebp + 12]
-	cmp		ecx, 0
+	mov		ebx, [ebp + 12]
+	cmp		ebx, 0
 	jle		.done
 .loop:
 		mov		eax, 0
 		mov		al, byte [edx]
 		cmp		al, 0
-		jz		.done
+		je		.done
 		push	eax
 		call	_putchar
 		add		esp, 4
-		dec		ecx
+		inc		edx
+		dec		ebx
 		jnz		.loop
 .done:
+	push	dword ' '
+	call	_putchar
+	add		esp, 4
+	pop		ebx
+	leave
+	ret
+
+_flush:
+	enter	0, 0
+	push	dword [outbufind]
+	push	dword outbuf
+	push	dword stdout
+	sys.write
+	add		esp, 12
+	mov		dword [outbufind], 0
 	leave
 	ret
 
 _putchar:
 	enter	0, 0
 	mov		eax, [ebp + 8]
-	mov		ecx, [outbufptr]
+	mov		ecx, [outbufind]
 	cmp		ecx, OUTBUF_SIZE
 	jb		.endif
-		push	dword outbufptr
+		push	dword OUTBUF_SIZE 
 		push	dword outbuf
 		push	dword stdout
 		sys.write
@@ -299,7 +368,7 @@ _putchar:
 .endif:
 	mov		byte [outbuf + ecx], al
 	inc		ecx
-	mov		[outbufptr], ecx
+	mov		[outbufind], ecx
 	leave
 	ret
 
@@ -316,8 +385,10 @@ _tointeger:
 .loop:
 		mov		dl, byte [esi]
 		sub		dl, '0'
+		jo		.done
+		jc		.done
 		cmp		dl, '9'
-		ja		.done
+		jg		.done
 		mov		ebx, eax
 		shl		eax, 2
 		add		eax, ebx
@@ -354,9 +425,7 @@ _tostring:
 	mov		ebx, 10				; We are going to be dividing by 10
 	mov		esi, esp
 	sub		esp, 12
-	dec		esi
-	mov		byte [esi], '0'
-	mov		ecx, 1
+	mov		ecx, 0
 
 .loop:
 		mov		edx, 0			; Sign extend abs(EAX) into EDX for div
@@ -368,10 +437,11 @@ _tostring:
 		cmp		eax, 0
 		jne		.loop
 
-.done:
 	cld
 	rep		movsb
 	add		esp, 12
+.done:
+	mov		[edi], byte 0
 	pop		edi
 	pop		esi
 	pop		ebx
@@ -380,7 +450,7 @@ _tostring:
 
 .zero:
 	mov		[edi], byte '0'
-	mov		[edi + 1], byte 0
+	inc		edi
 	jmp		.done	
 
 .negative:

@@ -3,6 +3,8 @@
 ; ESI - (C)ontrol
 ; EDI - Head of free list (ff)
 
+%include 'secd.inc'
+
 %define S ebx
 %define C esi
 %define ff edi
@@ -35,28 +37,35 @@
 	mov		%1, [dword values + %1 * 4]
 %endmacro
 
-%macro alloc 2
+%macro alloc 3
 	cmp		ff, 0
 	jne		%%nogc
 	call	_gc
 %%nogc:
-	mov		[dword values + ff * 4], %2
+	mov		[flags + ff], byte %3
+%ifidni %1,%2
+	xchg	%1, ff
+	xchg	ff, [dword values + %1 * 4]
+	and		ff, 0xffff
+%else
 	mov		%1, ff
 	cdr		ff, ff
+	mov		[dword values + %1 * 4], %2
+%endif
 %endmacro
 
 %macro cons 2
 	shl		%1, 16
 	or		%1, %2
-	alloc	%1, %1
+	alloc	%1, %1, 0
 %endmacro
 
 %macro number 2
-	alloc	%1, %2
+	alloc	%1, %2, (SECD_ATOM | SECD_NUMBER) 
 %endmacro
 
 %macro symbol 2
-	alloc	%1, %2
+	alloc	%1, %2, (SECD_ATOM)
 %endmacro
 
 
@@ -70,23 +79,77 @@ nilstr_len	equ		$ - nilstr
 
 
 segment .bss
+	global nil
 values		resd	65536	; Storage for cons cells and ivalues
-flags		resb	16384	; Storage for isatom and isnumber bits
+flags		resb	65536	; Storage for isatom and isnumber bits
 
 E			resd	1		; (E)nvironment register
 D			resd	1		; (D)ump register
 true		resd	1		; true register
 false		resd	1		; false register
 nil			resd	1		; nil register
+Sreg		resd	1
+Creg		resd	1
+ffreg		resd	1
 
 
 segment .text
-	global _exec
+	global _exec, _flags, _car, _cdr, _ivalue, _issymbol, _isnumber, \
+		_iscons, _cons, _svalue, _init, _number
 
-_exec:
+_car:
+	car		eax, eax
+	ret
+
+_cdr:
+	cdr		eax, eax
+	ret
+
+_ivalue:
+	ivalue	eax
+	ret
+
+_svalue:
+	ivalue	eax
+	ret
+
+_cons:
+	xchg	ff, [ffreg]
+	cons	eax, edx
+	xchg	ff, [ffreg]
+	ret
+
+_number:
+	xchg	ff, [ffreg]
+	number	eax, eax
+	xchg	ff, [ffreg]
+	ret
+
+_flags:
+	mov		al, byte [flags + eax]
+	and		eax, 0x000000ff
+	ret
+
+_issymbol:
+	call	_flags
+	cmp		eax, (SECD_ATOM)
+	sete	al	
+	ret
+
+_isnumber:
+	call	_flags
+	cmp		eax, (SECD_ATOM | SECD_NUMBER) 
+	sete	al
+	ret
+
+_iscons:
+	call	_flags
+	cmp		eax, 0
+	sete	al
+	ret
+
+_init:
 	enter	0, 0
-	pusha
-
 	; Initialize free list
 	mov		eax, 1
 	lea		edi, [dword values + 4]
@@ -96,13 +159,24 @@ _exec:
 		inc		eax
 		stosd
 		loop	.init
-	mov		[edi], 0
+	mov		[edi], dword 0
 	mov		ff, 1
-
-	symbol	[true], dword tstr
-	symbol	[false], dword fstr
+_xxx:
+	symbol	eax, dword tstr
+	mov		[true], eax
+	symbol	eax, dword fstr
+	mov		[false], eax
 	symbol	eax, dword nilstr
 	mov		[nil], eax
+	mov		[ffreg], ff
+	leave
+	ret
+
+_exec:
+	enter	0, 0
+	pusha
+	mov		ff, [ffreg]
+	mov		eax, [nil]
 	mov		C, [ebp + 8]	; C <-- fn
 	mov		S, [ebp + 12]	; S <-- args
 	cons	S, eax
@@ -241,12 +315,8 @@ _instr_CDR:
 
 _instr_ATOM:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
-	mov		ecx, eax 
-	and		ecx, 0x00000003
-	shl		ecx, 1
-	shr		eax, 2
 	mov		dl, byte [flags + eax]
-	shr		dl, cl		; DL <-- flags for EAX = car(S)
+						; DL <-- flags for EAX = car(S)
 	test	dl, 0x03
 	cmovnz	eax, [true]		; IF (isnumber OR issymbol) THEN EAX <-- true
 	cmovz	eax, [false]	; IF (!isnumber AND !issymbol) THEN EAX <-- false

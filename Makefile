@@ -8,6 +8,9 @@ AS=nasm
 ARCH=macho
 ASFLAGS=-f $(ARCH)
 
+test: support.o string.o secd.o test.o
+	ld -o test $^
+
 all: $(TARGETS)
 
 lisp: driver.o main.o lisp.o cons.o
