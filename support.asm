@@ -28,11 +28,21 @@ char		resd	1
 section .text
 	global _putchar, _length, _puttoken, _tostring, _tointeger, \
 		_getchar, _gettoken, _isdigit, _isletter, _scan, _isws, \
-		_flush, _putexp
+		_flush, _putexp, _getexp
 	extern _flags, _ivalue, _svalue, _car, _cdr
 
+_getexp:
+	enter	0, 0
+	leave
+	ret
+
+_getexplist:
+	enter	0, 0
+	leave
+	ret
+
 _putexp:
-	enter	12, 0
+	enter	0, 0
 	push	ebx
 	mov		ebx, [ebp + 8]
 	mov		eax, ebx
@@ -44,7 +54,8 @@ _putexp:
 .putint:
 	mov		eax, ebx
 	call	_ivalue
-	lea		ebx, [ebp - 12]
+	sub		esp, 12
+	mov		ebx, esp
 	push	ebx
 	push	eax
 	call	_tostring
@@ -52,7 +63,7 @@ _putexp:
 	push	dword 12
 	push	ebx
 	call	_puttoken
-	add		esp, 8
+	add		esp, 20 
 	jmp		.done
 .putsym:
 	mov		eax, ebx
@@ -84,21 +95,17 @@ _putexp:
 		cmp		eax, 0
 		je		.consloop	
 	cmp		eax, SECD_ATOM
-	jne		.cons_end
-	mov		eax, ebx
-	call	_ivalue	
-	cmp		eax, [nil]
+	jne		.cons_dot
+	cmp		ebx, [nil]
+	je		.cons_end
+.cons_dot:
 	push	dword 1
 	push	dword dot
 	call	_puttoken
 	add		esp, 8
 	push	ebx
-	call	_length
+	call	_putexp
 	add		esp, 4
-	push	eax
-	push	ebx
-	call	_puttoken
-	add		esp, 8
 .cons_end:
 	push	dword 1
 	push	dword close_paren
@@ -319,25 +326,27 @@ _isletter:
 _puttoken:
 	enter	0, 0
 	push	ebx
-	mov		edx, [ebp + 8]
+	push	esi
+	mov		esi, [ebp + 8]
 	mov		ebx, [ebp + 12]
 	cmp		ebx, 0
 	jle		.done
 .loop:
 		mov		eax, 0
-		mov		al, byte [edx]
+		mov		al, byte [esi]
 		cmp		al, 0
 		je		.done
 		push	eax
 		call	_putchar
 		add		esp, 4
-		inc		edx
+		inc		esi
 		dec		ebx
 		jnz		.loop
 .done:
 	push	dword ' '
 	call	_putchar
 	add		esp, 4
+	pop		esi
 	pop		ebx
 	leave
 	ret
@@ -461,16 +470,17 @@ _tostring:
 
 _length:
 	enter	0, 0
-	push	esi
+	push	edi
 	mov		edx, [ebp + 8]
-	mov		esi, edx
+	mov		edi, edx
 	mov		eax, 0
 	cld
 	rep		scasb
-	dec		esi
-	mov		eax, esi
+	dec		edi
+	mov		eax, edi
 	sub		eax, edx
-	pop		esi
+	leave
+	pop		edi
 	leave
 	ret	
 

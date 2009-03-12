@@ -161,7 +161,6 @@ _init:
 		loop	.init
 	mov		[edi], dword 0
 	mov		ff, 1
-_xxx:
 	symbol	eax, dword tstr
 	mov		[true], eax
 	symbol	eax, dword fstr

@@ -266,6 +266,7 @@ _test6:
 	push	edx
 	call	_putexp
 	add		esp, 4
+	call	_flush
 	leave
 	ret
 	
