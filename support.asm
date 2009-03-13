@@ -2,7 +2,7 @@
 %include 'secd.inc'
 
 %define INBUF_SIZE		1024
-%define OUTBUF_SIZE		1024
+%define OUTBUF_SIZE		80
 %define MAX_TOKEN_SIZE	1024
 
 section .data
@@ -429,17 +429,17 @@ _flush:
 
 _putchar:
 	enter	0, 0
-	mov		eax, [ebp + 8]
 	mov		ecx, [outbufind]
 	cmp		ecx, OUTBUF_SIZE
 	jb		.endif
-		push	dword OUTBUF_SIZE 
+		push	dword OUTBUF_SIZE
 		push	dword outbuf
 		push	dword stdout
 		sys.write
 		add		esp, 12
 		mov		ecx, 0
 .endif:
+	mov		eax, [ebp + 8]
 	mov		byte [outbuf + ecx], al
 	inc		ecx
 	mov		[outbufind], ecx

@@ -6,6 +6,8 @@
 %include 'secd.inc'
 %include 'system.inc'
 
+%define SECD_MARKED 0x80
+
 %define S ebx
 %define C esi
 %define ff edi
@@ -79,6 +81,8 @@ nilstr		db		"NIL"
 nilstr_len	equ		$ - nilstr
 err_ii		db		"Illegal instruction", 10
 err_ii_len	equ		$ - err_ii
+err_hf		db		"Out of heap space", 10
+err_hf_len	equ		$ - err_hf
 
 
 segment .bss
@@ -163,7 +167,7 @@ _init:
 	; Initialize free list
 	mov		eax, 1
 	lea		edi, [dword values + 4]
-	mov		ecx, 65534
+	mov		ecx, 65535
 	cld
 .init:
 		inc		eax
@@ -485,6 +489,82 @@ _instr_STOP:
 	ret
 
 _gc:
-	; TODO: Implement this
+	push	eax
+	push	ecx
+	push	edx
+	push	S
+	push	C
+
+	; Clear all marks
+	mov		ecx, 65536
+	mov		edx, dword flags
+.loop_clearmarks:
+		and		[edx], byte ~SECD_MARKED
+		inc		edx
+		dec		ecx
+		jnz		.loop_clearmarks
+
+	mov		eax, S
+	call	_mark
+	mov		eax, C
+	call	_mark
+	mov		eax, [E]
+	call	_mark
+	mov		eax, [D]
+	call	_mark
+	mov		eax, [true]
+	call	_mark
+	mov		eax, [false]
+	call	_mark
+	mov		eax, [nil]
+	call	_mark
+
+	mov		ecx, 65535 
+.loop_scan:
+		mov		al, byte [flags + ecx]
+		test	al, SECD_MARKED
+		jnz		.endif
+			mov		dword [values + ecx * 4], ff
+			mov		ff, ecx		
+	.endif:
+		dec		ecx
+		jnz		.loop_scan
+
+	pop		C
+	pop		S
+	pop		edx
+	pop		ecx
+	pop		eax
+
+	cmp		ff, 0
+	je		.out_of_space
 	ret
 
+.out_of_space:
+	push	dword err_hf_len
+	push	dword err_hf
+	push	dword stderr
+	sys.write
+	add		esp, 12
+	push	dword 1
+	sys.exit
+	add		esp, 4
+.halt:
+	jmp		.halt	
+
+
+_mark:
+	mov		dl, byte [flags + eax]
+	test	dl, SECD_MARKED
+	jnz		.endif
+		or		dl, SECD_MARKED
+		mov		byte [flags + eax], dl
+		test	dl, SECD_ATOM
+		jnz		.endif
+			cdrcar	edx, eax
+			push	edx
+			call	_mark
+			pop		eax
+			call	_mark
+.endif:
+	ret

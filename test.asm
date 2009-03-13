@@ -18,11 +18,11 @@ segment .text
 	extern _putexp
 
 start:
-	push	dword hello_len
-	push	dword hello
-	push	dword stdout
-	sys.write
-	add		esp, 12
+;	push	dword hello_len
+;	push	dword hello
+;	push	dword stdout
+;	sys.write
+;	add		esp, 12
 	call	_test9
 	push	dword 0
 	sys.exit
