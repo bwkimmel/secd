@@ -1,7 +1,7 @@
 # define targets here
-TARGETS=secd
+TARGETS=compiler.lob
 
-CLEANFILES=$(TARGETS) *.o
+CLEANFILES=$(TARGETS) secd *.o
 
 CC=gcc
 AS=nasm
@@ -17,6 +17,9 @@ clean:
 	-rm -f $(CLEANFILES)
 
 redo: clean all
+
+compiler.lob: APENDIX2.LSO APENDIX2.LOB secd
+	cat APENDIX2.LOB APENDIX2.LSO | ./secd > $@	
 
 %.o : %.c
 	$(CC) -c $< -o $@
