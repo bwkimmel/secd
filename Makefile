@@ -1,5 +1,5 @@
 # define targets here
-TARGETS=lisp
+TARGETS=secd
 
 CLEANFILES=$(TARGETS) *.o
 
@@ -8,13 +8,10 @@ AS=nasm
 ARCH=macho
 ASFLAGS=-f $(ARCH)
 
-test: support.o string.o secd.o test.o
-	ld -o test $^
-
 all: $(TARGETS)
 
-lisp: driver.o main.o lisp.o cons.o
-	gcc -o lisp $^
+secd: support.o string.o secd.o test.o
+	ld -o secd $^
 
 clean:
 	-rm -f $(CLEANFILES)
