@@ -155,11 +155,16 @@ _putexp:
 		call	_cdr
 		mov		ebx, eax
 		call	_flags
+		and		eax, 0x03
 		cmp		eax, 0
 		je		.consloop	
 	cmp		eax, SECD_ATOM
 	jne		.cons_dot
-	cmp		ebx, [nil]
+	mov		eax, [nil]
+	call	_ivalue
+	xchg	eax, ebx
+	call	_ivalue
+	cmp		eax, ebx	
 	je		.cons_end
 .cons_dot:
 	push	dword 1
@@ -349,7 +354,6 @@ _scan:
 		mov		[token], byte ')'
 		mov		[token + 1], byte 0
 .endif:
-_xxx:
 	leave
 	ret
 

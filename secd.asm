@@ -146,18 +146,21 @@ _flags:
 
 _issymbol:
 	call	_flags
+	and		eax, 0x03
 	cmp		eax, (SECD_ATOM)
 	sete	al	
 	ret
 
 _isnumber:
 	call	_flags
+	and		eax, 0x03
 	cmp		eax, (SECD_ATOM | SECD_NUMBER) 
 	sete	al
 	ret
 
 _iscons:
 	call	_flags
+	and		eax, 0x03
 	cmp		eax, 0
 	sete	al
 	ret
