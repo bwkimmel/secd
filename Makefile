@@ -10,7 +10,7 @@ ASFLAGS=-f $(ARCH)
 
 all: $(TARGETS)
 
-secd: support.o string.o secd.o test.o
+secd: support.o string.o secd.o main.o
 	ld -o secd $^
 
 clean:
