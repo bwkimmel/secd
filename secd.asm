@@ -83,6 +83,10 @@ err_ii		db		"Illegal instruction", 10
 err_ii_len	equ		$ - err_ii
 err_hf		db		"Out of heap space", 10
 err_hf_len	equ		$ - err_hf
+err_car		db		"Attempt to CAR an atom", 10
+err_car_len	equ		$ - err_car
+err_cdr		db		"Attempt to CDR an atom", 10
+err_cdr_len	equ		$ - err_cdr
 
 
 segment .bss
@@ -362,12 +366,38 @@ _instr_JOIN:
 
 _instr_CAR:
 	cdrcar	eax, S
+	mov		edx, [flags + S]
+	test	edx, SECD_ATOM
+	jz		.endif
+		push	dword err_car_len
+		push	dword err_car
+		push	dword stderr
+		sys.write
+		add		esp, 12
+		push	dword 1
+		sys.exit
+.halt:
+		jmp		.halt
+.endif:
 	car		S, S
 	cons	S, eax 
 	jmp		_cycle
 	
 _instr_CDR:
 	cdrcar	eax, S
+	mov		edx, [flags + S]
+	test	edx, SECD_ATOM
+	jz		.endif
+		push	dword err_cdr_len
+		push	dword err_cdr
+		push	dword stderr
+		sys.write
+		add		esp, 12
+		push	dword 1
+		sys.exit
+.halt:
+		jmp		.halt
+.endif:
 	cdr		S, S
 	cons	S, eax
 	jmp		_cycle
