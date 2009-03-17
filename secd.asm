@@ -60,15 +60,15 @@
 %macro cons 2
 	shl		%1, 16
 	or		%1, %2
-	alloc	%1, %1, 0
+	alloc	%1, %1, SECD_CONS
 %endmacro
 
 %macro number 2
-	alloc	%1, %2, (SECD_ATOM | SECD_NUMBER) 
+	alloc	%1, %2, SECD_NUMBER
 %endmacro
 
 %macro symbol 2
-	alloc	%1, %2, (SECD_ATOM)
+	alloc	%1, %2, SECD_SYMBOL
 %endmacro
 
 
@@ -150,22 +150,22 @@ _flags:
 
 _issymbol:
 	call	_flags
-	and		eax, 0x03
-	cmp		eax, (SECD_ATOM)
+	and		eax, SECD_TYPEMASK
+	cmp		eax, SECD_SYMBOL
 	sete	al	
 	ret
 
 _isnumber:
 	call	_flags
-	and		eax, 0x03
-	cmp		eax, (SECD_ATOM | SECD_NUMBER) 
+	and		eax, SECD_TYPEMASK
+	cmp		eax, SECD_NUMBER
 	sete	al
 	ret
 
 _iscons:
 	call	_flags
-	and		eax, 0x03
-	cmp		eax, 0
+	and		eax, SECD_TYPEMASK
+	cmp		eax, SECD_CONS
 	sete	al
 	ret
 
@@ -410,7 +410,7 @@ _instr_ATOM:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
 	mov		dl, byte [flags + eax]
 						; DL <-- flags for EAX = car(S)
-	test	dl, 0x03
+	test	dl, SECD_ATOM 
 	cmovnz	eax, [true]		; IF (isnumber OR issymbol) THEN EAX <-- true
 	cmovz	eax, [false]	; IF (!isnumber AND !issymbol) THEN EAX <-- false
 	cons	eax, S
@@ -529,8 +529,8 @@ _instr_SYM:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
 	mov		dl, byte [flags + eax]
 						; DL <-- flags for EAX = car(S)
-	and		dl, 0x03
-	cmp		dl, SECD_ATOM
+	and		dl, SECD_TYPEMASK
+	cmp		dl, SECD_SYMBOL
 	cmove	eax, [true]		; IF (issymbol) THEN EAX <-- true
 	cmovne	eax, [false]	; IF (!issymbol) THEN EAX <-- false
 	cons	eax, S
@@ -541,8 +541,8 @@ _instr_NUM:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
 	mov		dl, byte [flags + eax]
 						; DL <-- flags for EAX = car(S)
-	and		dl, 0x03
-	cmp		dl, (SECD_ATOM | SECD_NUMBER)
+	and		dl, SECD_TYPEMASK
+	cmp		dl, SECD_NUMBER
 	cmove	eax, [true]		; IF (isnumber) THEN EAX <-- true
 	cmovne	eax, [false]	; IF (!isnumber) THEN EAX <-- false
 	cons	eax, S
