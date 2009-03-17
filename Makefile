@@ -20,9 +20,6 @@ clean:
 
 redo: clean all
 
-compiler.lob: APENDIX2.LSO APENDIX2.LOB secd
-	cat APENDIX2.LOB APENDIX2.LSO | ./secd > $@	
-
 %.o : %.c
 	$(CC) -c $< -o $@
 
