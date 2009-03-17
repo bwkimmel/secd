@@ -212,10 +212,12 @@ _exec:
 	mov		ff, [ffreg]
 	mov		eax, [nil]
 	mov		C, [ebp + 8]	; C <-- fn
+	and		C, 0xffff
 	mov		S, [ebp + 12]	; S <-- args
-	cons	S, eax
+	and		S, 0xffff
 	mov		[E], eax
 	mov		[D], eax
+	cons	S, eax
 	
 _cycle:
 	carcdr	eax, C
@@ -244,7 +246,7 @@ _instr \
 		_instr_DUM , _instr_RAP , _instr_SEL , _instr_JOIN, _instr_CAR , \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
-		_instr_STOP
+		_instr_STOP, _instr_SYM , _instr_NUM
 numinstr	equ		($ - _instr) >> 2
 	
 _instr_LD:
@@ -336,9 +338,10 @@ _instr_RAP:
 	or		S, ecx
 	mov		[dword values + edx * 4], S
 
+	mov		S, [nil]	; S' <-- nil
+
 	cons	eax, C		; EAX <-- cons(cdr(E)
 	
-	mov		S, [nil]	; S' <-- nil
 	jmp		_cycle
 
 _instr_SEL:
@@ -376,6 +379,7 @@ _instr_CAR:
 		add		esp, 12
 		push	dword 1
 		sys.exit
+		add		esp, 4
 .halt:
 		jmp		.halt
 .endif:
@@ -521,6 +525,31 @@ _instr_STOP:
 	leave
 	ret
 
+_instr_SYM:
+	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
+	mov		dl, byte [flags + eax]
+						; DL <-- flags for EAX = car(S)
+	and		dl, 0x03
+	cmp		dl, SECD_ATOM
+	cmove	eax, [true]		; IF (issymbol) THEN EAX <-- true
+	cmovne	eax, [false]	; IF (!issymbol) THEN EAX <-- false
+	cons	eax, S
+	mov		S, eax		; S' <-- cons(true/false, cdr(S))
+	jmp		_cycle
+
+_instr_NUM:
+	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
+	mov		dl, byte [flags + eax]
+						; DL <-- flags for EAX = car(S)
+	and		dl, 0x03
+	cmp		dl, (SECD_ATOM | SECD_NUMBER)
+	cmove	eax, [true]		; IF (isnumber) THEN EAX <-- true
+	cmovne	eax, [false]	; IF (!isnumber) THEN EAX <-- false
+	cons	eax, S
+	mov		S, eax		; S' <-- cons(true/false, cdr(S))
+	jmp		_cycle
+
+
 _gc:
 	push	eax
 	push	ecx
@@ -537,8 +566,23 @@ _gc:
 		dec		ecx
 		jnz		.loop_clearmarks
 
+	test	S, 0xffff0000
+	jz		.endif1
+		mov		eax, S
+		shr		eax, 16
+		call	_mark
+		and		S, 0xffff
+.endif1:
 	mov		eax, S
 	call	_mark
+	
+	test	C, 0xffff0000
+	jz		.endif2
+		mov		eax, C
+		shr		eax, 16
+		call	_mark
+		and		C, 0xffff
+.endif2:
 	mov		eax, C
 	call	_mark
 	mov		eax, [E]
@@ -552,7 +596,7 @@ _gc:
 	mov		eax, [nil]
 	call	_mark
 
-	mov		ecx, 65535 
+	mov		ecx, 65535
 .loop_scan:
 		mov		al, byte [flags + ecx]
 		test	al, SECD_MARKED
