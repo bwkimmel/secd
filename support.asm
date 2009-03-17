@@ -112,8 +112,9 @@ _putexp:
 	call	_flags
 	test	eax, SECD_ATOM
 	jz		.putcons
-	test	eax, SECD_NUMBER
-	jz		.putsym
+	and		eax, SECD_TYPEMASK
+	cmp		eax, SECD_SYMBOL
+	je		.putsym
 .putint:
 	mov		eax, ebx
 	call	_ivalue
@@ -155,10 +156,10 @@ _putexp:
 		call	_cdr
 		mov		ebx, eax
 		call	_flags
-		and		eax, 0x03
-		cmp		eax, 0
+		and		eax, SECD_TYPEMASK
+		cmp		eax, SECD_CONS
 		je		.consloop	
-	cmp		eax, SECD_ATOM
+	cmp		eax, SECD_SYMBOL
 	jne		.cons_dot
 	mov		eax, [nil]
 	call	_ivalue
