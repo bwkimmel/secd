@@ -217,7 +217,7 @@ _getchar:
 		push	dword inbuf
 		push	dword stdin
 		sys.read
-		add		esp, 12
+		add		esp, 16
 		cmp		eax, 0
 		je		.eof
 		jl		.error
@@ -236,6 +236,7 @@ _getchar:
 	ret
 .error:
 .eof:
+	mov		eax, -1
 	mov		[eof], dword 1
 	jmp		.done
 
