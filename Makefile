@@ -1,7 +1,7 @@
 # define targets here
-TARGETS=compiler.lob
+TARGETS=secd
 
-CLEANFILES=$(TARGETS) secd *.o
+CLEANFILES=$(TARGETS) *.o
 
 CC=gcc
 AS=nasm
@@ -26,5 +26,5 @@ redo: clean all
 %.o : %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 
-%.lob : %.lso compiler.lob secd
+%.lob : %.lso secd
 	cat compiler.lob $< | ./secd > $@
