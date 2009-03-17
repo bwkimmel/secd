@@ -107,7 +107,7 @@ ffreg		resd	1
 segment .text
 	global _exec, _flags, _car, _cdr, _ivalue, _issymbol, _isnumber, \
 		_iscons, _cons, _svalue, _init, _number, _symbol
-	extern _store
+	extern _store, _getchar, _putchar
 
 _car:
 	car		eax, eax
@@ -246,7 +246,7 @@ _instr \
 		_instr_DUM , _instr_RAP , _instr_SEL , _instr_JOIN, _instr_CAR , \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
-		_instr_STOP, _instr_SYM , _instr_NUM
+		_instr_STOP, _instr_SYM , _instr_NUM , _instr_GET , _instr_PUT
 numinstr	equ		($ - _instr) >> 2
 	
 _instr_LD:
@@ -548,6 +548,23 @@ _instr_NUM:
 	cons	eax, S
 	mov		S, eax		; S' <-- cons(true/false, cdr(S))
 	jmp		_cycle
+
+_instr_GET:
+	call	_getchar
+	number	eax, eax
+	cons	eax, S
+	mov		S, eax
+	jmp		_cycle
+
+_instr_PUT:
+	car		eax, S
+	ivalue	eax
+	and		eax, 0x000000ff
+	push	eax
+	call	_putchar
+	add		esp, 4
+	jmp		_cycle
+			
 
 
 _gc:
