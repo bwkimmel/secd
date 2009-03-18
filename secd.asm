@@ -246,7 +246,9 @@ _instr \
 		_instr_DUM , _instr_RAP , _instr_SEL , _instr_JOIN, _instr_CAR , \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
-		_instr_STOP, _instr_SYM , _instr_NUM , _instr_GET , _instr_PUT
+		_instr_STOP, _instr_SYM , _instr_NUM , _instr_GET , _instr_PUT , \
+        _instr_APR
+
 numinstr	equ		($ - _instr) >> 2
 	
 _instr_LD:
@@ -301,7 +303,7 @@ _instr_AP:
 	mov		[E], ecx	; E' <-- cons(car(cdr(S)), cdr(car(S)))
 	mov		S, [nil]	; S' <-- nil
 	jmp		_cycle
-	
+
 _instr_RTN:
 	mov		edx, [D]
 	carcdr	eax, edx	; EAX <-- car(D), EDX <-- cdr(D)
@@ -564,7 +566,18 @@ _instr_PUT:
 	call	_putchar
 	add		esp, 4
 	jmp		_cycle
-			
+		
+_instr_APR:
+	cons	C, [D]
+	mov		eax, [E]
+	cons	eax, C		; EAX <-- cons(E, cons(cdr(C), D))
+	carcdr	edx, S		; EDX <-- car(S), S' <-- cdr(S)
+	carcdr	C, edx		; C' <-- car(car(S)), EDX <-- cdr(car(S))
+	car		ecx, S		; ECX <-- car(cdr(S)), S' <-- cdr(cdr(S))
+	cons	ecx, edx
+	mov		[E], ecx	; E' <-- cons(car(cdr(S)), cdr(car(S)))
+	mov		S, [nil]	; S' <-- nil
+	jmp		_cycle
 
 
 _gc:
