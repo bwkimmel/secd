@@ -39,10 +39,15 @@
            (IF (EQ (CAR E) (QUOTE CONS))
                 (COMP (CAR (CDR (CDR E))) N (COMP (CAR (CDR E)) N (CONS 13 C)))
            (IF (EQ (CAR E) (QUOTE IF))
-                (LET (COMP (CAR (CDR E)) N (CONS 8
-                                            (CONS THENPT (CONS ELSEPT C))))
-                (THENPT COMP (CAR (CDR (CDR E))) N (QUOTE (9)))
-                (ELSEPT COMP (CAR (CDR (CDR (CDR E)))) N (QUOTE (9)))  )
+                (IF (EQ (CAR C) 5)
+                     (LET (COMP (CAR (CDR E)) N (CONS 27
+                                                 (CONS THENPT (CONS ELSEPT C))))
+                     (THENPT COMP (CAR (CDR (CDR E))) N (QUOTE (5)))
+                     (ELSEPT COMP (CAR (CDR (CDR (CDR E)))) N (QUOTE (5)))  )
+                     (LET (COMP (CAR (CDR E)) N (CONS 8
+                                                 (CONS THENPT (CONS ELSEPT C))))
+                     (THENPT COMP (CAR (CDR (CDR E))) N (QUOTE (9)))
+                     (ELSEPT COMP (CAR (CDR (CDR (CDR E)))) N (QUOTE (9)))  ))
            (IF (EQ (CAR E) (QUOTE LAMBDA))
                 (LET (CONS 3 (CONS BODY C))
                    (BODY COMP (CAR (CDR (CDR E))) (CONS (CAR (CDR E)) N)

@@ -247,7 +247,7 @@ _instr \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
 		_instr_STOP, _instr_SYM , _instr_NUM , _instr_GET , _instr_PUT , \
-        _instr_APR
+        _instr_APR , _instr_TSEL
 
 numinstr	equ		($ - _instr) >> 2
 	
@@ -577,6 +577,21 @@ _instr_APR:
 	cons	ecx, edx
 	mov		[E], ecx	; E' <-- cons(car(cdr(S)), cdr(car(S)))
 	mov		S, [nil]	; S' <-- nil
+	jmp		_cycle
+
+_instr_TSEL:
+	mov		eax, C
+	carcdr	edx, eax	; EDX <-- car(cdr(C))
+	car		ecx, eax	; ECX <-- car(cdr(cdr(C))
+	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
+	push	S
+	mov		S, [true]
+	ivalue	S	
+	ivalue	eax
+	cmp		eax, S 
+	cmove	C, edx		; IF car(S) == true THEN C' <-- car(cdr(C))
+	cmovne	C, ecx		; IF car(S) != true THEN C' <-- car(cdr(cdr(C)))
+	pop		S
 	jmp		_cycle
 
 
