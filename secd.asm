@@ -43,8 +43,10 @@
 %macro alloc 3
 	cmp		ff, 0
 	jne		%%nogc
+	jmp		_gc.out_of_space
 	call	_gc
 %%nogc:
+	dec		dword [free]
 	mov		[flags + ff], byte %3
 %ifidni %1,%2
 	xchg	%1, ff
@@ -81,13 +83,19 @@ nilstr		db		"NIL"
 nilstr_len	equ		$ - nilstr
 err_ii		db		"Illegal instruction", 10
 err_ii_len	equ		$ - err_ii
+err_mem		db		"Memory error", 10
+err_mem_len	equ		$ - err_mem
 err_hf		db		"Out of heap space", 10
 err_hf_len	equ		$ - err_hf
 err_car		db		"Attempt to CAR an atom", 10
 err_car_len	equ		$ - err_car
 err_cdr		db		"Attempt to CDR an atom", 10
 err_cdr_len	equ		$ - err_cdr
-
+sep			db		10, "-----------------", 10
+sep_len		equ		$ - sep
+maj_sep		db		10, "==============================================", 10
+maj_sep_len	equ		$ - maj_sep
+free		dd		0
 
 segment .bss
 	global nil
@@ -103,11 +111,42 @@ Sreg		resd	1
 Creg		resd	1
 ffreg		resd	1
 
-
 segment .text
 	global _exec, _flags, _car, _cdr, _ivalue, _issymbol, _isnumber, \
 		_iscons, _cons, _svalue, _init, _number, _symbol
-	extern _store, _getchar, _putchar
+	extern _store, _getchar, _putchar, _putexp, _flush
+
+_dumpstate:
+	push	dword maj_sep_len
+	push	dword maj_sep
+	push	dword stdout
+	sys.write
+	add		esp, 12
+	push	dword S
+	call	_putexp
+	add		esp, 4
+	call	_flush
+	push	dword sep_len
+	push	dword sep
+	push	dword stdout
+	sys.write
+	add		esp, 12
+
+	push	dword [E]
+	call	_putexp
+	add		esp, 4
+	call	_flush
+	push	dword sep_len
+	push	dword sep
+	push	dword stdout
+	sys.write
+	add		esp, 12
+	
+	push	C
+	call	_putexp
+	add		esp, 4
+	call	_flush
+	ret
 
 _car:
 	car		eax, eax
@@ -218,8 +257,17 @@ _exec:
 	mov		[E], eax
 	mov		[D], eax
 	cons	S, eax
+	mov		eax, dword free
+	mov		[eax], dword 0
 	
 _cycle:
+	mov		eax, dword free
+	cmp		[eax], dword 10
+	jg		.nogc
+	cmp		[eax], dword 0
+	jl		_memerror
+	call	_gc
+.nogc:
 	carcdr	eax, C
 	ivalue	eax	
 	cmp		eax, 1
@@ -239,6 +287,16 @@ _illegal:
 .stop:
 	jmp		.stop
 	
+_memerror:
+	push	dword err_mem_len
+	push	dword err_mem
+	push	dword stderr
+	sys.write
+	add		esp, 12
+	push	dword 1
+	sys.exit
+.stop:
+	jmp		.stop
 
 _instr \
 	dd	0, \
@@ -611,23 +669,8 @@ _gc:
 		dec		ecx
 		jnz		.loop_clearmarks
 
-	test	S, 0xffff0000
-	jz		.endif1
-		mov		eax, S
-		shr		eax, 16
-		call	_mark
-		and		S, 0xffff
-.endif1:
 	mov		eax, S
 	call	_mark
-	
-	test	C, 0xffff0000
-	jz		.endif2
-		mov		eax, C
-		shr		eax, 16
-		call	_mark
-		and		C, 0xffff
-.endif2:
 	mov		eax, C
 	call	_mark
 	mov		eax, [E]
@@ -641,6 +684,7 @@ _gc:
 	mov		eax, [nil]
 	call	_mark
 
+	mov		edx, 0
 	mov		ecx, 65535
 .loop_scan:
 		mov		al, byte [flags + ecx]
@@ -648,9 +692,12 @@ _gc:
 		jnz		.endif
 			mov		dword [values + ecx * 4], ff
 			mov		ff, ecx		
+			inc		edx
 	.endif:
 		dec		ecx
 		jnz		.loop_scan
+
+	mov		dword [free], edx
 
 	pop		C
 	pop		S
