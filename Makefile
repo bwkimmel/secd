@@ -3,6 +3,7 @@ TARGETS=secd
 
 CLEANFILES=$(TARGETS) *.o
 
+M4=m4
 CC=gcc
 AS=nasm
 ARCH=macho
@@ -27,4 +28,4 @@ redo: clean all
 	$(AS) $(ASFLAGS) -o $@ $<
 
 %.lob : %.lso secd
-	cat compiler.lob $< | ./secd > $@
+	$(M4) $< | cat compiler.lob - | ./secd > $@

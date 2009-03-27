@@ -1,0 +1,57 @@
+  (PARSE LAMBDA (CC)
+    (PARSEINITIAL
+      LEX
+      (LAMBDA (EXPR LEX)
+        (CC EXPR (LAMBDA (CC) (PARSEINITIAL LEX CC))))))
+
+  (PARSEINITIAL LAMBDA (LEX CC)
+    (LEX (LAMBDA (TOKEN LEX)
+           (IF (ISNIL TOKEN)
+               (CC (QUOTE NIL) LEX)
+               (PARSEEXPR TOKEN LEX CC)))))
+           
+  (PARSEEXPR LAMBDA (TOKEN LEX CC)
+    (IF (EQ (CAR TOKEN) (QUOTE OPENP))
+        (LEX (LAMBDA (TOKEN LEX)
+               (PARSELIST TOKEN LEX CC)))
+        (PARSEATOM TOKEN LEX CC)))
+
+  (PARSELIST LAMBDA (TOKEN LEX CC)
+    (IF (EQ (CAR TOKEN) (QUOTE CLOSEP))
+        (CC (QUOTE NIL) LEX)
+        (PARSEEXPR
+          TOKEN LEX
+          (LAMBDA (HEAD LEX)
+            (LEX (LAMBDA (TOKEN LEX)
+                   (PARSETAIL
+                     TOKEN LEX
+                     (LAMBDA (TAIL LEX)
+                       (CC (CONS HEAD TAIL) LEX)))))))))
+
+  (PARSETAIL LAMBDA (TOKEN LEX CC)
+    (IF (EQ (CAR TOKEN) (QUOTE CLOSEP))
+        (CC (QUOTE NIL) LEX)
+    (IF (EQ (CAR TOKEN) (QUOTE DOT))
+        (LEX (LAMBDA (TOKEN LEX)
+               (PARSEEXPR
+                 TOKEN LEX
+                 (LAMBDA (EXPR LEX)
+                   (LEX (LAMBDA (TOKEN LEX)
+                          (IF (EQ (CAR TOKEN) (QUOTE CLOSEP))
+                              (CC EXPR LEX)
+                              (QUOTE ((ERROR))))))))))
+        (PARSEEXPR
+          TOKEN LEX
+          (LAMBDA (CAREXPR LEX)
+            (LEX (LAMBDA (TOKEN LEX)
+                   (PARSETAIL
+                     TOKEN LEX
+                     (LAMBDA (CDREXPR LEX)
+                       (CC (CONS CAREXPR CDREXPR) LEX))))))))))
+
+  (PARSEATOM LAMBDA (TOKEN LEX CC)
+    (IF (EQ (CAR TOKEN) (QUOTE IDENT))
+        (CC TOKEN LEX)
+    (IF (EQ (CAR TOKEN) (QUOTE LITERAL))
+        (CC TOKEN LEX)
+        (QUOTE ((ERROR)))))) 

@@ -1,0 +1,13 @@
+(LETREC COMPILE
+  (COMPILE LAMBDA NIL
+    (PARSE BUILDLIST))
+
+  (BUILDLIST LAMBDA (X REENTRY)
+    (IF (ISNIL X)
+        (QUOTE NIL)
+        (CONS X (REENTRY BUILDLIST))))
+
+
+include(LexScheme.lso)
+include(ParseScheme.lso)
+)
