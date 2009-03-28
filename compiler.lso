@@ -36,6 +36,8 @@
                 (CONS 24 C)
            (IF (EQ (CAR E) (QUOTE PUT))
                 (COMP (CAR (CDR E)) N (CONS 25 C)) 
+           (IF (EQ (CAR E) (QUOTE EXECCC))
+                (COMP (CAR (CDR (CDR E))) N (COMP (CAR (CDR E)) N (CONS 29 C)))
            (IF (EQ (CAR E) (QUOTE CONS))
                 (COMP (CAR (CDR (CDR E))) N (COMP (CAR (CDR E)) N (CONS 13 C)))
            (IF (EQ (CAR E) (QUOTE IF))
@@ -61,6 +63,14 @@
                 (BODY COMP (CAR (CDR E)) M (QUOTE (5))))
            (M CONS (VARS (CDR (CDR E))) N)
                 (ARGS EXPRS (CDR (CDR E))))
+           (IF (EQ (CAR E) (QUOTE LETCC))
+        (LET (LET (CONS 3
+                         (CONS BODY
+                           (IF (EQ (CAR C) 5)
+                                (CONS 28 C)
+                                (CONS 28 C))))
+                (BODY COMP (CAR (CDR (CDR E))) M (QUOTE (5))))
+           (M CONS (CONS (CAR (CDR E)) (QUOTE NIL)) N))
            (IF (EQ (CAR E) (QUOTE LETREC))
                 (LET (LET (CONS 6 (COMPLIS ARGS M       
                         (CONS 3 (CONS BODY (CONS 7 C)))))
@@ -70,7 +80,7 @@
         (COMPLIS (CDR E) N (COMP (CAR E) N 
           (IF (EQ (CAR C) 5)
                (CONS 26 (CDR C))
-               (CONS 4 C)))))))))))))))))))))))))))
+               (CONS 4 C)))))))))))))))))))))))))))))
         (COMPLIS LAMBDA (E N C)
            (IF (EQ E (QUOTE NIL)) (CONS 2 (CONS (QUOTE NIL) C))
                 (COMPLIS (CDR E) N (COMP (CAR E) N (CONS 13 C)))))

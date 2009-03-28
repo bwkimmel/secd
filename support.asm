@@ -18,6 +18,8 @@ outbufind	dd		0
 open_paren	db		"("
 close_paren	db		")"
 dot			db		"."
+ellipsis	db		"..."
+ellips_len	equ		$ - ellipsis
 
 section .bss
 inbuf		resb	INBUF_SIZE
@@ -27,6 +29,7 @@ inbufend	resd	1
 char		resd	1
 token		resb	MAX_TOKEN_SIZE
 type		resd	1
+visited		resb	65536
 
 section .text
 	global _putchar, _length, _puttoken, _tostring, _tointeger, \
@@ -108,6 +111,17 @@ _putexp:
 	enter	0, 0
 	push	ebx
 	mov		ebx, [ebp + 8]
+	cmp		[visited + ebx], byte 0
+	je		.not_visited
+		push	dword ellips_len
+		push	dword ellipsis
+		call	_puttoken
+		add		esp, 8
+		pop		ebx
+		leave
+		ret
+.not_visited:
+	mov		[visited + ebx], byte 1
 	mov		eax, ebx
 	call	_flags
 	test	eax, SECD_ATOM
@@ -181,6 +195,8 @@ _putexp:
 	call	_puttoken
 	add		esp, 8
 .done:
+	mov		ebx, [ebp + 8]
+	mov		[visited + ebx], byte 0
 	pop		ebx
 	leave
 	ret
