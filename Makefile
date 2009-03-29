@@ -12,7 +12,7 @@ DEBUG=0
 
 all: $(TARGETS)
 
-secd: support.o string.o secd.o main.o
+secd: support.o string.o heap.o secd.o main.o
 	ld -o secd $^
 	if (($(DEBUG) == 0)); then strip $@; fi
 
