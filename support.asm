@@ -93,7 +93,7 @@ _getexplist:
 	jne		.else
 	cmp		[token + 1], byte 0
 	jne		.else
-		mov		eax, [nil]
+		mov		eax, dword 0
 		jmp		.endif
 
 .else:
@@ -175,7 +175,7 @@ _putexp:
 		je		.consloop	
 	cmp		eax, SECD_SYMBOL
 	jne		.cons_dot
-	mov		eax, [nil]
+	mov		eax, dword 0
 	call	_ivalue
 	xchg	eax, ebx
 	call	_ivalue

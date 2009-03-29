@@ -7,6 +7,8 @@
 %include 'system.inc'
 
 %define SECD_MARKED 0x80
+%define HEAP_MARK 0x01
+%define HEAP_FORWARD 0x02
 
 %define S ebx
 %define C esi
@@ -95,9 +97,9 @@ sep_len		equ		$ - sep
 maj_sep		db		10, "==============================================", 10
 maj_sep_len	equ		$ - maj_sep
 free		dd		0
+gcheap		db		0
 
 segment .bss
-	global nil
 values		resd	65536	; Storage for cons cells and ivalues
 flags		resb	65536	; Storage for isatom and isnumber bits
 
@@ -105,7 +107,6 @@ E			resd	1		; (E)nvironment register
 D			resd	1		; (D)ump register
 true		resd	1		; true register
 false		resd	1		; false register
-nil			resd	1		; nil register
 Sreg		resd	1
 Creg		resd	1
 ffreg		resd	1
@@ -113,7 +114,8 @@ ffreg		resd	1
 segment .text
 	global _exec, _flags, _car, _cdr, _ivalue, _issymbol, _isnumber, \
 		_iscons, _cons, _svalue, _init, _number, _symbol
-	extern _store, _getchar, _putchar, _putexp, _flush
+	extern _store, _getchar, _putchar, _putexp, _flush, \
+		_heap_alloc, _heap_mark, _heap_sweep, _heap_forward
 
 _dumpstate:
 	push	dword maj_sep_len
@@ -236,8 +238,8 @@ _init:
 	push	dword nilstr
 	call	_store
 	add		esp, 8
-	symbol	eax, eax
-	mov		[nil], eax
+    mov		byte [flags], SECD_SYMBOL
+	mov		dword [values], eax
 	mov		[ffreg], ff
 	leave
 	ret
@@ -248,14 +250,13 @@ _exec:
 	push	esi
 	push	edi
 	mov		ff, [ffreg]
-	mov		eax, [nil]
 	mov		C, [ebp + 8]	; C <-- fn
 	and		C, 0xffff
 	mov		S, [ebp + 12]	; S <-- args
 	and		S, 0xffff
-	mov		[E], eax
-	mov		[D], eax
-	cons	S, eax
+	mov		[E], dword 0
+	mov		[D], dword 0
+	cons	S, 0
 	mov		eax, dword free
 	mov		[eax], dword 0
 	
@@ -265,7 +266,9 @@ _cycle:
 	jg		.nogc
 	cmp		[eax], dword 0
 	jl		_memerror
+	push	eax
 	call	_gc
+	pop		eax
 .nogc:
 	carcdr	eax, C
 	ivalue	eax	
@@ -358,7 +361,7 @@ _instr_AP:
 	mov		[D], S		; D' <-- cons(cdr(cdr(S)), cons(e, cons(cdr(c), d)))
 	cons	ecx, edx
 	mov		[E], ecx	; E' <-- cons(car(cdr(S)), cdr(car(S)))
-	mov		S, [nil]	; S' <-- nil
+	mov		S, 0		; S' <-- nil
 	jmp		_cycle
 
 _instr_RTN:
@@ -373,7 +376,7 @@ _instr_RTN:
 	jmp		_cycle
 	
 _instr_DUM:
-	mov		eax, [nil]
+	mov		eax, 0
 	cons	eax, [E]
 	mov		[E], eax	; E' <-- cons(nil, E)
 	jmp		_cycle
@@ -397,7 +400,7 @@ _instr_RAP:
 	or		S, ecx
 	mov		[dword values + edx * 4], S
 
-	mov		S, [nil]	; S' <-- nil
+	mov		S, 0		; S' <-- nil
 
 	cons	eax, C		; EAX <-- cons(cdr(E)
 	
@@ -633,7 +636,7 @@ _instr_APR:
 	car		ecx, S		; ECX <-- car(cdr(S)), S' <-- cdr(cdr(S))
 	cons	ecx, edx
 	mov		[E], ecx	; E' <-- cons(car(cdr(S)), cdr(car(S)))
-	mov		S, [nil]	; S' <-- nil
+	mov		S, 0		; S' <-- nil
 	jmp		_cycle
 
 _instr_TSEL:
@@ -660,11 +663,10 @@ _instr_APCC:
 	car		ecx, S		; ECX <-- car(cdr(S)), S' <-- cdr(cdr(S))
 	cons	S, eax
 	mov		[D], S		; D' <-- cons(cdr(cdr(S)), cons(e, cons(cdr(c), d)))
-	mov		eax, [nil]
-	cons	S, eax
+	cons	S, 0
 	cons	S, edx
 	mov		[E], S		; E' <-- cons(car(cdr(S)), cdr(car(S)))
-	mov		S, [nil]	; S' <-- nil
+	mov		S, 0		; S' <-- nil
 	jmp		_cycle
 
 _instr_RC:
@@ -679,7 +681,7 @@ _instr_RC:
 	jmp		_cycle
 
 
-_gc:
+_trace:
 	push	eax
 	push	ecx
 	push	edx
@@ -707,8 +709,18 @@ _gc:
 	call	_mark
 	mov		eax, [false]
 	call	_mark
-	mov		eax, [nil]
-	call	_mark
+;	mov		eax, 0
+;	call	_mark
+
+	pop		C
+	pop		S
+	pop		edx
+	pop		ecx
+	pop		eax
+	ret
+
+_gc:
+	call	_trace
 
 	mov		edx, 0
 	mov		ecx, 65535
@@ -724,12 +736,6 @@ _gc:
 		jnz		.loop_scan
 
 	mov		dword [free], edx
-
-	pop		C
-	pop		S
-	pop		edx
-	pop		ecx
-	pop		eax
 
 	cmp		ff, 0
 	je		.out_of_space
@@ -747,19 +753,63 @@ _gc:
 .halt:
 	jmp		.halt	
 
+_heap_gc:
+	mov		byte [gcheap], HEAP_MARK
+	call	_trace
+	call	_heap_sweep
+	mov		byte [gcheap], HEAP_FORWARD
+	call	_gc
+	mov		byte [gcheap], 0
+	ret
+
+
 
 _mark:
 	mov		dl, byte [flags + eax]
 	test	dl, SECD_MARKED
-	jnz		.endif
+	jz		.if
+	ret
+	.if:
 		or		dl, SECD_MARKED
 		mov		byte [flags + eax], dl
 		test	dl, SECD_ATOM
-		jnz		.endif
+		jnz		.else
 			cdrcar	edx, eax
 			push	edx
 			call	_mark
 			pop		eax
 			call	_mark
+	.else:
+		test	dl, SECD_HEAP
+		jz		.endif
+		push	ebx
+		mov		ebx, eax
+		ivalue	eax
+		test	byte [gcheap], HEAP_FORWARD
+		jz		.endif_heap_forward
+			call	_heap_forward
+			mov		[values + ebx * 4], eax			
+	.endif_heap_forward:	
+		test	byte [gcheap], HEAP_MARK
+		jz		.endif_heap_mark
+			call	_heap_mark
+	.endif_heap_mark:
+		and		dl, SECD_TYPEMASK
+		cmp		dl, SECD_VECTOR
+		jne		.endif_vector
+			mov		ecx, 0
+			mov		cx, word [ebx]
+			add		ebx, 2
+		.loop:
+				mov		eax, 0
+				mov		ax, word [ebx]
+				add		ebx, 2
+				push	ecx
+				call	_mark
+				pop		ecx
+				loop	.loop
+	.endif_vector:
+		pop		ebx	
 .endif:
 	ret
+
