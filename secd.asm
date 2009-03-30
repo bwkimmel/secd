@@ -92,6 +92,8 @@ err_car		db		"Attempt to CAR an atom", 10
 err_car_len	equ		$ - err_car
 err_cdr		db		"Attempt to CDR an atom", 10
 err_cdr_len	equ		$ - err_cdr
+err_oob		db		"Index out of bounds", 10
+err_oob_len	equ		$ - err_oob
 sep			db		10, "-----------------", 10
 sep_len		equ		$ - sep
 maj_sep		db		10, "==============================================", 10
@@ -307,7 +309,8 @@ _instr \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
 		_instr_STOP, _instr_SYM , _instr_NUM , _instr_GET , _instr_PUT , \
-        _instr_APR , _instr_TSEL, _instr_APCC, _instr_RC
+        _instr_APR , _instr_TSEL, _instr_APCC, _instr_RC  , _instr_CVEC, \
+		_instr_VSET, _instr_VREF, _instr_VLEN
 
 numinstr	equ		($ - _instr) >> 2
 	
@@ -680,7 +683,78 @@ _instr_RC:
 	mov		[D], eax
 	jmp		_cycle
 
+_instr_CVEC:
+	carcdr	ecx, S		; ECX <-- number of elements in vector
+	ivalue	ecx
+	mov		eax, ecx
+	inc		eax
+	shl		eax, 1		; EAX <-- 2*(length+1) == # bytes to allocate
+	push	ecx
+	call	_malloc
+	pop		ecx
+	mov		word [eax], cx
+	alloc	eax, eax, SECD_VECTOR
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
 
+_instr_VSET:
+	carcdr	eax, S
+	carcdr	ecx, S
+	push	eax
+	ivalue	eax	
+	ivalue	ecx
+	mov		edx, 0
+	mov		dx, word [eax]
+	cmp		ecx, edx
+	jb		.endif
+		add		esp, 4
+		jmp		_index_out_of_bounds
+.endif:
+	carcdr	edx, S
+	mov		word [eax + (ecx + 1)*2], dx
+	pop		eax
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_instr_VREF:
+	carcdr	eax, S
+	carcdr	ecx, S
+	ivalue	eax	
+	ivalue	ecx
+	mov		edx, 0
+	mov		dx, word [eax]
+	cmp		ecx, edx
+	jb		.endif	
+		jmp		_index_out_of_bounds
+.endif:
+	mov		ax, word [eax + (ecx + 1)*2]
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_instr_VLEN:
+	carcdr	eax, S
+	ivalue	eax
+	mov		edx, 0
+	mov		dx, word [eax]
+	number	eax, edx
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_index_out_of_bounds:
+	push	dword err_oob_len
+	push	dword err_oob
+	push	dword stderr
+	sys.write
+	add		esp, 12
+	push	dword 1
+	sys.exit
+.halt:
+	jmp		.halt
+	
 _trace:
 	push	eax
 	push	ecx
@@ -760,6 +834,32 @@ _heap_gc:
 	mov		byte [gcheap], 0
 	ret
 
+
+_malloc:
+	push	eax
+	call	_heap_alloc
+	cmp		eax, 0
+	jnz		.done
+	call	_heap_gc
+	mov		eax, [esp]
+	call	_heap_alloc
+	cmp		eax, 0
+	jnz		.done
+	push	dword err_hf_len
+	push	dword err_hf
+	push	dword stderr
+	sys.write
+	add		esp, 12
+	push	dword 1
+	sys.exit
+	add		esp, 4
+.halt:
+	jmp		.halt	
+.done:
+	add		esp, 4
+	ret
+
+	
 
 
 _mark:
