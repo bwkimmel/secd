@@ -709,8 +709,6 @@ _trace:
 	call	_mark
 	mov		eax, [false]
 	call	_mark
-;	mov		eax, 0
-;	call	_mark
 
 	pop		C
 	pop		S
