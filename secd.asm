@@ -117,7 +117,8 @@ segment .text
 	global _exec, _flags, _car, _cdr, _ivalue, _issymbol, _isnumber, \
 		_iscons, _cons, _svalue, _init, _number, _symbol
 	extern _store, _getchar, _putchar, _putexp, _flush, \
-		_heap_alloc, _heap_mark, _heap_sweep, _heap_forward
+		_heap_alloc, _heap_mark, _heap_sweep, _heap_forward, \
+		_heap_item_length
 
 _dumpstate:
 	push	dword maj_sep_len
@@ -687,12 +688,10 @@ _instr_CVEC:
 	carcdr	ecx, S		; ECX <-- number of elements in vector
 	ivalue	ecx
 	mov		eax, ecx
-	inc		eax
-	shl		eax, 1		; EAX <-- 2*(length+1) == # bytes to allocate
+	shl		eax, 1		; EAX <-- 2*length == # bytes to allocate
 	push	ecx
 	call	_malloc
-	pop		ecx
-	mov		word [eax], cx
+	add		esp, 4
 	alloc	eax, eax, SECD_VECTOR
 	xchg	S, eax
 	cons	S, eax
@@ -704,15 +703,16 @@ _instr_VSET:
 	push	eax
 	ivalue	eax	
 	ivalue	ecx
-	mov		edx, 0
-	mov		dx, word [eax]
-	cmp		ecx, edx
+	mov		edx, eax
+	call	_heap_item_length	; Does not clobber ECX, EDX
+	shr		eax, 1
+	cmp		ecx, eax
 	jb		.endif
 		add		esp, 4
 		jmp		_index_out_of_bounds
 .endif:
-	carcdr	edx, S
-	mov		word [eax + (ecx + 1)*2], dx
+	carcdr	eax, S
+	mov		word [edx + (ecx + 1)*2], ax
 	pop		eax
 	xchg	S, eax
 	cons	S, eax
@@ -723,13 +723,15 @@ _instr_VREF:
 	carcdr	ecx, S
 	ivalue	eax	
 	ivalue	ecx
-	mov		edx, 0
-	mov		dx, word [eax]
-	cmp		ecx, edx
+	mov		edx, eax
+	call	_heap_item_length	; Does not clobber ECX, EDX
+	shr		eax, 1
+	cmp		ecx, eax
 	jb		.endif	
 		jmp		_index_out_of_bounds
 .endif:
-	mov		ax, word [eax + (ecx + 1)*2]
+	mov		eax, 0
+	mov		ax, word [edx + (ecx + 1)*2]
 	xchg	S, eax
 	cons	S, eax
 	jmp		_cycle
@@ -737,9 +739,9 @@ _instr_VREF:
 _instr_VLEN:
 	carcdr	eax, S
 	ivalue	eax
-	mov		edx, 0
-	mov		dx, word [eax]
-	number	eax, edx
+	call	_heap_item_length
+	shr		eax, 1
+	number	eax, eax
 	xchg	S, eax
 	cons	S, eax
 	jmp		_cycle
@@ -895,9 +897,10 @@ _mark:
 		and		dl, SECD_TYPEMASK
 		cmp		dl, SECD_VECTOR
 		jne		.endif_vector
-			mov		ecx, 0
-			mov		cx, word [ebx]
-			add		ebx, 2
+			mov		eax, ebx
+			call	_heap_item_length
+			mov		ecx, eax
+			shr		ecx, 1
 		.loop:
 				mov		eax, 0
 				mov		ax, word [ebx]

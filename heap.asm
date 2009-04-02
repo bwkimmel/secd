@@ -10,7 +10,8 @@ heap1		resb	HEAP_SIZE
 heap2		resb	HEAP_SIZE
 
 segment .text
-global		_heap_alloc, _heap_forward, _heap_mark, _heap_sweep
+global		_heap_alloc, _heap_forward, _heap_mark, _heap_sweep, \
+			_heap_item_length
 
 _heap_alloc:
 	push	ebx
@@ -25,11 +26,12 @@ _heap_alloc:
 .endif_init:
 
 	; align on dword boundary
-	add		ecx, 3
-	and		ecx, 0xfffffffc
+	mov		edx, ecx
+	add		edx, 3
+	and		edx, 0xfffffffc
 
 	; check if there is enough space remaining
-	lea		edx, [eax + ecx + 4]
+	lea		edx, [eax + edx + 4]
 	mov		ebx, [active_heap]
 	add		ebx, dword HEAP_SIZE
 	cmp		edx, ebx
@@ -77,6 +79,8 @@ _heap_sweep:
 			add		edi, 4
 			mov		dword [esi], edi
 			add		esi, 4
+			add		ecx, 3
+			and		ecx, 0xfffffffc
 			shr		ecx, 2
 		.loop_copy:
 			rep		movsd
@@ -99,5 +103,10 @@ _heap_sweep:
 
 _heap_forward:
 	mov		eax, dword [eax - 4]
+	ret
+
+_heap_item_length:
+	mov		eax, dword [eax - 4]
+	and		eax, 0x7fffffff
 	ret
 	
