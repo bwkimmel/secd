@@ -311,7 +311,9 @@ _instr \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
 		_instr_STOP, _instr_SYM , _instr_NUM , _instr_GET , _instr_PUT , \
         _instr_APR , _instr_TSEL, _instr_APCC, _instr_RC  , _instr_CVEC, \
-		_instr_VSET, _instr_VREF, _instr_VLEN
+		_instr_VSET, _instr_VREF, _instr_VLEN, _instr_VCPY, _instr_CBIN, \
+		_instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, _instr_BS16, \
+		_instr_BR16, _instr_BS32, _instr_BR32
 
 numinstr	equ		($ - _instr) >> 2
 	
@@ -685,13 +687,10 @@ _instr_RC:
 	jmp		_cycle
 
 _instr_CVEC:
-	carcdr	ecx, S		; ECX <-- number of elements in vector
-	ivalue	ecx
-	mov		eax, ecx
+	carcdr	eax, S		; EAX <-- number of elements in vector
+	ivalue	eax
 	shl		eax, 1		; EAX <-- 2*length == # bytes to allocate
-	push	ecx
 	call	_malloc
-	add		esp, 4
 	alloc	eax, eax, SECD_VECTOR
 	xchg	S, eax
 	cons	S, eax
@@ -745,6 +744,165 @@ _instr_VLEN:
 	xchg	S, eax
 	cons	S, eax
 	jmp		_cycle
+
+_instr_VCPY:
+	push	esi
+	push	edi
+	carcdr	eax, S
+	carcdr	ecx, S
+	ivalue	eax
+	ivalue	ecx
+	lea		esi, [eax + ecx*2]
+	call	_heap_item_length
+	shr		eax, 1
+	sub		eax, ecx
+	mov		edx, eax
+	carcdr	eax, S
+	carcdr	ecx, S
+	push	eax
+	ivalue	eax
+	ivalue	ecx
+	lea		edi, [eax + ecx*2]
+	call	_heap_item_length
+	shr		eax, 1
+	sub		eax, ecx
+	carcdr	ecx, S
+	ivalue	ecx
+	cmp		ecx, eax
+	ja		.out_of_bounds
+	cmp		ecx, edx
+	ja		.out_of_bounds
+	jmp		.loop
+.out_of_bounds:
+	pop		eax
+	pop		edi
+	pop		esi
+	jmp		_index_out_of_bounds
+	cld
+.loop:
+		jcxz	.endloop
+		rep		movsw
+		jmp		.loop
+.endloop:
+	pop		eax
+	pop		edi
+	pop		esi	
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_instr_CBIN:
+	carcdr	eax, S		; EAX <-- length of binary
+	ivalue	eax
+	call	_malloc
+	alloc	eax, eax, SECD_BINARY
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_instr_BSET:
+	carcdr	eax, S
+	carcdr	ecx, S
+	push	eax
+	ivalue	eax	
+	ivalue	ecx
+	mov		edx, eax
+	call	_heap_item_length	; Does not clobber ECX, EDX
+	cmp		ecx, eax
+	jb		.endif
+		add		esp, 4
+		jmp		_index_out_of_bounds
+.endif:
+	carcdr	eax, S
+	ivalue	eax
+	mov		byte [edx + ecx], al
+	pop		eax
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_instr_BREF:
+	carcdr	eax, S
+	carcdr	ecx, S
+	ivalue	eax	
+	ivalue	ecx
+	mov		edx, eax
+	call	_heap_item_length	; Does not clobber ECX, EDX
+	cmp		ecx, eax
+	jb		.endif	
+		jmp		_index_out_of_bounds
+.endif:
+	mov		eax, 0
+	mov		al, byte [edx + ecx]
+	number	eax, eax
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_instr_BLEN:
+	carcdr	eax, S
+	ivalue	eax
+	call	_heap_item_length
+	number	eax, eax
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_instr_BCPY:
+	push	esi
+	push	edi
+	carcdr	eax, S
+	carcdr	ecx, S
+	ivalue	eax
+	ivalue	ecx
+	lea		esi, [eax + ecx]
+	call	_heap_item_length
+	sub		eax, ecx
+	mov		edx, eax
+	carcdr	eax, S
+	carcdr	ecx, S
+	push	eax
+	ivalue	eax
+	ivalue	ecx
+	lea		edi, [eax + ecx]
+	call	_heap_item_length
+	sub		eax, ecx
+	carcdr	ecx, S
+	ivalue	ecx
+	cmp		ecx, eax
+	ja		.out_of_bounds
+	cmp		ecx, edx
+	ja		.out_of_bounds
+	jmp		.loop
+.out_of_bounds:
+	pop		eax
+	pop		edi
+	pop		esi
+	jmp		_index_out_of_bounds
+	cld
+.loop:
+		jcxz	.endloop
+		rep		movsb
+		jmp		.loop
+.endloop:
+	pop		eax
+	pop		edi
+	pop		esi	
+	xchg	S, eax
+	cons	S, eax
+	jmp		_cycle
+
+_instr_BS16:
+	jmp		_illegal
+
+_instr_BR16:
+	jmp		_illegal
+
+_instr_BS32:
+	jmp		_illegal
+
+_instr_BR32:
+	jmp		_illegal
 
 _index_out_of_bounds:
 	push	dword err_oob_len
