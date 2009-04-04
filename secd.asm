@@ -712,7 +712,7 @@ _instr_VSET:
 		jmp		_index_out_of_bounds
 .endif:
 	carcdr	eax, S
-	mov		word [edx + (ecx + 1)*2], ax
+	mov		word [edx + ecx*2], ax
 	pop		eax
 	xchg	S, eax
 	cons	S, eax
@@ -731,7 +731,7 @@ _instr_VREF:
 		jmp		_index_out_of_bounds
 .endif:
 	mov		eax, 0
-	mov		ax, word [edx + (ecx + 1)*2]
+	mov		ax, word [edx + ecx*2]
 	xchg	S, eax
 	cons	S, eax
 	jmp		_cycle
