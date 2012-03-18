@@ -291,7 +291,7 @@ _instr \
         _instr_APR , _instr_TSEL, _instr_APCC, _instr_RC  , _instr_CVEC, \
 		_instr_VSET, _instr_VREF, _instr_VLEN, _instr_VCPY, _instr_CBIN, \
 		_instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, _instr_BS16, \
-		_instr_BR16, _instr_BS32, _instr_BR32
+		_instr_BR16, _instr_BS32, _instr_BR32, _instr_MULX
 
 numinstr	equ		($ - _instr) >> 2
 	
@@ -511,6 +511,19 @@ _instr_MUL:
 	ivalue	edx
 	imul	edx
 	number	eax, eax
+	cons	eax, S
+	mov		S, eax
+	jmp		_cycle
+
+_instr_MULX:
+	carcdr	edx, S
+	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
+	ivalue	eax
+	ivalue	edx
+	imul	edx
+	number	eax, eax
+	number	edx, edx
+	cons	eax, edx
 	cons	eax, S
 	mov		S, eax
 	jmp		_cycle

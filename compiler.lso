@@ -14,6 +14,8 @@
                 (COMP (CAR (CDR E)) N (COMP (CAR (CDR (CDR E))) N (CONS 16 C)))
            (IF (EQ (CAR E) (QUOTE MUL))
                 (COMP (CAR (CDR E)) N (COMP (CAR (CDR (CDR E))) N (CONS 17 C)))
+           (IF (EQ (CAR E) (QUOTE MULX))
+                (COMP (CAR (CDR E)) N (COMP (CAR (CDR (CDR E))) N (CONS 44 C)))
            (IF (EQ (CAR E) (QUOTE DIV))
                 (COMP (CAR (CDR E)) N (COMP (CAR (CDR (CDR E))) N (CONS 18 C)))
            (IF (EQ (CAR E) (QUOTE REM))
@@ -100,7 +102,7 @@
         (COMPLIS (CDR E) N (COMP (CAR E) N 
           (IF (EQ (CAR C) 5)
                (CONS 26 (CDR C))
-               (CONS 4 C)))))))))))))))))))))))))))))))))))))))
+               (CONS 4 C))))))))))))))))))))))))))))))))))))))))
         (COMPLIS LAMBDA (E N C)
            (IF (EQ E (QUOTE NIL)) (CONS 2 (CONS (QUOTE NIL) C))
                 (COMPLIS (CDR E) N (COMP (CAR E) N (CONS 13 C)))))
