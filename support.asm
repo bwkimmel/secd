@@ -418,9 +418,13 @@ _puttoken:
 		mov		al, byte [esi]
 		cmp		al, 0
 		je		.done
+		push	ebx
+		push	esi
 		push	eax
 		call	_putchar
 		add		esp, 4
+		pop		esi
+		pop		ebx
 		inc		esi
 		dec		ebx
 		jnz		.loop
