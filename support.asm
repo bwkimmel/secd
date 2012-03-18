@@ -498,7 +498,7 @@ _tointeger:
 	cmp		byte [esi], '-'
 	jne		.endif
 		neg		eax
-.endif
+.endif:
 	pop		ebx
 	pop		esi
 	leave
