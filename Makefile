@@ -5,15 +5,17 @@ CLEANFILES=$(TARGETS) *.o
 
 M4=m4
 CC=gcc
-AS=nasm
-ARCH=macho
+AS=nasm -g
+ARCH=elf32
 ASFLAGS=-f $(ARCH)
+LD=ld
+LDFLAGS=-m elf_i386
 DEBUG=0
 
 all: $(TARGETS)
 
 secd: support.o string.o heap.o secd.o main.o
-	ld -o secd $^
+	$(LD) $(LDFLAGS) -o secd $^
 	if (($(DEBUG) == 0)); then strip $@; fi
 
 clean:
