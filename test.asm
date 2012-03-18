@@ -18,30 +18,17 @@ segment .text
 	extern _putexp
 
 start:
-;	push	dword hello_len
-;	push	dword hello
-;	push	dword stdout
-;	sys.write
-;	add		esp, 12
+;	sys.write stdout, hello, hello_len
 	call	_test9
-	push	dword 0
-	sys.exit
+	sys.exit 0
 
 _test1:
 	enter	0, 0
 .loop:
-		push	dword 0
-		push	dword 1024
-		push	dword buf
-		push	dword stdin
-		sys.read
-		add		esp, 16
+		sys.read stdin, buf, 1024
 		cmp		eax, 0
 		jle		.done
-		push	dword eax 
-		push	dword buf
-		push	dword stdout
-		sys.write
+		sys.write stdout, buf, eax
 		jmp		.loop
 .done:
 	leave

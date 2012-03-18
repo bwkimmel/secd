@@ -13,16 +13,27 @@
 	call	__kernel__
 %endmacro
 
-%macro sys.read 0
+%macro sys.read 3
+	push	dword 0
+	push	dword %3
+	push	dword %2
+	push	dword %1
 	system	SYS_read	
+	add		esp, 16
 %endmacro
 
-%macro sys.write 0
+%macro sys.write 3
+	push	dword %3
+	push	dword %2
+	push	dword %1
 	system	SYS_write
+	add		esp, 12
 %endmacro
 
-%macro sys.exit 0
+%macro sys.exit 1
+	push	dword %1
 	system	SYS_exit
+	add		esp, 4
 %endmacro
 
 section .text

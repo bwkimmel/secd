@@ -121,30 +121,18 @@ segment .text
 		_heap_item_length
 
 _dumpstate:
-	push	dword maj_sep_len
-	push	dword maj_sep
-	push	dword stdout
-	sys.write
-	add		esp, 12
+	sys.write stdout, maj_sep, maj_sep_len
 	push	dword S
 	call	_putexp
 	add		esp, 4
 	call	_flush
-	push	dword sep_len
-	push	dword sep
-	push	dword stdout
-	sys.write
-	add		esp, 12
+	sys.write stdout, sep, sep_len
 
 	push	dword [E]
 	call	_putexp
 	add		esp, 4
 	call	_flush
-	push	dword sep_len
-	push	dword sep
-	push	dword stdout
-	sys.write
-	add		esp, 12
+	sys.write stdout, sep, sep_len
 	
 	push	C
 	call	_putexp
@@ -282,24 +270,14 @@ _cycle:
 	jmp		[dword _instr + eax * 4]
 
 _illegal:
-	push	dword err_ii_len
-	push	dword err_ii
-	push	dword stderr
-	sys.write
-	add		esp, 12
-	push	dword 1
-	sys.exit
+	sys.write stderr, err_ii, err_ii_len
+	sys.exit 1
 .stop:
 	jmp		.stop
 	
 _memerror:
-	push	dword err_mem_len
-	push	dword err_mem
-	push	dword stderr
-	sys.write
-	add		esp, 12
-	push	dword 1
-	sys.exit
+	sys.write stderr, err_mem, err_mem_len
+	sys.exit 1
 .stop:
 	jmp		.stop
 
@@ -440,14 +418,8 @@ _instr_CAR:
 	mov		edx, [flags + S]
 	test	edx, SECD_ATOM
 	jz		.endif
-		push	dword err_car_len
-		push	dword err_car
-		push	dword stderr
-		sys.write
-		add		esp, 12
-		push	dword 1
-		sys.exit
-		add		esp, 4
+		sys.write stderr, err_car, err_car_len
+		sys.exit 1
 .halt:
 		jmp		.halt
 .endif:
@@ -460,13 +432,8 @@ _instr_CDR:
 	mov		edx, [flags + S]
 	test	edx, SECD_ATOM
 	jz		.endif
-		push	dword err_cdr_len
-		push	dword err_cdr
-		push	dword stderr
-		sys.write
-		add		esp, 12
-		push	dword 1
-		sys.exit
+		sys.write stderr, err_cdr, err_cdr_len
+		sys.exit 1
 .halt:
 		jmp		.halt
 .endif:
@@ -905,13 +872,8 @@ _instr_BR32:
 	jmp		_illegal
 
 _index_out_of_bounds:
-	push	dword err_oob_len
-	push	dword err_oob
-	push	dword stderr
-	sys.write
-	add		esp, 12
-	push	dword 1
-	sys.exit
+	sys.write stderr, err_oob, err_oob_len
+	sys.exit 1
 .halt:
 	jmp		.halt
 	
@@ -974,14 +936,8 @@ _gc:
 	ret
 
 .out_of_space:
-	push	dword err_hf_len
-	push	dword err_hf
-	push	dword stderr
-	sys.write
-	add		esp, 12
-	push	dword 1
-	sys.exit
-	add		esp, 4
+	sys.write stderr, err_hf, err_hf_len
+	sys.exit 1
 .halt:
 	jmp		.halt	
 
@@ -1005,14 +961,8 @@ _malloc:
 	call	_heap_alloc
 	cmp		eax, 0
 	jnz		.done
-	push	dword err_hf_len
-	push	dword err_hf
-	push	dword stderr
-	sys.write
-	add		esp, 12
-	push	dword 1
-	sys.exit
-	add		esp, 4
+	sys.write stderr, err_hf, err_hf_len
+	sys.exit 1
 .halt:
 	jmp		.halt	
 .done:

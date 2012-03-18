@@ -228,12 +228,7 @@ _getchar:
 	mov		esi, [inbufptr]
 	cmp		esi, [inbufend]
 	jl		.endif
-		push	dword 0
-		push	dword INBUF_SIZE
-		push	dword inbuf
-		push	dword stdin
-		sys.read
-		add		esp, 16
+		sys.read stdin, inbuf, INBUF_SIZE
 		cmp		eax, 0
 		je		.eof
 		jl		.error
@@ -440,11 +435,7 @@ _puttoken:
 
 _flush:
 	enter	0, 0
-	push	dword [outbufind]
-	push	dword outbuf
-	push	dword stdout
-	sys.write
-	add		esp, 12
+	sys.write stdout, outbuf, [outbufind]
 	mov		dword [outbufind], 0
 	leave
 	ret
@@ -454,11 +445,7 @@ _putchar:
 	mov		ecx, [outbufind]
 	cmp		ecx, OUTBUF_SIZE
 	jb		.endif
-		push	dword OUTBUF_SIZE
-		push	dword outbuf
-		push	dword stdout
-		sys.write
-		add		esp, 12
+		sys.write stdout, outbuf, OUTBUF_SIZE
 		mov		ecx, 0
 .endif:
 	mov		eax, [ebp + 8]

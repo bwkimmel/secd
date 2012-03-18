@@ -28,8 +28,7 @@ _start:
 	call	_putchar	
 	add		esp, 4
 	call	_flush
-	push	dword 0
-	sys.exit
+	sys.exit 0
 .halt:
 	jmp		.halt
 
