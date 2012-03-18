@@ -20,6 +20,7 @@ secd: support.o string.o heap.o secd.o main.o
 
 clean:
 	-rm -f $(CLEANFILES)
+	-ls -1 *.lob | grep -v '^compiler\.lob$$' | xargs rm -f
 
 redo: clean all
 
