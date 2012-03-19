@@ -1,3 +1,10 @@
+dnl ---------------------------------------------------------------------------
+dnl Scheme (R5RS) compiler
+dnl ---------------------------------------------------------------------------
+dnl NOTE:  This file must be processed by m4 before being fed to the secd
+dnl        machine.
+dnl ---------------------------------------------------------------------------
+
 (LETREC COMPILE
   (COMPILE LAMBDA NIL
     (PARSE BUILDLIST))
