@@ -57,7 +57,13 @@
   (CONTINUELEXIDENT LAMBDA (C I CC)
     (IF (ISSUBSEQUENT C)
         (CONTINUELEXIDENT (GET) (CONS C I) CC)
-        (YIELDC (CONS (QUOTE IDENT) (REVERSE I)) C CC)))
+        (LET
+          (LET
+            (IF (ISNIL KEYWORD)
+                (YIELDC (CONS (QUOTE IDENT) NAME) C CC)
+                (YIELDC (CONS KEYWORD (QUOTE NIL)) C CC))
+            (KEYWORD GETKEYWORD NAME))
+          (NAME REVERSE I))))
 
   (LEXSTARTSWITHDOT LAMBDA (C CC)
     (IF (ISDOT C)
@@ -360,6 +366,51 @@
         (LEXSTRINGELEM (GET) (CONS C S) CC)
         (YIELDERROR CC)))))
 
+  (GETKEYWORD LAMBDA (S)
+    (CONTINUEGETKEYWORD S KEYWORDS))
+
+  (CONTINUEGETKEYWORD LAMBDA (S K)
+    (IF (ISNIL K)
+        (QUOTE NIL)
+        (IF (ISNIL S)
+            (IF (SYMBOL (CAR K))
+                (CAR K)
+                (QUOTE NIL))
+            (CONTINUEGETKEYWORD (CDR S) (TRIECHILD (CAR S) K)))))
+
+  (TRIECHILD LAMBDA (C K)
+    (IF (ISNIL K)
+        K
+        (IF (ISCONS (CAR K))
+            (IF (EQ C (CAR (CAR K)))
+                (CDR (CAR K))
+                (TRIECHILD C (CDR K)))
+            (TRIECHILD C (CDR K)))))
+
+  (KEYWORDS QUOTE (
+    (61  (62  ARROW))
+    (97  (110 (100 AND)))
+    (98  (101 (103 (105 (110 BEGIN)))))
+    (99  (97  (115 (101 CASE)))
+         (111 (110 (100 COND))))
+    (100 (101 (102 (105 (110 (101 DEFINE))))
+              (108 (97  (121 DELAY))))
+         (111 DO))
+    (101 (108 (115 (101 ELSE))))
+    (105 (102 IF))
+    (108 (97  (109 (98  (100 (97  LAMBDA)))))
+         (101 (116 LET
+                   (42  LETSTAR)
+                   (114 (101 (99  LETREC))))))
+    (111 (114 OR))
+    (113 (117 (97  (115 (105 (113 (117 (111 (116 (101 QUASIQUOTE))))))))
+              (111 (116 (101 QUOTE)))))
+    (115 (101 (116 (33  SETBANG))))
+    (117 (110 (113 (117 (111 (116 (101 UNQUOTE
+                                       (45  (115 (112 (108 (105 (99  (105 (110 (103 UNQUOTESPLICING))))))))))))))))
+      ))
+
+  (ISCONS LAMBDA (E) (IF (ATOM E) (QUOTE F) (QUOTE T)))
   (GEQ LAMBDA (A B) (LEQ B A))
   (AND LAMBDA (P Q) (IF P Q (QUOTE F)))
   (OR LAMBDA (P Q) (IF P (QUOTE T) Q))
