@@ -1,0 +1,44 @@
+  (MAPEMPTY QUOTE NIL)
+
+  (MAPPUT LAMBDA (M K V)
+    (IF (EQ M MAPEMPTY)
+        (MAPCONS K V MAPEMPTY MAPEMPTY)
+        (IF (EQ K (MAPKEY M))
+            (MAPSUBST M K V)
+            (IF (LEQ K (MAPKEY M))
+                (LET
+                  (MAPCONS
+                    (MAPKEY M)
+                    (MAPVALUE M)
+                    LEFT
+                    (MAPRIGHT M))
+                  (LEFT MAPPUT (MAPLEFT M) K V))
+                (LET
+                  (MAPCONS
+                    (MAPKEY M)
+                    (MAPVALUE M)
+                    (MAPLEFT M)
+                    RIGHT)
+                  (RIGHT MAPPUT (MAPRIGHT M) K V))))))
+
+  (MAPGET LAMBDA (M K)
+    (IF (EQ M MAPEMPTY)
+        (QUOTE NIL)
+        (IF (EQ K (MAPKEY M))
+            (MAPVALUE M)
+            (IF (LEQ K (MAPKEY M))
+                (MAPGET (MAPLEFT M) K)
+                (MAPGET (MAPRIGHT M) K)))))
+
+  (MAPKEY LAMBDA (M)
+    (CAR M))
+  (MAPVALUE LAMBDA (M)
+    (CAR (CDR M)))
+  (MAPLEFT LAMBDA (M)
+    (CAR (CDR (CDR M))))
+  (MAPRIGHT LAMBDA (M)
+    (CAR (CDR (CDR (CDR M)))))
+  (MAPCONS LAMBDA (K V L R)
+    (CONS K (CONS V (CONS L (CONS R (QUOTE NIL))))))
+  (MAPSUBST LAMBDA (M K V)
+    (CONS K (CONS V (CDR (CDR M)))))

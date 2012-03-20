@@ -1,0 +1,15 @@
+dnl ---------------------------------------------------------------------------
+(LETREC TESTMAP
+  (TESTMAP LAMBDA NIL
+    (MAPPUT
+      (MAPPUT
+	    (MAPPUT MAPEMPTY (QUOTE KEY) (QUOTE 1))
+	    (QUOTE BLAH) (QUOTE 2))
+      (QUOTE ZZZ) (QUOTE 3)))
+ 
+dnl  (MYMAP MAPPUT MAPEMPTY (QUOTE KEY) (QUOTE 1))
+
+include(Map.lso)
+
+  )
+
