@@ -20,13 +20,17 @@ secd: support.o string.o heap.o secd.o main.o
 
 clean:
 	-rm -f $(CLEANFILES)
-	-ls -1 *.lob | grep -v '^compiler\.lob$$' | xargs rm -f
+	-ls -1 *.lob | grep -iv '^APENDIX2\.LOB$$' | xargs rm -f
 
 redo: clean all
 
-compiler.lob: compiler.lso secd
-	$(M4) $< | cat compiler.lob - | ./secd > .temp.$@
-	mv .temp.$@ $@
+primitive-compiler.lob: APENDIX2.LOB APENDIX2.LSO secd
+	cat APENDIX2.LOB APENDIX2.LSO | ./secd > $@
+
+compiler.lob: compiler.lso primitive-compiler.lob secd
+	$(M4) $< | cat primitive-compiler.lob - | ./secd > .temp.$@
+	$(M4) $< | cat .temp.$@ - | ./secd > $@
+	-rm -f .temp.$@
 
 %.o : %.c
 	$(CC) -c $< -o $@
@@ -34,5 +38,5 @@ compiler.lob: compiler.lso secd
 %.o : %.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 
-%.lob : %.lso secd
+%.lob : %.lso compiler.lob secd
 	$(M4) $< | cat compiler.lob - | ./secd > $@
