@@ -12,10 +12,6 @@
             CC
             (REVERSECC (CDR X) (CONS (CAR X) CC))))
       (PATTERNCC LAMBDA (X P CC)
-        (IF (EQ X (QUOTE NIL))
-            (IF (EQ P (QUOTE NIL))
-                CC
-                (QUOTE F))
         (IF (EQ P (QUOTE VAR))
             (CONS X CC)
         (IF (EQ P (QUOTE ANY))
@@ -38,4 +34,4 @@
               (IF (EQ SUBRESULT (QUOTE F))
                   (QUOTE F)
                   (PATTERNCC (CDR X) (CDR P) SUBRESULT))
-              (SUBRESULT PATTERNCC (CAR X) (CAR P) CC))))))))))))
+              (SUBRESULT PATTERNCC (CAR X) (CAR P) CC)))))))))))
