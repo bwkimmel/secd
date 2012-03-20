@@ -10,7 +10,7 @@ dnl ---------------------------------------------------------------------------
     (MAPPUT
       (MAPPUT
         (MAPPUT
-          (MAPPUT MAPEMPTY (QUOTE KEY) (QUOTE 1))
+          (MAPPUT (NEWMAP) (QUOTE KEY) (QUOTE 1))
           (QUOTE BLAH) (QUOTE 2))
         (QUOTE ZZZ) (QUOTE 3))
       (QUOTE BLAH) (QUOTE 4))

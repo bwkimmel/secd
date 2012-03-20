@@ -1,6 +1,9 @@
 dnl ---
 
-  (MAPEMPTY QUOTE NIL)
+include(Pattern.lso)
+
+  (NEWMAP LAMBDA NIL
+    MAPEMPTY)
 
   (MAPPUT LAMBDA (M K V)
     (LETREC
@@ -115,5 +118,5 @@ dnl -----------                         a   x.k x.v b    y.k y.v c    z.k z.v d
           M
           (CONS C (CDR M)))
       (COLOR MAPCOLOR M)))
+  (MAPEMPTY QUOTE NIL)
 
-include(Pattern.lso)
