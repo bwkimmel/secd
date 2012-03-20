@@ -1,0 +1,15 @@
+dnl --- Sqrt Test ---
+(LETREC SQRT
+  (SQRT LAMBDA (N) 
+    (MAPGET (BUILDSQRTMAP 1000) N))
+
+include(Map.lso)
+
+  (BUILDSQRTMAP LAMBDA (N)
+    (BUILDSQRTMAPCC N MAPEMPTY))
+
+  (BUILDSQRTMAPCC LAMBDA (N CC)
+    (IF (LEQ N (QUOTE 0))
+	    CC
+		(BUILDSQRTMAPCC (SUB N 1) (MAPPUT CC (MUL N N) N)))))
+	    
