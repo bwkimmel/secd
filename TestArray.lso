@@ -1,0 +1,13 @@
+dnl --- Array Test ---
+(LETREC TESTARRAY
+  (TESTARRAY LAMBDA NIL
+dnl    (ARRAYGET
+    (ARRAYPUT
+      (NEWARRAY (QUOTE (3 4 5)))
+	  (QUOTE (2 3 5)) (QUOTE XXX))
+dnl	  (QUOTE (2 3 2)))
+	)
+
+include(Array.lso)
+
+  )

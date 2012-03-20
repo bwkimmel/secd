@@ -1,0 +1,53 @@
+dnl --- Multidimensional array ---
+
+include(Map.lso)
+
+  (NEWARRAY LAMBDA (D)
+    (LETREC
+      (CONS (CONS (QUOTE 1) (CUMPROD D)) MAPEMPTY)
+	  (CUMPROD LAMBDA (D)
+	    (CUMPRODCC D (QUOTE NIL)))
+	  (CUMPRODCC LAMBDA (D CC)
+	    (IF (EQ D (QUOTE NIL))
+		    (REVERSE CC)
+			(IF (EQ CC (QUOTE NIL))
+			    (CUMPRODCC (CDR D) (CONS (CAR D) CC))
+				(CUMPRODCC (CDR D) (CONS (MUL (CAR D) (CAR CC)) CC)))))
+	  (REVERSE LAMBDA (L)
+	    (REVERSECC L (QUOTE NIL)))
+	  (REVERSECC LAMBDA (L CC)
+	    (IF (EQ L (QUOTE NIL))
+		    CC
+			(REVERSECC (CDR L) (CONS (CAR L) CC))))))
+
+  (ARRAYOFFSET LAMBDA (D I)
+    (LETREC
+	  (ARRAYOFFSETCC D I (QUOTE 0))
+	  (ARRAYOFFSETCC LAMBDA (D I CC)
+	    (IF (EQ I (QUOTE NIL))
+		    (IF (LEQ CC (CAR D))
+		        CC
+				(STOP (CONS (QUOTE ArrayIndexOutOfBounds) (CONS CC D))))
+			(ARRAYOFFSETCC (CDR D) (CDR I) (ADD CC (MUL (CAR D) (CAR I))))))))
+
+  (ARRAYPUT LAMBDA (A I V)
+    (LET
+      (CONS DIM (MAPPUT (ARRAYMAP A) (ARRAYOFFSET DIM I) V))
+	  (DIM ARRAYDIM A)))
+
+  (ARRAYGET LAMBDA (A I)
+    (MAPGET (ARRAYMAP A) (ARRAYOFFSET (ARRAYDIM A) I)))
+
+  (ARRAYSIZE LAMBDA (A)
+    (LETREC
+	  (LAST (CAR A))
+	  (LAST LAMBDA (L)
+	    (IF (EQ (CDR L) (QUOTE NIL))
+		    (CAR L)
+			(LAST (CDR L))))))
+
+  (ARRAYDIM LAMBDA (A)
+    (CAR A))
+  (ARRAYMAP LAMBDA (A)
+    (CDR A))
+    
