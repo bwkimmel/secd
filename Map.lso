@@ -1,25 +1,88 @@
+dnl ---
+
   (MAPEMPTY QUOTE NIL)
 
   (MAPPUT LAMBDA (M K V)
-    (IF (EQ M MAPEMPTY)
-        (MAPCONS K V MAPEMPTY MAPEMPTY)
-        (IF (EQ K (MAPKEY M))
-            (MAPSUBST M K V)
-            (IF (LEQ K (MAPKEY M))
-                (LET
-                  (MAPCONS
-                    (MAPKEY M)
-                    (MAPVALUE M)
-                    LEFT
-                    (MAPRIGHT M))
-                  (LEFT MAPPUT (MAPLEFT M) K V))
-                (LET
-                  (MAPCONS
-                    (MAPKEY M)
-                    (MAPVALUE M)
-                    (MAPLEFT M)
-                    RIGHT)
-                  (RIGHT MAPPUT (MAPRIGHT M) K V))))))
+    (LETREC
+      (MAPSETCOLOR (MAPPUTCC M K V) MAPBLACK)
+      (MAPPUTCC LAMBDA (M K V)
+        (IF (EQ M MAPEMPTY)
+            (MAPCONS K V MAPRED MAPEMPTY MAPEMPTY)
+            (IF (EQ K (MAPKEY M))
+                (MAPSUBST M V)
+                (BALANCE
+                  (IF (LEQ K (MAPKEY M))
+                      (MAPCONS
+                        (MAPKEY M)
+                        (MAPVALUE M)
+                        (MAPCOLOR M)
+                        (MAPPUTCC (MAPLEFT M) K V)
+                        (MAPRIGHT M))
+                      (MAPCONS
+                        (MAPKEY M)
+                        (MAPVALUE M)
+                        (MAPCOLOR M)
+                        (MAPLEFT M)
+                        (MAPPUTCC (MAPRIGHT M) K V)))))))
+      (BALANCE LAMBDA (M)
+        (LETREC
+          (IF (EQ MATCH (QUOTE F))
+              M
+              (LETREC
+                (MAPCONS YK YV MAPRED
+                  (MAPCONS XK XV MAPBLACK A B)
+                  (MAPCONS ZK ZV MAPBLACK C D))
+                (A NTH MATCH (QUOTE 0))
+				(XK NTH MATCH (QUOTE 1))
+				(XV NTH MATCH (QUOTE 2))
+				(B NTH MATCH (QUOTE 3))
+				(YK NTH MATCH (QUOTE 4))
+				(YV NTH MATCH (QUOTE 5))
+				(C NTH MATCH (QUOTE 6))
+				(ZK NTH MATCH (QUOTE 7))
+				(ZV NTH MATCH (QUOTE 8))
+				(D NTH MATCH (QUOTE 9))
+                ))
+
+          (NTH LAMBDA (L N)
+		    (IF (EQ N (QUOTE 0))
+			    (CAR L)
+				(NTH (CDR L) (SUB N (QUOTE 1)))))
+
+          (MATCH .
+            (LET (IF (EQ MATCHLL (QUOTE F))
+                     (LET (IF (EQ MATCHLR (QUOTE F))
+                              (LET (IF (EQ MATCHRL (QUOTE F))
+                                       (LET (IF (EQ MATCHRR (QUOTE F))
+                                                (QUOTE F)
+                                                MATCHRR)
+                
+              (MATCHRR PATTERN M
+                (QUOTE (BLACK VAR VAR VAR (RED VAR VAR VAR (RED VAR VAR VAR VAR)))))
+dnl -----------               a   x.k x.v      b   y.k y.v      c   z.k z.v d
+
+                                         )
+                                       MATCHRL)
+
+              (MATCHRL PATTERN M
+                (QUOTE (BLACK VAR VAR VAR (RED (RED VAR VAR VAR VAR) VAR VAR VAR))))
+dnl -----------               a   x.k x.v           b   y.k y.v c    z.k z.v d
+
+                                )
+                              MATCHLR)
+
+              (MATCHLR PATTERN M
+                (QUOTE (BLACK (RED VAR VAR VAR (RED VAR VAR VAR VAR)) VAR VAR VAR)))
+dnl -----------                    a   x.k x.v      b   y.k y.v c     z.k z.v d
+
+                       )
+                     MATCHLL)
+                
+              (MATCHLL PATTERN M
+                (QUOTE (BLACK (RED (RED VAR VAR VAR VAR) VAR VAR VAR) VAR VAR VAR)))
+dnl -----------                         a   x.k x.v b    y.k y.v c    z.k z.v d
+
+              ))))))
 
   (MAPGET LAMBDA (M K)
     (IF (EQ M MAPEMPTY)
@@ -30,15 +93,27 @@
                 (MAPGET (MAPLEFT M) K)
                 (MAPGET (MAPRIGHT M) K)))))
 
-  (MAPKEY LAMBDA (M)
+  (MAPBLACK QUOTE BLACK)
+  (MAPRED QUOTE RED)
+  (MAPCOLOR LAMBDA (M)
     (CAR M))
-  (MAPVALUE LAMBDA (M)
-    (CAR (CDR M)))
   (MAPLEFT LAMBDA (M)
+    (CAR (CDR M)))
+  (MAPKEY LAMBDA (M)
     (CAR (CDR (CDR M))))
-  (MAPRIGHT LAMBDA (M)
+  (MAPVALUE LAMBDA (M)
     (CAR (CDR (CDR (CDR M)))))
-  (MAPCONS LAMBDA (K V L R)
-    (CONS K (CONS V (CONS L (CONS R (QUOTE NIL))))))
-  (MAPSUBST LAMBDA (M K V)
-    (CONS K (CONS V (CDR (CDR M)))))
+  (MAPRIGHT LAMBDA (M)
+    (CAR (CDR (CDR (CDR (CDR M))))))
+  (MAPCONS LAMBDA (K V C L R)
+    (CONS C (CONS L (CONS K (CONS V (CONS R (QUOTE NIL)))))))
+  (MAPSUBST LAMBDA (M V)
+    (MAPCONS (MAPKEY M) V (MAPCOLOR M) (MAPLEFT M) (MAPRIGHT M)))
+  (MAPSETCOLOR LAMBDA (M C)
+    (LET
+      (IF (EQ C COLOR)
+          M
+          (CONS C (CDR M)))
+      (COLOR MAPCOLOR M)))
+
+include(Pattern.lso)
