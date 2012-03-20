@@ -24,6 +24,10 @@ clean:
 
 redo: clean all
 
+compiler.lob: compiler.lso secd
+	$(M4) $< | cat compiler.lob - | ./secd > .temp.$@
+	mv .temp.$@ $@
+
 %.o : %.c
 	$(CC) -c $< -o $@
 
