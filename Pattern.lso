@@ -1,0 +1,41 @@
+  (PATTERN LAMBDA (X P)
+    (LETREC
+      (LET
+	    (IF (EQ RESULT (QUOTE F))
+		    (QUOTE F)
+			(REVERSE RESULT))
+	    (RESULT PATTERNCC X P (QUOTE NIL)))
+      (REVERSE LAMBDA (X)
+        (REVERSECC X (QUOTE NIL)))
+      (REVERSECC LAMBDA (X CC)
+        (IF (EQ X (QUOTE NIL))
+            CC
+            (REVERSECC (CDR X) (CONS (CAR X) CC))))
+      (PATTERNCC LAMBDA (X P CC)
+        (IF (EQ X (QUOTE NIL))
+            (IF (EQ P (QUOTE NIL))
+                CC
+                (QUOTE F))
+        (IF (EQ P (QUOTE VAR))
+            (CONS X CC)
+        (IF (EQ P (QUOTE ANY))
+		    CC
+		(IF (EQ P (QUOTE ATOM))
+		    (IF (ATOM X)
+			    CC
+				(QUOTE F))
+		(IF (EQ P (QUOTE VARATOM))
+		    (IF (ATOM X)
+			    (CONS X CC)
+				(QUOTE F))
+        (IF (ATOM P)
+            (IF (EQ X P)
+			    CC
+                (QUOTE F))
+        (IF (ATOM X)
+            (QUOTE F)
+            (LET
+              (IF (EQ SUBRESULT (QUOTE F))
+                  (QUOTE F)
+                  (PATTERNCC (CDR X) (CDR P) SUBRESULT))
+              (SUBRESULT PATTERNCC (CAR X) (CAR P) CC))))))))))))
