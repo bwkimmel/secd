@@ -291,7 +291,7 @@ _instr \
         _instr_APR , _instr_TSEL, _instr_APCC, _instr_RC  , _instr_CVEC, \
 		_instr_VSET, _instr_VREF, _instr_VLEN, _instr_VCPY, _instr_CBIN, \
 		_instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, _instr_BS16, \
-		_instr_BR16, _instr_BS32, _instr_BR32, _instr_MULX
+		_instr_BR16, _instr_BS32, _instr_BR32, _instr_MULX, _instr_PEXP
 
 numinstr	equ		($ - _instr) >> 2
 	
@@ -610,6 +610,13 @@ _instr_PUT:
 	and		eax, 0x000000ff
 	push	eax
 	call	_putchar
+	add		esp, 4
+	jmp		_cycle
+
+_instr_PEXP:
+    car		eax, S
+	push	eax
+	call	_putexp
 	add		esp, 4
 	jmp		_cycle
 		

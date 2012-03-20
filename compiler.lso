@@ -40,6 +40,8 @@
                 (CONS 24 C)
            (IF (EQ (CAR E) (QUOTE PUT))
                 (COMP (CAR (CDR E)) N (CONS 25 C)) 
+           (IF (EQ (CAR E) (QUOTE PUTEXP))
+                (COMP (CAR (CDR E)) N (CONS 45 C)) 
            (IF (EQ (CAR E) (QUOTE CVEC))
                 (COMP (CAR (CDR E)) N (CONS 30 C)) 
            (IF (EQ (CAR E) (QUOTE VSET))
@@ -104,7 +106,7 @@
         (COMPLIS (CDR E) N (COMP (CAR E) N 
           (IF (EQ (CAR C) 5)
                (CONS 26 (CDR C))
-               (CONS 4 C)))))))))))))))))))))))))))))))))))))))))
+               (CONS 4 C))))))))))))))))))))))))))))))))))))))))))
         (COMPLIS LAMBDA (E N C)
            (IF (EQ E (QUOTE NIL)) (CONS 2 (CONS (QUOTE NIL) C))
                 (COMPLIS (CDR E) N (COMP (CAR E) N (CONS 13 C)))))
