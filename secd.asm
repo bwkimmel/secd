@@ -75,6 +75,18 @@
 	alloc	%1, %2, SECD_SYMBOL
 %endmacro
 
+%macro isnumber 1
+	test	byte [flags + %1], 0x02
+%endmacro
+
+%macro check_arith_args 2
+	isnumber %1
+	jz		_arith_nonnum
+	isnumber %2
+	jz		_arith_nonnum
+%endmacro
+
+
 segment .data
 tstr		db		"T"
 tstr_len	equ		$ - tstr
@@ -482,9 +494,16 @@ _instr_EQ:
 	mov		S, eax		; S' <-- cons(T/F, cdr(cdr(S)))
 	jmp		_cycle
 
+_arith_nonnum:
+	mov		eax, 0
+	cons	eax, S
+	mov		S, eax
+	jmp		_cycle
+
 _instr_ADD:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
+	check_arith_args eax, edx
 	ivalue	eax
 	ivalue	edx
 	add		eax, edx
@@ -496,6 +515,7 @@ _instr_ADD:
 _instr_SUB:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
+	check_arith_args eax, edx
 	ivalue	eax
 	ivalue	edx
 	sub		eax, edx
@@ -507,6 +527,7 @@ _instr_SUB:
 _instr_MUL:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
+	check_arith_args eax, edx
 	ivalue	eax
 	ivalue	edx
 	imul	edx
@@ -518,6 +539,7 @@ _instr_MUL:
 _instr_MULX:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
+	check_arith_args eax, edx
 	ivalue	eax
 	ivalue	edx
 	imul	edx
@@ -531,6 +553,7 @@ _instr_MULX:
 _instr_DIV:
 	carcdr	ecx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), ECX = car(S), S' = cdr(cdr(S))
+	check_arith_args eax, ecx
 	ivalue	eax
 	ivalue	ecx
 	cdq					; Extend sign of EAX into all bits of EDX
@@ -543,6 +566,7 @@ _instr_DIV:
 _instr_REM:
 	carcdr	ecx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), ECX = car(S), S' = cdr(cdr(S))
+	check_arith_args eax, ecx
 	ivalue	eax
 	ivalue	ecx
 	mov		edx, eax
