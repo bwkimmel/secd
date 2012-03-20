@@ -1,0 +1,6 @@
+dnl --- m4 Wrapper for Pattern.lso ---
+(LETREC PATTERN
+
+include(Pattern.lso)
+
+  )
