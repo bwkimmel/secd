@@ -1,0 +1,7 @@
+(LETREC FIB
+  (FIB LAMBDA (N)
+    (CONTINUEFIB N 0 1))
+  (CONTINUEFIB LAMBDA (N A1 A2)
+    (IF (EQ N 0)
+      A1
+      (CONTINUEFIB (SUB N 1) (ADD A1 A2) A1))))
