@@ -1,7 +1,7 @@
 (LETREC DIFF
   (DIFF LAMBDA (E)
-    (IF (ATOM E) (IF (EQ E (QUOTE X)) (QUOTE 1)
-                 (QUOTE 0))
+    (IF (ATOM E) (IF (EQ E (QUOTE X)) 1
+                 0)
     (IF (EQ (CAR E) (QUOTE ADD))
         (LET (SUM (DIFF E1) (DIFF E2))
           (E1 CAR (CDR E))

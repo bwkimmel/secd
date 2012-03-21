@@ -9,7 +9,7 @@ include(Map.lso)
     (BUILDSQRTMAPCC N MAPEMPTY))
 
   (BUILDSQRTMAPCC LAMBDA (N CC)
-    (IF (LEQ N (QUOTE 0))
+    (IF (LEQ N 0)
 	    CC
 		(BUILDSQRTMAPCC (SUB N 1) (MAPPUT CC (MUL N N) N)))))
 	    

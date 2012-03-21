@@ -10,16 +10,16 @@ dnl ---------------------------------------------------------------------------
     (MAPPUT
       (MAPPUT
         (MAPPUT
-          (MAPPUT (NEWMAP) (QUOTE KEY) (QUOTE 1))
-          (QUOTE BLAH) (QUOTE 2))
-        (QUOTE ZZZ) (QUOTE 3))
-      (QUOTE BLAH) (QUOTE 4))
-	  (QUOTE XXX) (QUOTE 5)) 
-	  (QUOTE ABC) (QUOTE 7)) 
+          (MAPPUT (NEWMAP) (QUOTE KEY) 1)
+          (QUOTE BLAH) 2)
+        (QUOTE ZZZ) 3)
+      (QUOTE BLAH) 4)
+	  (QUOTE XXX) 5) 
+	  (QUOTE ABC) 7) 
 	  (QUOTE BLAH))
 	  )
 
-dnl  (MYMAP MAPPUT MAPEMPTY (QUOTE KEY) (QUOTE 1))
+dnl  (MYMAP MAPPUT MAPEMPTY (QUOTE KEY) 1)
 
 include(Map.lso)
 

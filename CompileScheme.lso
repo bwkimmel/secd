@@ -7,7 +7,7 @@ dnl ---------------------------------------------------------------------------
 
 (LETREC COMPILE
   (COMPILE LAMBDA NIL
-    (PARSE BUILDLIST))
+    (LEX BUILDLIST))
 
   (BUILDLIST LAMBDA (X REENTRY)
     (IF (ISNIL X)
