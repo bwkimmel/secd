@@ -1,6 +1,7 @@
 dnl ---
 
 include(Pattern.lso)
+include(Util.lso)
 
   (NEWMAP LAMBDA NIL
     MAPEMPTY)
@@ -11,22 +12,24 @@ include(Pattern.lso)
       (MAPPUTCC LAMBDA (M K V)
         (IF (EQ M MAPEMPTY)
             (MAPCONS K V MAPRED MAPEMPTY MAPEMPTY)
-            (IF (EQ K (MAPKEY M))
-                (MAPSUBST M V)
-                (BALANCE
-                  (IF (LEQ K (MAPKEY M))
-                      (MAPCONS
-                        (MAPKEY M)
-                        (MAPVALUE M)
-                        (MAPCOLOR M)
-                        (MAPPUTCC (MAPLEFT M) K V)
-                        (MAPRIGHT M))
-                      (MAPCONS
-                        (MAPKEY M)
-                        (MAPVALUE M)
-                        (MAPCOLOR M)
-                        (MAPLEFT M)
-                        (MAPPUTCC (MAPRIGHT M) K V)))))))
+            (LET
+              (IF (EQ CMP 0)
+                  (MAPSUBST M V)
+                    (BALANCE
+                      (IF (LEQ CMP 0)
+                          (MAPCONS
+                            (MAPKEY M)
+                            (MAPVALUE M)
+                            (MAPCOLOR M)
+                            (MAPPUTCC (MAPLEFT M) K V)
+                            (MAPRIGHT M))
+                          (MAPCONS
+                            (MAPKEY M)
+                            (MAPVALUE M)
+                            (MAPCOLOR M)
+                            (MAPLEFT M)
+                            (MAPPUTCC (MAPRIGHT M) K V)))))
+              (CMP DEEPCMP K (MAPKEY M)))))
       (BALANCE LAMBDA (M)
         (LETREC
           (IF (EQ MATCH (QUOTE F))
@@ -36,21 +39,16 @@ include(Pattern.lso)
                   (MAPCONS XK XV MAPBLACK A B)
                   (MAPCONS ZK ZV MAPBLACK C D))
                 (A NTH MATCH 0)
-				(XK NTH MATCH 1)
-				(XV NTH MATCH 2)
-				(B NTH MATCH 3)
-				(YK NTH MATCH 4)
-				(YV NTH MATCH 5)
-				(C NTH MATCH 6)
-				(ZK NTH MATCH 7)
-				(ZV NTH MATCH 8)
-				(D NTH MATCH 9)
+                (XK NTH MATCH 1)
+                (XV NTH MATCH 2)
+                (B NTH MATCH 3)
+                (YK NTH MATCH 4)
+                (YV NTH MATCH 5)
+                (C NTH MATCH 6)
+                (ZK NTH MATCH 7)
+                (ZV NTH MATCH 8)
+                (D NTH MATCH 9)
                 ))
-
-          (NTH LAMBDA (L N)
-		    (IF (EQ N 0)
-			    (CAR L)
-				(NTH (CDR L) (SUB N 1))))
 
           (MATCH .
             (LET (IF (EQ MATCHLL (QUOTE F))
@@ -90,11 +88,13 @@ dnl -----------                         a   x.k x.v b    y.k y.v c    z.k z.v d
   (MAPGET LAMBDA (M K)
     (IF (EQ M MAPEMPTY)
         (QUOTE NIL)
-        (IF (EQ K (MAPKEY M))
-            (MAPVALUE M)
-            (IF (LEQ K (MAPKEY M))
-                (MAPGET (MAPLEFT M) K)
-                (MAPGET (MAPRIGHT M) K)))))
+		(LET
+          (IF (EQ CMP 0)
+              (MAPVALUE M)
+              (IF (LEQ CMP 0)
+                  (MAPGET (MAPLEFT M) K)
+                  (MAPGET (MAPRIGHT M) K)))
+		  (CMP DEEPCMP K (MAPKEY M)))))
 
   (MAPBLACK QUOTE BLACK)
   (MAPRED QUOTE RED)
