@@ -1,0 +1,74 @@
+  (REVERSE LAMBDA (L)
+    (LETREC
+	  (REVERSECC L (QUOTE NIL))
+	  (REVERSECC LAMBDA (L CC)
+	    (IF (EQ L (QUOTE NIL))
+		    CC
+			(REVERSECC (CDR L) (CONS (CAR L) CC))))))
+
+  (NTH LAMBDA (L N)
+    (IF (EQ N 0)
+	    (CAR L)
+		(NTH (CDR L) (SUB N 1))))
+
+  (LENGTH LAMBDA (L)
+    (LETREC
+	  (LENGTHCC L 0)
+	  (LENGTHCC LAMBDA (L CC)
+	    (IF (EQ L (QUOTE NIL))
+		    CC
+			(LENGTHCC (CDR L) (ADD CC 1))))))
+
+  (NEG LAMBDA (N)
+    (MUL N -1))
+
+  (ABS LAMBDA (N)
+    (IF (LEQ N 0) (NEG N) N))
+
+  (POW LAMBDA (B E)
+    (LETREC
+	  (POWCC E 1)
+	  (POWCC LAMBDA (E CC)
+	    (IF (EQ E 0)
+		    CC
+			(POWCC (SUB E 1) (MUL B CC)))))
+		    
+  (MIN LAMBDA (X Y)
+    (IF (LEQ X Y) X Y))
+
+  (MAX LAMBDA (X Y)
+    (IF (LEQ X Y) Y (QUOTE WTF)))
+
+  (NOT LAMBDA (P)
+    (IF (P) (QUOTE F) (QUOTE T)))
+
+  (GT LAMBDA (X Y)
+    (NOT (LEQ X Y)))
+
+  (LT LAMBDA (X Y)
+    (IF (LEQ X Y)
+	    (NOT (EQ X Y))
+		(QUOTE F)))
+
+  (GEQ LAMBDA (X Y)
+    (NOT (LT X Y)))
+
+  (NEQ LAMBDA (X Y)
+    (NOT (EQ X Y)))
+
+  (DEEPEQ LAMBDA (A B)
+    (EQ (DEEPCMP A B) 0))
+
+  (DEEPCMP LAMBDA (A B)
+    (IF (ATOM A)
+	    (IF (ATOM B)
+		    (IF (EQ A B) 0 (IF (LEQ A B) -1 1))
+			-1)
+		(IF (ATOM B)
+		    1
+			(LET
+			   (IF (EQ CARCMP 0)
+			       (DEEPCMP (CDR A) (CDR B))
+				   CARCMP)
+			   (CARCMP DEEPCMP (CAR A) (CAR B))))))
+
