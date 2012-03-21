@@ -1,0 +1,245 @@
+dnl ---------------------------------------------------------------------------
+dnl Grammar for Scheme (R5RS) syntax
+dnl ---------------------------------------------------------------------------
+dnl NOTE:  This file must be processed by m4 before being fed to the secd
+dnl        machine.
+dnl ---------------------------------------------------------------------------
+
+(LETREC
+  START
+
+dnl ---------------------------------------------------------------------------
+dnl Root Production Rule
+dnl ---------------------------------------------------------------------------
+
+  (START (Program))
+
+
+
+dnl ---------------------------------------------------------------------------
+dnl Helper Rules
+dnl ---------------------------------------------------------------------------
+
+  (ZeroOrMoreIdentifier
+    ()
+	(ZeroOrMoreIdentifier IDENT))
+  (ZeroOrMoreVariable
+    ()
+	(OneOrMoreVariable))
+  (OneOrMoreVariable
+    (ZeroOrMoreVariable VARIABLE))
+
+
+
+dnl ---------------------------------------------------------------------------
+dnl Terminals
+dnl ---------------------------------------------------------------------------
+
+  (BACKQUOTE)
+  (BEGIN)
+  (BOOL)
+  (CHAR)
+  (CLOSEP)
+  (COMMA)
+  (COMMAAT)
+  (DEFINE)
+  (DEFINESYNTAX)
+  (DOT)
+  (ELLIPSIS)
+  (IDENT)
+  (IF)
+  (KEYWORD)
+  (KEYWORDQUOTE)
+  (LAMBDA)
+  (LETREC)
+  (NUMBER)
+  (OPENP)
+  (OPENVEC)
+  (QUOTE)
+  (STRING)
+  (SYNTAXRULES)
+  (VARIABLE)
+
+
+
+dnl ---------------------------------------------------------------------------
+dnl 7.1.2  External Representations
+dnl ---------------------------------------------------------------------------
+
+  (Datum
+    (SimpleDatum)
+	(CompoundDatum))
+  (ZeroOrMoreDatum
+    ()
+	(OneOrMoreDatum))
+  (OneOrMoreDatum
+    (ZeroOrMoreDatum Datum))
+  (SimpleDatum
+    (BOOL)
+	(NUMBER)
+	(CHAR)
+	(STRING)
+	(Symbol))
+  (Symbol
+    (IDENT))
+  (CompoundDatum
+    (List)
+	(Vector))
+  (List
+    (OPENP ZeroOrMoreDatum CLOSEP)
+	(OPENP OneOrMoreDatum DOT Datum CLOSEP)
+	(Abbreviation))
+  (Abbreviation
+    (AbbrevPrefix Datum))
+  (AbbrevPrefix
+    (QUOTE)
+	(BACKQUOTE)
+	(COMMA)
+	(COMMAAT))
+  (Vector
+    (OPENVEC ZeroOrMoreDatum CLOSEP))
+
+
+
+dnl ---------------------------------------------------------------------------
+dnl 7.1.3  Expressions
+dnl ---------------------------------------------------------------------------
+
+  (Expression
+    (VARIABLE)
+	(Literal)
+	(ProcedureCall)
+	(LambdaExpression)
+	(Conditional)
+	(Assignment)
+	(DerivedExpression)
+	(MacroUse)
+	(MacroBlock))
+  (Literal
+    (Quotation)
+	(SelfEvaluating))
+  (SelfEvaluating
+    (BOOL)
+	(NUMBER)
+	(CHAR)
+	(STRING))
+  (Quotation
+    (QUOTE Datum)
+	(OPENP KEYWORDQUOTE Datum CLOSEP))
+  (ProcedureCall
+    (OPENP Operator ZeroOrMoreOperand CLOSEP))
+  (Operator
+    (Expression))
+  (Operand
+    (Expression))
+  (ZeroOrMoreOperand
+    ()
+	(ZeroOrMoreOperand Operand))
+  (LambdaExpression
+    (OPENP LAMBDA Formals Body CLOSEP))
+  (Formals
+    (OPENP ZeroOrMoreVariable CLOSEP)
+	(VARIABLE)
+	(OPENP OneOrMoreVariable DOT VARIABLE CLOSEP))
+  (Body
+    (ZeroOrMoreDefinition Sequence))
+  (Sequence
+    (ZeroOrMoreCommand Expression))
+  (Command
+    (Expression))
+  (ZeroOrMoreCommand
+    ()
+	(ZeroOrMoreCommand Command))
+  (Conditional
+    (OPENP IF Test Consequent Alternate CLOSEP))
+  (Test
+    (Expression))
+  (Consequent
+    (Expression))
+  (Alternate
+    (Expression)
+	())
+
+
+
+dnl ---------------------------------------------------------------------------
+dnl 7.1.5  Transformers
+dnl ---------------------------------------------------------------------------
+
+  (TransformerSpec
+    (OPENP SYNTAXRULES OPENP ZeroOrMoreIdentifier CLOSEP ZeroOrMoreSyntaxRule CLOSEP))
+  (SyntaxRule
+    (OPENP Pattern Template CLOSEP))
+  (ZeroOrMoreSyntaxRule
+    ()
+	(ZeroOrMoreSyntaxRule SyntaxRule))
+  (Pattern
+    (PatternIdentifier)
+	(OPENP ZeroOrMorePattern CLOSEP)
+	(OPENP OneOrMorePattern DOT Pattern CLOSEP)
+	(OPENP ZeroOrMorePattern Pattern ELLIPSIS CLOSEP)
+	(OPENVEC ZeroOrMorePattern CLOSEP)
+	(OPENVEC ZeroOrMorePattern Pattern ELLIPSIS CLOSEP)
+	(PatternDatum))
+  (ZeroOrMorePattern
+    ()
+	(OneOrMorePattern))
+  (OneOrMorePattern
+    (ZeroOrMorePattern Pattern))
+  (PatternDatum
+    (STRING)
+	(CHAR)
+	(BOOL)
+	(NUMBER))
+  (Template
+    (PatternIdentifier)
+	(OPENP ZeroOrMoreTemplateElement CLOSEP)
+	(OPENP OneOrMoreTemplateElement DOT Template CLOSEP)
+	(OPENVEC ZeroOrMoreTemplateElement CLOSEP)
+	(TemplateDatum))
+  (TemplateElement
+    (Template)
+	(Template ELLIPSIS))
+  (ZeroOrMoreTemplateElement
+    ()
+	(OneOrMoreTemplateElement))
+  (OneOrMoreTemplateElement
+    (ZeroOrMoreTemplateElement TemplateElement))
+  (TemplateDatum
+    (PatternDatum))
+  (PatternIdentifier ???)
+
+
+
+dnl ---------------------------------------------------------------------------
+dnl 7.1.6  Programs and Definitions
+dnl ---------------------------------------------------------------------------
+
+  (Program (ZeroOrMoreCommandOrDefinition))
+  (CommandOrDefinition
+    (Command)
+    (Definition)
+    (SyntaxDefinition)
+    (OPENP BEGIN OneOrMoreCommandOrDefinition CLOSEP))
+  (ZeroOrMoreCommandOrDefinition
+  	()
+	(OneOrMoreCommandOrDefinition))
+  (OneOrMoreCommandOrDefinition 
+    (ZeroOrMoreCommandOrDefinition CommandOrDefinition))
+  (Definition
+    (OPENP DEFINE Variable Expression CLOSEP)
+    (OPENP DEFINE OPENP VARIABLE DefFormals CLOSEP Body CLOSEP)
+    (OPENP BEGIN ZeroOrMoreDefinition CLOSEP))
+  (ZeroOrMoreDefinition
+    ()
+    (ZeroOrMoreDefinition Definition))
+  (DefFormals
+    (ZeroOrMoreVariable)
+    (ZeroOrMoreVariable DOT Variable))
+  (SyntaxDefinition
+    (OPENP DEFINESYNTAX IDENT TransformerSpec CLOSEP))
+
+
+dnl ---------------------------------------------------------------------------
+  )
+
