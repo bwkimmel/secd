@@ -5,8 +5,7 @@ dnl NOTE:  This file must be processed by m4 before being fed to the secd
 dnl        machine.
 dnl ---------------------------------------------------------------------------
 
-(LETREC
-  START
+(SchemeGrammar QUOTE (
 
 dnl ---------------------------------------------------------------------------
 dnl Root Production Rule
@@ -21,10 +20,10 @@ dnl Helper Rules
 dnl ---------------------------------------------------------------------------
 
   (ZeroOrMoreIdentifier
-    ()
+    NIL
 	(ZeroOrMoreIdentifier IDENT))
   (ZeroOrMoreVariable
-    ()
+    NIL
 	(OneOrMoreVariable))
   (OneOrMoreVariable
     (ZeroOrMoreVariable VARIABLE))
@@ -70,7 +69,7 @@ dnl ---------------------------------------------------------------------------
     (SimpleDatum)
 	(CompoundDatum))
   (ZeroOrMoreDatum
-    ()
+    NIL
 	(OneOrMoreDatum))
   (OneOrMoreDatum
     (ZeroOrMoreDatum Datum))
@@ -133,7 +132,7 @@ dnl ---------------------------------------------------------------------------
   (Operand
     (Expression))
   (ZeroOrMoreOperand
-    ()
+    NIL
 	(ZeroOrMoreOperand Operand))
   (LambdaExpression
     (OPENP LAMBDA Formals Body CLOSEP))
@@ -148,7 +147,7 @@ dnl ---------------------------------------------------------------------------
   (Command
     (Expression))
   (ZeroOrMoreCommand
-    ()
+    NIL
 	(ZeroOrMoreCommand Command))
   (Conditional
     (OPENP IF Test Consequent Alternate CLOSEP))
@@ -158,7 +157,7 @@ dnl ---------------------------------------------------------------------------
     (Expression))
   (Alternate
     (Expression)
-	())
+	NIL)
 
 
 
@@ -171,7 +170,7 @@ dnl ---------------------------------------------------------------------------
   (SyntaxRule
     (OPENP Pattern Template CLOSEP))
   (ZeroOrMoreSyntaxRule
-    ()
+    NIL
 	(ZeroOrMoreSyntaxRule SyntaxRule))
   (Pattern
     (PatternIdentifier)
@@ -182,7 +181,7 @@ dnl ---------------------------------------------------------------------------
 	(OPENVEC ZeroOrMorePattern Pattern ELLIPSIS CLOSEP)
 	(PatternDatum))
   (ZeroOrMorePattern
-    ()
+    NIL
 	(OneOrMorePattern))
   (OneOrMorePattern
     (ZeroOrMorePattern Pattern))
@@ -201,13 +200,13 @@ dnl ---------------------------------------------------------------------------
     (Template)
 	(Template ELLIPSIS))
   (ZeroOrMoreTemplateElement
-    ()
+    NIL
 	(OneOrMoreTemplateElement))
   (OneOrMoreTemplateElement
     (ZeroOrMoreTemplateElement TemplateElement))
   (TemplateDatum
     (PatternDatum))
-  (PatternIdentifier ???)
+  (PatternIdentifier NIL)
 
 
 
@@ -222,7 +221,7 @@ dnl ---------------------------------------------------------------------------
     (SyntaxDefinition)
     (OPENP BEGIN OneOrMoreCommandOrDefinition CLOSEP))
   (ZeroOrMoreCommandOrDefinition
-  	()
+  	NIL
 	(OneOrMoreCommandOrDefinition))
   (OneOrMoreCommandOrDefinition 
     (ZeroOrMoreCommandOrDefinition CommandOrDefinition))
@@ -231,7 +230,7 @@ dnl ---------------------------------------------------------------------------
     (OPENP DEFINE OPENP VARIABLE DefFormals CLOSEP Body CLOSEP)
     (OPENP BEGIN ZeroOrMoreDefinition CLOSEP))
   (ZeroOrMoreDefinition
-    ()
+    NIL
     (ZeroOrMoreDefinition Definition))
   (DefFormals
     (ZeroOrMoreVariable)
@@ -241,5 +240,5 @@ dnl ---------------------------------------------------------------------------
 
 
 dnl ---------------------------------------------------------------------------
-  )
+  ))
 
