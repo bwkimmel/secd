@@ -31,7 +31,7 @@
 	  (POWCC LAMBDA (E CC)
 	    (IF (EQ E 0)
 		    CC
-			(POWCC (SUB E 1) (MUL B CC)))))
+			(POWCC (SUB E 1) (MUL B CC))))))
 		    
   (MIN LAMBDA (X Y)
     (IF (LEQ X Y) X Y))
