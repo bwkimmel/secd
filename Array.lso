@@ -1,4 +1,5 @@
 dnl --- Multidimensional array ---
+ifdef(`array_lso_m4',,`define(`array_lso_m4',1)dnl
 
 include(Map.lso)
 
@@ -51,3 +52,4 @@ include(Map.lso)
   (ARRAYMAP LAMBDA (A)
     (CDR A))
     
+')dnl

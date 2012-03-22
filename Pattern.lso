@@ -1,3 +1,6 @@
+dnl --- Pattern Matching ---
+ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
+
   (PATTERN LAMBDA (X P)
     (LETREC
       (LET
@@ -35,3 +38,5 @@
                   (QUOTE F)
                   (PATTERNCC (CDR X) (CDR P) SUBRESULT))
               (SUBRESULT PATTERNCC (CAR X) (CAR P) CC)))))))))))
+
+')dnl

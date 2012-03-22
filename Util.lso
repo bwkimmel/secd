@@ -1,3 +1,6 @@
+dnl --- Utility functions ---
+ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
+
   (REVERSE LAMBDA (L)
     (LETREC
 	  (REVERSECC L (QUOTE NIL))
@@ -72,3 +75,4 @@
 				   CARCMP)
 			   (CARCMP DEEPCMP (CAR A) (CAR B))))))
 
+')dnl

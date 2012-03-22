@@ -1,3 +1,6 @@
+dnl --- Scheme parser ---
+ifdef(`parse_scheme_lso_m4',,`define(`parse_scheme_lso_m4',1)dnl
+
   (PARSE LAMBDA (CC)
     (PARSEINITIAL
       LEX
@@ -55,3 +58,5 @@
     (IF (EQ (CAR TOKEN) (QUOTE LITERAL))
         (CC TOKEN LEX)
         (QUOTE ((ERROR)))))) 
+
+')dnl

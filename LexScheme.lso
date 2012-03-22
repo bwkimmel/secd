@@ -1,3 +1,6 @@
+dnl --- Scheme lexer ---
+ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
+
   (LEX LAMBDA (CC)
     (LEXINITIAL (SCAN) CC))
 
@@ -527,3 +530,5 @@
       (IF (ISNEWLINE C) (GET) (SKIPCOMMENT))
       (C GET)))
   (FIRST LAMBDA (A B) A)
+
+')dnl

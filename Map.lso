@@ -1,4 +1,5 @@
 dnl ---
+ifdef(`map_lso_m4',,`define(`map_lso_m4',1)dnl
 
 include(Pattern.lso)
 include(Util.lso)
@@ -120,3 +121,4 @@ dnl -----------                         a   x.k x.v b    y.k y.v c    z.k z.v d
       (COLOR MAPCOLOR M)))
   (MAPEMPTY QUOTE NIL)
 
+')dnl
