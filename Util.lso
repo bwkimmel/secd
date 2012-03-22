@@ -69,6 +69,14 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
   (NEQ LAMBDA (X Y)
     (NOT (EQ X Y)))
 
+  (APPEND LAMBDA (A B)
+    (LETREC
+      (PREPENDREVERSE (REVERSE A) B)
+      (PREPENDREVERSE LAMBDA (A B)
+        (IF (ISNIL A)
+            B
+            (PREPENDREVERSE (CDR A) (CONS (CAR A) B))))))
+
   (DEEPEQ LAMBDA (A B)
     (EQ (DEEPCMP A B) 0))
 
