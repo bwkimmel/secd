@@ -1,0 +1,18 @@
+dnl --- Set Abstract Data Type ---
+ifdef(`set_lso_m4',,`define(`set_lso_m4',1)dnl
+
+include(Map.lso)
+
+  (NEWSET LAMBDA NIL
+    (NEWMAP))
+
+  (SETPUT LAMBDA (S E)
+    (MAPPUT S E (QUOTE T)))
+
+  (SETDEL LAMBDA (S E)
+    (MAPPUT S E (QUOTE F)))
+
+  (SETCONTAINS LAMBDA (S E)
+    (EQ (MAPGET S E) (QUOTE T)))
+
+')dnl
