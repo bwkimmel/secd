@@ -49,12 +49,10 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
     (NOT (LEQ X Y)))
 
   (LT LAMBDA (X Y)
-    (IF (LEQ X Y)
-	    (NOT (EQ X Y))
-		(QUOTE F)))
+    (NOT (LEQ Y X)))
 
   (GEQ LAMBDA (X Y)
-    (NOT (LT X Y)))
+    (LEQ Y X))
 
   (NEQ LAMBDA (X Y)
     (NOT (EQ X Y)))
