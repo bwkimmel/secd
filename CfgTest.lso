@@ -3,8 +3,8 @@ dnl ---
 dnl   (CFG LAMBDA (SYM)
 dnl     (SETTOLIST (CFGFIRST SchemeGrammarMap SYM))
 dnl 	)
-  (CFG LAMBDA (KERNEL)
-    (CFGCLOSURE SchemeGrammarMap KERNEL))
+  (CFG LAMBDA (KERNEL SYM)
+    (CFGGOTO SchemeGrammarMap (CFGCLOSURE SchemeGrammarMap KERNEL) SYM))
 
 dnl   (CFG LAMBDA (KEY)
 dnl     (MAPGET SchemeGrammarMap KEY))

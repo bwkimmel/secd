@@ -39,11 +39,11 @@ include(Util.lso)
             CC
             (LET
               (ADDITEMSFORSYM
-			    NEXTSYM
+                NEXTSYM
                 (MAPGET CFG NEXTSYM)
                 (CDR KERNEL)
                 (SETPUT CC (CAR KERNEL)))
-			  (NEXTSYM SYMAFTERDOT (CAR KERNEL)))))
+              (NEXTSYM CFGSYMAFTERDOT CFG (CAR KERNEL)))))
       (ADDITEMSFORSYM LAMBDA (SYM N KERNEL CC)
         (IF (OR (EQ N 0) (ISNIL SYM))
             (CFGCLOSURECC KERNEL CC)
@@ -51,17 +51,28 @@ include(Util.lso)
               (IF (SETCONTAINS CC ITEM)
                   (ADDITEMSFORSYM SYM (SUB N 1) KERNEL CC)
                   (ADDITEMSFORSYM SYM (SUB N 1) (CONS ITEM KERNEL) (SETPUT CC ITEM)))
-              (ITEM CONS3 SYM (SUB N 1) 0))))
-      (SYMAFTERDOT LAMBDA (ITEM)
-        (RHSNTH (GETRHS ITEM) (THIRD ITEM)))
+              (ITEM CONS3 SYM (SUB N 1) 0))))))
+
+  (CFGSYMAFTERDOT LAMBDA (CFG ITEM)
+    (LETREC
+      (RHSNTH (CFGGETRHS CFG ITEM) (THIRD ITEM))
       (RHSNTH LAMBDA (RHS N)
         (IF (ISNIL RHS)
             RHS
         (IF (ISZERO N)
             (CAR RHS)
-            (RHSNTH (CDR RHS) (SUB N 1)))))
-      (GETRHS LAMBDA (ITEM)
-        (MAPGET CFG (CONS (FIRST ITEM) (SECOND ITEM))))))
+            (RHSNTH (CDR RHS) (SUB N 1)))))))
+
+  (CFGGETRHS LAMBDA (CFG ITEM)
+    (MAPGET CFG (CONS (FIRST ITEM) (SECOND ITEM))))
+
+  (CFGGOTO LAMBDA (CFG ITEMS SYM)
+    (CFGCLOSURE CFG
+      (MAP
+        (LAMBDA (ITEM) (CONS3 (FIRST ITEM) (SECOND ITEM) (ADD 1 (THIRD ITEM))))
+        (FILTER
+          (LAMBDA (ITEM) (EQ SYM (CFGSYMAFTERDOT CFG ITEM)))
+          ITEMS))))
 
   (CFGISTERMINAL LAMBDA (CFG SYM)
     (EQ (MAPGET CFG SYM) 0))
