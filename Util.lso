@@ -129,4 +129,19 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
   (FIFTH LAMBDA (L)
     (CAR (CDR (CDR (CDR (CDR L))))))
 
+  (CONS1 LAMBDA (A)
+    (CONS A (QUOTE NIL)))
+
+  (CONS2 LAMBDA (A B)
+    (CONS A (CONS B (QUOTE NIL))))
+
+  (CONS3 LAMBDA (A B C)
+    (CONS A (CONS B (CONS C (QUOTE NIL)))))
+
+  (CONS4 LAMBDA (A B C D)
+    (CONS A (CONS B (CONS C (CONS D (QUOTE NIL))))))
+
+  (CONS5 LAMBDA (A B C D E)
+    (CONS A (CONS B (CONS C (CONS D (CONS E (QUOTE NIL)))))))
+
 ')dnl
