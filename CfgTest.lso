@@ -1,0 +1,18 @@
+dnl ---
+(LETREC CFG
+dnl   (CFG LAMBDA (SYM)
+dnl     (SETTOLIST (CFGFIRST SchemeGrammarMap SYM))
+dnl 	)
+  (CFG LAMBDA (KERNEL)
+    (CFGCLOSURE SchemeGrammarMap KERNEL))
+
+dnl   (CFG LAMBDA (KEY)
+dnl     (MAPGET SchemeGrammarMap KEY))
+
+include(CfgUtil.lso)
+
+  (SchemeGrammarMap QUOTE
+include(SchemeGrammarMap.lso)
+    )
+
+  )

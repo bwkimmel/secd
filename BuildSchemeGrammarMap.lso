@@ -1,0 +1,22 @@
+dnl ---
+(LETREC BuildSchemeGrammarMap
+  (BuildSchemeGrammarMap LAMBDA NIL
+    (BUILDGRAMMARMAP SchemeGrammar (NEWMAP)))
+
+include(SchemeSyntax.lso)
+include(Map.lso)
+
+  (BUILDGRAMMARMAP LAMBDA (G CC)
+    (IF (EQ G (QUOTE NIL))
+        CC
+        (BUILDGRAMMARMAP (CDR G) (BUILDSYMRULES (CAR G) CC))))
+
+  (BUILDSYMRULES LAMBDA (R CC)
+    (BUILDSYMRULELIST (CAR R) (CDR R) 0 CC))
+
+  (BUILDSYMRULELIST LAMBDA (LHS RHS I CC)
+    (IF (EQ RHS (QUOTE NIL))
+        (MAPPUT CC LHS I)
+        (BUILDSYMRULELIST LHS (CDR RHS) (ADD I 1) (MAPPUT CC (CONS LHS I) (CAR RHS)))))
+
+  )

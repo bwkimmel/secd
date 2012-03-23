@@ -1,0 +1,69 @@
+dnl ---
+ifdef(`cfg_util_lso_m4',,`define(`cfg_util_lso_m4', 1)dnl
+
+include(Set.lso)
+include(Map.lso)
+include(Util.lso)
+
+  (CFGFIRST LAMBDA (CFG SYM)
+    (LETREC
+      (LHSFIRST SYM (NEWSET) (NEWSET))
+      (LHSFIRST LAMBDA (SYM V CC)
+        (IF (CFGISTERMINAL CFG SYM)
+            (SETPUT CC SYM)
+        (IF (SETCONTAINS V SYM)
+            CC
+            (ALLRHSFIRST SYM (MAPGET CFG SYM) (SETPUT V SYM) CC))))
+      (ALLRHSFIRST LAMBDA (SYM N V CC)
+        (IF (EQ N 0)
+            CC
+            (LET
+              (ALLRHSFIRST SYM INDEX V (RHSFIRST (MAPGET CFG (CONS SYM INDEX)) V CC))
+              (INDEX SUB N 1))))
+      (RHSFIRST LAMBDA (RHS V CC)
+        (IF (ISNIL RHS)
+            (SETPUT CC (QUOTE NIL))
+            (IF (CFGISTERMINAL CFG (CAR RHS))
+                (SETPUT CC (CAR RHS))
+                (LET
+                  (IF (SETCONTAINS CARFIRST (QUOTE NIL))
+                      (LHSFIRST (CDR RHS) V (SETDEL CARFIRST (QUOTE NIL)))
+                      CARFIRST)
+                  (CARFIRST LHSFIRST (CAR RHS) V CC)))))))
+
+  (CFGCLOSURE LAMBDA (CFG KERNEL)
+    (LETREC
+      (SETTOLIST (CFGCLOSURECC KERNEL (NEWSET)))
+      (CFGCLOSURECC LAMBDA (KERNEL CC)
+        (IF (ISNIL KERNEL)
+            CC
+            (LET
+              (ADDITEMSFORSYM
+			    NEXTSYM
+                (MAPGET CFG NEXTSYM)
+                (CDR KERNEL)
+                (SETPUT CC (CAR KERNEL)))
+			  (NEXTSYM SYMAFTERDOT (CAR KERNEL)))))
+      (ADDITEMSFORSYM LAMBDA (SYM N KERNEL CC)
+        (IF (OR (EQ N 0) (ISNIL SYM))
+            (CFGCLOSURECC KERNEL CC)
+            (LET
+              (IF (SETCONTAINS CC ITEM)
+                  (ADDITEMSFORSYM SYM (SUB N 1) KERNEL CC)
+                  (ADDITEMSFORSYM SYM (SUB N 1) (CONS ITEM KERNEL) (SETPUT CC ITEM)))
+              (ITEM CONS3 SYM (SUB N 1) 0))))
+      (SYMAFTERDOT LAMBDA (ITEM)
+        (RHSNTH (GETRHS ITEM) (THIRD ITEM)))
+      (RHSNTH LAMBDA (RHS N)
+        (IF (ISNIL RHS)
+            RHS
+        (IF (ISZERO N)
+            (CAR RHS)
+            (RHSNTH (CDR RHS) (SUB N 1)))))
+      (GETRHS LAMBDA (ITEM)
+        (MAPGET CFG (CONS (FIRST ITEM) (SECOND ITEM))))))
+
+  (CFGISTERMINAL LAMBDA (CFG SYM)
+    (EQ (MAPGET CFG SYM) 0))
+    
+')dnl
