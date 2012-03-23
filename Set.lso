@@ -15,4 +15,7 @@ include(Map.lso)
   (SETCONTAINS LAMBDA (S E)
     (EQ (MAPGET S E) (QUOTE T)))
 
+  (SETTOLIST LAMBDA (S)
+    (MAP (LAMBDA (X) (CAR X)) (FILTER (LAMBDA (X) (CDR X)) (MAPTOLIST S))))
+
 ')dnl

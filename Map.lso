@@ -97,6 +97,15 @@ dnl -----------                         a   x.k x.v b    y.k y.v c    z.k z.v d
                   (MAPGET (MAPRIGHT M) K)))
 		  (CMP DEEPCMP K (MAPKEY M)))))
 
+  (MAPTOLIST LAMBDA (M)
+    (LETREC
+	  (MAPTOLISTCC M (QUOTE NIL))
+	  (MAPTOLISTCC LAMBDA (M CC)
+	    (IF (EQ M MAPEMPTY)
+		    CC
+			(MAPTOLISTCC (MAPLEFT M)
+			  (CONS (CONS (MAPKEY M) (MAPVALUE M)) (MAPTOLISTCC (MAPRIGHT M) CC)))))))
+
   (MAPBLACK QUOTE BLACK)
   (MAPRED QUOTE RED)
   (MAPCOLOR LAMBDA (M)
