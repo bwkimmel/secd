@@ -114,4 +114,19 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
   (TRACE LAMBDA (VAL MSG)
     (IF (ISNIL (PUTEXP MSG)) VAL VAL))
 
+  (FIRST LAMBDA (L)
+    (CAR L))
+
+  (SECOND LAMBDA (L)
+    (CAR (CDR L)))
+
+  (THIRD LAMBDA (L)
+    (CAR (CDR (CDR L))))
+
+  (FOURTH LAMBDA (L)
+    (CAR (CDR (CDR (CDR L)))))
+
+  (FIFTH LAMBDA (L)
+    (CAR (CDR (CDR (CDR (CDR L))))))
+
 ')dnl
