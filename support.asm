@@ -175,12 +175,14 @@ _putexp:
 		je		.consloop	
 	cmp		eax, SECD_SYMBOL
 	jne		.cons_dot
+	mov		edx, ebx
 	mov		eax, dword 0
 	call	_ivalue
 	xchg	eax, ebx
 	call	_ivalue
 	cmp		eax, ebx	
 	je		.cons_end
+	mov		ebx, edx
 .cons_dot:
 	push	dword 1
 	push	dword dot
