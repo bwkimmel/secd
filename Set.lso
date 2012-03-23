@@ -9,6 +9,11 @@ include(Map.lso)
   (SETPUT LAMBDA (S E)
     (MAPPUT S E (QUOTE T)))
 
+  (SETPUTALL LAMBDA (S L)
+    (IF (ISNIL L)
+	    S
+		(SETPUTALL (SETPUT S (CAR L)) (CDR L))))
+
   (SETDEL LAMBDA (S E)
     (MAPPUT S E (QUOTE F)))
 
@@ -17,5 +22,8 @@ include(Map.lso)
 
   (SETTOLIST LAMBDA (S)
     (MAP (LAMBDA (X) (CAR X)) (FILTER (LAMBDA (X) (CDR X)) (MAPTOLIST S))))
+
+  (SETFROMLIST LAMBDA (L)
+    (SETPUTALL (NEWSET) L))
 
 ')dnl
