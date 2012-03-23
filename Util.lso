@@ -93,4 +93,25 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
                    CARCMP)
                (CARCMP DEEPCMP (CAR A) (CAR B))))))
 
+  (MAP LAMBDA (F L)
+    (LETREC
+      (MAPREVERSE (REVERSE L) (QUOTE NIL))
+      (MAPREVERSE LAMBDA (L CC)
+        (IF (ISNIL L)
+            CC
+            (MAPREVERSE (CDR L) (CONS (F (CAR L)) CC))))))
+
+  (FILTER LAMBDA (P L)
+    (LETREC
+      (FILTERREVERSE L (QUOTE NIL))
+      (FILTERREVERSE LAMBDA (L CC)
+        (IF (ISNIL L)
+            CC
+            (FILTERREVERSE (CDR L) (IF (P (CAR L))
+                                       (CONS (CAR L) CC)
+                                       CC))))))
+
+  (TRACE LAMBDA (VAL MSG)
+    (IF (ISNIL (PUTEXP MSG)) VAL VAL))
+
 ')dnl
