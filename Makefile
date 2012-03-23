@@ -24,6 +24,9 @@ clean:
 
 redo: clean all
 
+SchemeGrammarMap.lso: BuildSchemeGrammarMap.lob compiler.lob secd
+	cat $< | ./secd > $@ 
+
 primitive-compiler.lob: APENDIX2.LOB APENDIX2.LSO secd
 	cat APENDIX2.LOB APENDIX2.LSO | ./secd > $@
 
