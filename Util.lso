@@ -144,4 +144,14 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
   (CONS5 LAMBDA (A B C D E)
     (CONS A (CONS B (CONS C (CONS D (CONS E (QUOTE NIL)))))))
 
+  (INSERT LAMBDA (L N E)
+    (LETREC
+      (INSERTCC L N (QUOTE NIL))
+      (INSERTCC LAMBDA (L N CC)
+        (IF (ISZERO N)
+            (INSERTCC L (SUB N 1) (CONS E CC))
+        (IF (ISNIL L)
+            (REVERSE CC)
+            (INSERTCC (CDR L) (SUB N 1) (CONS (CAR L) CC)))))))
+
 ')dnl
