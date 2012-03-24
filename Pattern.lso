@@ -35,11 +35,11 @@ ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
 		    (IF (NUMBER X)
 			    (CONS X CC)
 				(QUOTE F))
-		(IF (EQ P (QUOTE $*))
+		(IF (EQ P (QUOTE @*))
 		    (IF (SYMBOL X)
 			    CC
 				(QUOTE F))
-		(IF (EQ P (QUOTE $_))
+		(IF (EQ P (QUOTE @_))
 		    (IF (SYMBOL X)
 			    (CONS X CC)
 				(QUOTE F))
