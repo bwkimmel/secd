@@ -390,20 +390,32 @@ _isdigit:
 _isletter:
 	enter	0, 0
 	mov		eax, [ebp + 8]
-	cmp		eax, 'A'
-	jl		.false
-	cmp		eax, 'z'
-	jg		.false
-	cmp		eax, 'Z'
-	jle		.true
-	cmp		eax, 'a'
-	jge		.true
-.false:
-	mov		eax, 0
-	leave
-	ret
+	push	eax
+	call	_isws
+	add		esp, 4
+	cmp		eax, 0
+	jne		.false
+	mov		eax, [ebp + 8]
+	push	eax
+	call	_isdigit
+	add		esp, 4
+	cmp		eax, 0
+	jne		.false
+	mov		eax, [ebp + 8]
+	cmp		eax, '('
+	je		.false
+	cmp		eax, ')'
+	je		.false
+	cmp		eax, '.'
+	je		.false
+	cmp		eax, '-'
+	je		.false
 .true:
 	mov		eax, 1
+	leave
+	ret
+.false:
+	mov		eax, 0
 	leave
 	ret	
 
