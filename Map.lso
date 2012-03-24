@@ -60,29 +60,33 @@ include(Util.lso)
                                                 MATCHRR)
                 
               (MATCHRR PATTERN M
-                (QUOTE (BLACK VAR VAR VAR (RED VAR VAR VAR (RED VAR VAR VAR VAR)))))
-dnl -----------               a   x.k x.v      b   y.k y.v      c   z.k z.v d
+                (QUOTE (BLACK _ _ _ (RED _ _ _ (RED _ _ _ _)))))
+dnl -----------               a x x      b y y      c z z d
+dnl -----------                (k,v)      (k,v)      (k,v)
 
                                          )
                                        MATCHRL)
 
               (MATCHRL PATTERN M
-                (QUOTE (BLACK VAR VAR VAR (RED (RED VAR VAR VAR VAR) VAR VAR VAR))))
-dnl -----------               a   x.k x.v           b   y.k y.v c    z.k z.v d
+                (QUOTE (BLACK _ _ _ (RED (RED _ _ _ _) _ _ _))))
+dnl -----------               a x x           b y y c  z z d
+dnl -----------                (k,v)           (k,v)  (k,v)
 
                                 )
                               MATCHLR)
 
               (MATCHLR PATTERN M
-                (QUOTE (BLACK (RED VAR VAR VAR (RED VAR VAR VAR VAR)) VAR VAR VAR)))
-dnl -----------                    a   x.k x.v      b   y.k y.v c     z.k z.v d
+                (QUOTE (BLACK (RED _ _ _ (RED _ _ _ _)) _ _ _)))
+dnl -----------                    a x x      b y y c   z z d
+dnl -----------                     (k,v)      (k,v)   (k,v)
 
                        )
                      MATCHLL)
                 
               (MATCHLL PATTERN M
-                (QUOTE (BLACK (RED (RED VAR VAR VAR VAR) VAR VAR VAR) VAR VAR VAR)))
-dnl -----------                         a   x.k x.v b    y.k y.v c    z.k z.v d
+                (QUOTE (BLACK (RED (RED _ _ _ _) _ _ _) _ _ _)))
+dnl -----------                         a x x b  y y c  z z d
+dnl -----------                          (k,v)  (k,v)  (k,v)
 
               ))))))
 

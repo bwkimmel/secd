@@ -15,15 +15,15 @@ ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
             CC
             (REVERSECC (CDR X) (CONS (CAR X) CC))))
       (PATTERNCC LAMBDA (X P CC)
-        (IF (EQ P (QUOTE VAR))
+        (IF (EQ P (QUOTE _))
             (CONS X CC)
-        (IF (EQ P (QUOTE ANY))
+        (IF (EQ P (QUOTE *))
 		    CC
-		(IF (EQ P (QUOTE ATOM))
+		(IF (EQ P (QUOTE !*))
 		    (IF (ATOM X)
 			    CC
 				(QUOTE F))
-		(IF (EQ P (QUOTE VARATOM))
+		(IF (EQ P (QUOTE !_))
 		    (IF (ATOM X)
 			    (CONS X CC)
 				(QUOTE F))
