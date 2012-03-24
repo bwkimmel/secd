@@ -1,10 +1,25 @@
 dnl ---
 (LETREC CFG
+  (CFG LAMBDA NIL
+    (MAP
+	  (LAMBDA (S)
+	    (MAP
+		  (LAMBDA (I)
+		    (CFGEXPANDITEM SchemeGrammarMap I))
+	      S))
+      (CFGSTATES SchemeGrammarMap)))
+
+include(Util.lso)
+
 dnl   (CFG LAMBDA (SYM)
 dnl     (SETTOLIST (CFGFIRST SchemeGrammarMap SYM))
 dnl 	)
-  (CFG LAMBDA (KERNEL SYM)
-    (CFGGOTO SchemeGrammarMap (CFGCLOSURE SchemeGrammarMap KERNEL) SYM))
+
+dnl   (CFG LAMBDA (KERNEL SYM)
+dnl     (MAP (LAMBDA (ITEM) (CFGEXPANDITEM SchemeGrammarMap ITEM)) (CFGGOTO SchemeGrammarMap KERNEL SYM)))
+
+dnl   (CFG LAMBDA (KERNEL SYM)
+dnl     (CFGALLSYMSAFTERDOT SchemeGrammarMap (CFGGOTO SchemeGrammarMap (CFGCLOSURE SchemeGrammarMap KERNEL) SYM)))
 
 dnl   (CFG LAMBDA (KEY)
 dnl     (MAPGET SchemeGrammarMap KEY))
