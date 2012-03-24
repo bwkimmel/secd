@@ -106,7 +106,7 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
       (FILTERREVERSE L (QUOTE NIL))
       (FILTERREVERSE LAMBDA (L CC)
         (IF (ISNIL L)
-            CC
+            (REVERSE CC)
             (FILTERREVERSE (CDR L) (IF (P (CAR L))
                                        (CONS (CAR L) CC)
                                        CC))))))
