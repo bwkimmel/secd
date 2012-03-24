@@ -55,7 +55,7 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
     (EQ N 0))
 
   (NOT LAMBDA (P)
-    (IF (P) (QUOTE F) (QUOTE T)))
+    (IF (EQ P (QUOTE T)) (QUOTE F) (QUOTE T)))
 
   (GT LAMBDA (X Y)
     (NOT (LEQ X Y)))
