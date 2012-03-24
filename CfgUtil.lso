@@ -5,9 +5,11 @@ include(Set.lso)
 include(Map.lso)
 include(Util.lso)
 
-  (CFGFIRST LAMBDA (CFG SYM)
+  (CFGFIRST LAMBDA (CFG S)
     (LETREC
-      (LHSFIRST SYM (NEWSET) (NEWSET))
+	  (IF (ATOM S)
+          (LHSFIRST S (NEWSET) (NEWSET))
+		  (RHSFIRST S (NEWSET) (NEWSET))) 
       (LHSFIRST LAMBDA (SYM V CC)
         (IF (CFGISTERMINAL CFG SYM)
             (SETPUT CC SYM)
