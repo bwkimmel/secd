@@ -27,6 +27,14 @@ ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
 		    (IF (ATOM X)
 			    (CONS X CC)
 				(QUOTE F))
+		(IF (EQ P (QUOTE #*))
+		    (IF (NUMBER X)
+			    CC
+				(QUOTE F))
+		(IF (EQ P (QUOTE #_))
+		    (IF (NUMBER X)
+			    (CONS X CC)
+				(QUOTE F))
         (IF (ATOM P)
             (IF (EQ X P)
 			    CC
@@ -37,6 +45,6 @@ ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
               (IF (EQ SUBRESULT (QUOTE F))
                   (QUOTE F)
                   (PATTERNCC (CDR X) (CDR P) SUBRESULT))
-              (SUBRESULT PATTERNCC (CAR X) (CAR P) CC)))))))))))
+              (SUBRESULT PATTERNCC (CAR X) (CAR P) CC)))))))))))))
 
 ')dnl
