@@ -5,11 +5,51 @@ include(Set.lso)
 include(Map.lso)
 include(Util.lso)
 
+  (CFGPARSE LAMBDA (CFG DFA TYPE ERROR TOKENS)
+    (LETREC
+      (CFGPARSECC TOKENS (QUOTE ((0))))
+      (CFGPARSECC LAMBDA (TOKENS STACK)
+        (IF (ISNIL TOKENS)
+            (CFGPARSECC (QUOTE ($)) STACK)
+            (LET
+              (LET
+                (IF (ISNIL ACTION) dnl --- Parse Error
+                    (ERROR (CAR TOKENS))
+                (IF (EQ ACTION (QUOTE ACCEPT))
+                    (CDR (CAR STACK)) dnl --- Accept
+                (IF (EQ (CAR ACTION) (QUOTE SHIFT))
+                    (CFGPARSECC (CDR TOKENS)
+                      (CONS (CONS (CDR ACTION) (CAR TOKENS)) STACK)) dnl --- Do shift
+                (IF (EQ (CAR ACTION) (QUOTE REDUCE))
+                    (LET
+                      (CFGPARSECC TOKENS (REDUCE STACK RULE))
+                      (RULE CDR ACTION))
+                    (STOP (QUOTE ParserInvalidActionError))))))
+                (ACTION MAPGET DFA (CONS STATE TOKEN)))
+              (STATE CAR (CAR STACK))
+              (TOKEN TYPE (CAR TOKENS)))))
+      (REDUCE LAMBDA (STACK RULE)
+        (LET
+          (REDUCECC STACK LHS (REVERSE RHS) (QUOTE NIL))
+          (LHS CAR RULE)
+          (RHS MAPGET CFG RULE)))
+      (REDUCECC LAMBDA (STACK LHS REVRHS CC)
+        (IF (ISNIL REVRHS)
+            (LET
+              (LET
+                (IF (ISNIL GOTO)
+                    (STOP (QUOTE ParserReduceError))
+                    (CONS (CONS GOTO (CONS LHS CC)) STACK))
+                (GOTO MAPGET DFA (CONS STATE LHS)))
+              (STATE CAR (CAR STACK)))
+            (REDUCECC (CDR STACK) LHS (CDR REVRHS) (CONS (CDR (CAR STACK)) CC))))
+      ))
+
   (CFGFIRST LAMBDA (CFG S)
     (LETREC
-	  (IF (ATOM S)
+      (IF (ATOM S)
           (LHSFIRST S (NEWSET) (NEWSET))
-		  (RHSFIRST S (NEWSET) (NEWSET))) 
+          (RHSFIRST S (NEWSET) (NEWSET)))
       (LHSFIRST LAMBDA (SYM V CC)
         (IF (CFGISTERMINAL CFG SYM)
             (SETPUT CC SYM)
@@ -32,6 +72,71 @@ include(Util.lso)
                       (LHSFIRST (CDR RHS) V (SETDEL CARFIRST (QUOTE NIL)))
                       CARFIRST)
                   (CARFIRST LHSFIRST (CAR RHS) V CC)))))))
+
+  (CFGRESOLVEFOLLOW LAMBDA (F SYM)
+    (LETREC
+      (CFGRESOLVEFOLLOWCC (CONS1 SYM) (NEWSET))
+      (CFGRESOLVEFOLLOWCC LAMBDA (SYMS CC)
+        (IF (ISNIL SYMS)
+            CC
+            (LET
+              (IF (ISNIL ENTRY)
+                  (CFGRESOLVEFOLLOWCC (CDR SYMS) CC)
+                  (CFGRESOLVEFOLLOWCC
+                    (APPEND (CDR SYMS) (SETTOLIST (CDR ENTRY)))
+                    (SETUNION CC (CAR ENTRY))))
+              (ENTRY MAPGET F (CAR SYMS)))))))
+
+  (CFGFOLLOW LAMBDA (CFG)
+    (LETREC
+      (CFGFOLLOWRULES (CFGRULES) (ADDFIRSTCONSTRAINT (QUOTE START) (QUOTE ($)) (NEWMAP)))
+      (CFGRULES LAMBDA NIL
+        (MAPFINDPATTERN CFG (QUOTE ((@_ . #*) . _))))
+      (CFGFOLLOWRULES LAMBDA (RULES CC)
+        (IF (ISNIL RULES)
+            CC
+            (CFGFOLLOWRULE (FIRST (CAR RULES)) (SECOND (CAR RULES)) (CDR RULES) CC)))
+      (CFGFOLLOWRULE LAMBDA (LHS RHS REST CC)
+        (IF (ISNIL RHS)
+            (CFGFOLLOWRULES REST CC)
+        (IF (CFGISTERMINAL CFG (CAR RHS))
+            (CFGFOLLOWRULE LHS (CDR RHS) REST CC)
+        (IF (ISNIL (CDR RHS))
+            dnl --- Add Constraint FOLLOW(LHS) <= FOLLOW(CAR RHS)
+            (CFGFOLLOWRULES REST (ADDFOLLOWCONSTRAINT (CAR RHS) LHS CC))
+            (CFGFOLLOWRULE LHS (CDR RHS) REST
+              (LET
+                (IF (SETCONTAINS FIRST (QUOTE NIL))
+                    (ADDFIRSTCONSTRAINT (CAR RHS) (SETTOLIST (SETDEL FIRST (QUOTE NIL)))
+                      (ADDFOLLOWCONSTRAINT (CAR RHS) LHS CC))
+                    (ADDFIRSTCONSTRAINT (CAR RHS) (SETTOLIST FIRST) CC))
+                (FIRST CFGFIRST CFG (CDR RHS))))
+        ))))
+      (ADDFIRSTCONSTRAINT LAMBDA (SYM FIRST CC)
+        (IF (ISNIL FIRST)
+            CC
+            (ADDFIRSTCONSTRAINT SYM (CDR FIRST)
+              (MAPPUT CC SYM
+                (LET
+                  (CONS
+                    (SETPUT (CAR ENTRY) (CAR FIRST))
+                    (CDR ENTRY))
+                  (ENTRY GETENTRY SYM CC)))))
+        )
+      (ADDFOLLOWCONSTRAINT LAMBDA (SYM FOLLOW CC)
+        (MAPPUT CC SYM
+          (LET
+            (CONS
+              (CAR ENTRY)
+              (SETPUT (CDR ENTRY) FOLLOW))
+            (ENTRY GETENTRY SYM CC)))
+        )
+      (GETENTRY LAMBDA (SYM CC)
+        (LET
+          (IF (ISNIL ENTRY)
+              (CONS (NEWSET) (NEWSET))
+              ENTRY)
+          (ENTRY MAPGET CC SYM)))))
 
   (CFGCLOSURE LAMBDA (CFG KERNEL)
     (LETREC
@@ -84,6 +189,71 @@ include(Util.lso)
             CC
             (CFGALLSYMSAFTERDOTCC (CDR ITEMS) (SETPUT CC (CFGSYMAFTERDOT CFG (CAR ITEMS))))))))
 
+  (CFGDFA LAMBDA (CFG)
+    (LETREC
+      (CFGSTATESCC (CONS1 (CFGCLOSURE CFG (CONS1 (CONS3 (QUOTE START) 0 0)))) 0 (NEWMAP) (NEWMAP))
+      (CFGSTATESCC LAMBDA (Q N STATES TRANSITIONS)
+        (IF (ISNIL Q)
+            dnl ---- Result ----
+dnl            STATES
+            (ADDREDUCTIONS (MAPTOLIST STATES) TRANSITIONS)
+            dnl ----------------
+            (LET
+              (CFGGOTOSTATES
+                (CDR Q)
+                (CAR Q)
+                (CFGALLSYMSAFTERDOT CFG (CAR Q))
+                (IF (ISNIL TOP) (ADD N 1) N)
+                (IF (ISNIL TOP) (MAPPUT STATES (CAR Q) N) STATES)
+                TRANSITIONS)
+              (TOP MAPGET STATES (CAR Q)))))
+      (CFGGOTOSTATES LAMBDA (Q STATE SYMS N STATES TRANSITIONS)
+        (IF (ISNIL SYMS)
+            (CFGSTATESCC Q N STATES TRANSITIONS)
+            (LET
+              (LET
+                (IF (ISNIL TOSTATE)
+                    (CFGGOTOSTATES (CONS NEXT Q) STATE (CDR SYMS) (ADD N 1) (MAPPUT STATES NEXT N)
+                      (MAPPUT TRANSITIONS (CONS FROMSTATE (CAR SYMS))
+                        (IF (CFGISTERMINAL CFG (CAR SYMS)) (CONS (QUOTE SHIFT) N) N)))
+                    (CFGGOTOSTATES Q STATE (CDR SYMS) N STATES
+                      (MAPPUT TRANSITIONS (CONS FROMSTATE (CAR SYMS))
+                        (IF (CFGISTERMINAL CFG (CAR SYMS)) (CONS (QUOTE SHIFT) TOSTATE) TOSTATE))))
+                (FROMSTATE MAPGET STATES STATE)
+                (TOSTATE MAPGET STATES NEXT))
+              (NEXT CFGGOTO CFG STATE (CAR SYMS)))))
+      (ADDREDUCTIONS LAMBDA (STATELIST TRANSITIONS)
+        (IF (ISNIL STATELIST)
+            TRANSITIONS
+            (ADDREDUCTIONSFORSTATE (CAR (CAR STATELIST)) (CDR (CAR STATELIST)) STATELIST TRANSITIONS)))
+      (ADDREDUCTIONSFORSTATE LAMBDA (STATE INDEX STATELIST TRANSITIONS)
+        (IF (ISNIL STATE)
+            (ADDREDUCTIONS (CDR STATELIST) TRANSITIONS)
+            (LET
+              (ADDREDUCTIONSFORSTATE (CDR STATE) INDEX STATELIST
+                (IF (ISTAILITEM ITEM)
+                    (ADDFOLLOWREDUCTIONS
+                      (SETTOLIST (CFGRESOLVEFOLLOW FOLLOW (FIRST ITEM)))
+                      INDEX (CONS (FIRST ITEM) (SECOND ITEM))
+                      TRANSITIONS)
+                    TRANSITIONS))
+              (ITEM CAR STATE))))
+
+      (ADDFOLLOWREDUCTIONS LAMBDA (FOLLOWSET STATENUM RULE TRANSITIONS)
+        (IF (ISNIL FOLLOWSET)
+            TRANSITIONS
+            (ADDFOLLOWREDUCTIONS (CDR FOLLOWSET) STATENUM RULE
+              (MAPPUT TRANSITIONS (CONS STATENUM (CAR FOLLOWSET))
+                (IF (AND (EQ (CAR RULE) (QUOTE START))
+                         (EQ (CAR FOLLOWSET) (QUOTE $)))
+                    (QUOTE ACCEPT)
+                    (CONS (QUOTE REDUCE) RULE))))))
+
+      (ISTAILITEM LAMBDA (ITEM)
+        (EQ (THIRD ITEM) (LENGTH (MAPGET CFG (CONS (FIRST ITEM) (SECOND ITEM))))))
+      (FOLLOW CFGFOLLOW CFG)))
+
+
   (CFGSTATES LAMBDA (CFG)
     (LETREC
       (SETTOLIST (CFGSTATESCC (CONS1 (CFGCLOSURE CFG (CONS1 (CONS3 (QUOTE START) 0 0)))) (NEWSET)))
@@ -94,16 +264,16 @@ include(Util.lso)
       (CFGGOTOSTATES LAMBDA (Q STATE SYMS CC)
         (IF (ISNIL SYMS)
             (CFGSTATESCC Q CC)
-			(LET
-			  (IF (SETCONTAINS CC NEXT)
-			      (CFGGOTOSTATES Q STATE (CDR SYMS) CC)
-				  (CFGGOTOSTATES (CONS NEXT Q) STATE (CDR SYMS) (SETPUT CC NEXT)))
-			  (NEXT CFGGOTO CFG STATE (CAR SYMS)))))))
+            (LET
+              (IF (SETCONTAINS CC NEXT)
+                  (CFGGOTOSTATES Q STATE (CDR SYMS) CC)
+                  (CFGGOTOSTATES (CONS NEXT Q) STATE (CDR SYMS) (SETPUT CC NEXT)))
+              (NEXT CFGGOTO CFG STATE (CAR SYMS)))))))
 
   (CFGEXPANDITEM LAMBDA (CFG ITEM)
     (CONS (FIRST ITEM) (CONS (QUOTE >) (INSERT (CFGGETRHS CFG ITEM) (THIRD ITEM) (QUOTE _)))))
 
   (CFGISTERMINAL LAMBDA (CFG SYM)
     (EQ (MAPGET CFG SYM) 0))
-    
+
 ')dnl

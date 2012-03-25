@@ -1,19 +1,75 @@
 dnl ---
 (LETREC CFG
-  (CFG LAMBDA NIL
-    (MAP
-	  (LAMBDA (S)
-	    (MAP
-		  (LAMBDA (I)
-		    (CFGEXPANDITEM SchemeGrammarMap I))
-	      S))
-      (CFGSTATES SchemeGrammarMap)))
+dnl   (CFG LAMBDA NIL
+dnl     (MAP
+dnl       (LAMBDA (S)
+dnl         (MAP
+dnl           (LAMBDA (I)
+dnl             (CFGEXPANDITEM SchemeGrammarMap I))
+dnl           S))
+dnl       (CFGSTATES SchemeGrammarMap)))
 
+dnl   (CFG LAMBDA (E P) (PATTERN E P))
+
+dnl   (CFG LAMBDA NIL (LISTRULES SchemeGrammarMap))
+
+dnl   (LISTRULES LAMBDA (CFG) (MAPTOLIST CFG))
+dnl   (LISTRULES LAMBDA (CFG)
+dnl     (MAPFINDPATTERN CFG (QUOTE ((@_ . #*) . _))))
+
+dnl   (CFG LAMBDA (SYM)
+dnl     (SETTOLIST (CFGRESOLVEFOLLOW (CFGFOLLOW SchemeGrammarMap) SYM)))
+
+
+  (CFG LAMBDA (TOKENS)
+    (EVAL (CFGPARSE SchemeGrammarMap (CFGDFA SchemeGrammarMap)
+      (LAMBDA (X) (IF (NUMBER X) (QUOTE ID) X))
+      (LAMBDA (X) (CONS (QUOTE ParseError) X)) TOKENS)))
+
+  (EVAL LAMBDA (X)
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+      (STOP (QUOTE ERROR))
+      (CAR V))
+    (V PATTERN X (QUOTE ( F #_ ))))
+      (EVAL (CAR V)))
+    (V PATTERN X (QUOTE ( F [ _ ] ))))
+      (EVAL (CAR V)))
+    (V PATTERN X (QUOTE ( T _ ))))
+      (MUL (EVAL (FIRST V)) (EVAL (SECOND V))))
+    (V PATTERN X (QUOTE ( T _ * _ ))))
+      (EVAL (CAR V)))
+    (V PATTERN X (QUOTE ( E _ ))))
+      (ADD (EVAL (FIRST V)) (EVAL (SECOND V))))
+    (V PATTERN X (QUOTE ( E _ + _ )))))
+
+dnl   (CFG LAMBDA NIL
+dnl     (MAPTOLIST (CFGDFA SchemeGrammarMap)))
+
+dnl     (FILTER (LAMBDA (E) (NOT (EQ E (QUOTE F))))
+dnl       (MAP (LAMBDA (E)
+dnl              (PATTERN E (QUOTE ((@_ . #*) . _))))
+dnl         (MAPTOLIST CFG)
+dnl         )
+dnl       )
+dnl     )
+dnl     (FILTER (LAMBDA (E) (NEQ E (QUOTE F)))
+dnl       (MAP
+dnl         (LAMBDA (E)
+dnl           (PATTERN E (QUOTE ((@_ . #*) . _))))
+dnl         (MAPTOLIST CFG)))
+dnl     )
+
+include(Pattern.lso)
 include(Util.lso)
 
 dnl   (CFG LAMBDA (SYM)
 dnl     (SETTOLIST (CFGFIRST SchemeGrammarMap SYM))
-dnl 	)
+dnl     )
 
 dnl   (CFG LAMBDA (KERNEL SYM)
 dnl     (MAP (LAMBDA (ITEM) (CFGEXPANDITEM SchemeGrammarMap ITEM)) (CFGGOTO SchemeGrammarMap KERNEL SYM)))
