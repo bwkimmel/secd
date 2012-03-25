@@ -4,10 +4,10 @@ ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
   (PATTERN LAMBDA (X P)
     (LETREC
       (LET
-	    (IF (EQ RESULT (QUOTE F))
-		    (QUOTE F)
-			(REVERSE RESULT))
-	    (RESULT PATTERNCC X P (QUOTE NIL)))
+        (IF (EQ RESULT (QUOTE F))
+            (QUOTE F)
+            (REVERSE RESULT))
+        (RESULT PATTERNCC X P (QUOTE NIL)))
       (REVERSE LAMBDA (X)
         (REVERSECC X (QUOTE NIL)))
       (REVERSECC LAMBDA (X CC)
@@ -18,34 +18,38 @@ ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
         (IF (EQ P (QUOTE _))
             (CONS X CC)
         (IF (EQ P (QUOTE *))
-		    CC
-		(IF (EQ P (QUOTE !*))
-		    (IF (ATOM X)
-			    CC
-				(QUOTE F))
-		(IF (EQ P (QUOTE !_))
-		    (IF (ATOM X)
-			    (CONS X CC)
-				(QUOTE F))
-		(IF (EQ P (QUOTE #*))
-		    (IF (NUMBER X)
-			    CC
-				(QUOTE F))
-		(IF (EQ P (QUOTE #_))
-		    (IF (NUMBER X)
-			    (CONS X CC)
-				(QUOTE F))
-		(IF (EQ P (QUOTE @*))
-		    (IF (SYMBOL X)
-			    CC
-				(QUOTE F))
-		(IF (EQ P (QUOTE @_))
-		    (IF (SYMBOL X)
-			    (CONS X CC)
-				(QUOTE F))
+            CC
+        (IF (EQ P (QUOTE !*))
+            (IF (ATOM X)
+                CC
+                (QUOTE F))
+        (IF (EQ P (QUOTE !_))
+            (IF (ATOM X)
+                (CONS X CC)
+                (QUOTE F))
+        (IF (EQ P (QUOTE #*))
+            (IF (NUMBER X)
+                CC
+                (QUOTE F))
+        (IF (EQ P (QUOTE #_))
+            (IF (NUMBER X)
+                (CONS X CC)
+                (QUOTE F))
+        (IF (EQ P (QUOTE @*))
+            (IF (SYMBOL X)
+                CC
+                (QUOTE F))
+        (IF (EQ P (QUOTE @_))
+            (IF (SYMBOL X)
+                (CONS X CC)
+                (QUOTE F))
         (IF (ATOM P)
             (IF (EQ X P)
-			    CC
+                CC
+                (QUOTE F))
+        (IF (EQ (CAR P) (QUOTE \))
+            (IF (DEEPEQ X (CAR (CDR P)))
+                CC
                 (QUOTE F))
         (IF (ATOM X)
             (QUOTE F)
@@ -53,6 +57,6 @@ ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
               (IF (EQ SUBRESULT (QUOTE F))
                   (QUOTE F)
                   (PATTERNCC (CDR X) (CDR P) SUBRESULT))
-              (SUBRESULT PATTERNCC (CAR X) (CAR P) CC)))))))))))))))
+              (SUBRESULT PATTERNCC (CAR X) (CAR P) CC))))))))))))))))
 
 ')dnl
