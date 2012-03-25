@@ -40,7 +40,7 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
     (IF (LEQ X Y) X Y))
 
   (MAX LAMBDA (X Y)
-    (IF (LEQ X Y) Y (QUOTE WTF)))
+    (IF (LEQ X Y) Y X))
 
   (XOR LAMBDA (P Q)
     (IF P (NOT Q) Q))
