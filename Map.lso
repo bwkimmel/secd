@@ -7,6 +7,16 @@ include(Util.lso)
   (NEWMAP LAMBDA NIL
     MAPEMPTY)
 
+  (MAPPUTALL LAMBDA (M L)
+    (IF (ISNIL L)
+	    M
+		(MAPPUTALL (MAPPUT M (CAR (CAR L)) (CDR (CAR L))) (CDR L))))
+
+  (MAPDEPTH LAMBDA (M)
+    (IF (EQ M MAPEMPTY)
+	    0
+		(ADD 1 (MAX (MAPDEPTH (MAPLEFT M)) (MAPDEPTH (MAPRIGHT M))))))
+
   (MAPFINDPATTERN LAMBDA (M P)
     (FILTER (LAMBDA (X) (NEQ X (QUOTE F)))
 	  (MAP (LAMBDA (E) (PATTERN E P))
@@ -63,7 +73,7 @@ include(Util.lso)
                                        (LET (IF (EQ MATCHRR (QUOTE F))
                                                 (QUOTE F)
                                                 MATCHRR)
-                
+
               (MATCHRR PATTERN M
                 (QUOTE (BLACK _ _ _ (RED _ _ _ (RED _ _ _ _)))))
 dnl -----------               a x x      b y y      c z z d
@@ -87,7 +97,7 @@ dnl -----------                     (k,v)      (k,v)   (k,v)
 
                        )
                      MATCHLL)
-                
+
               (MATCHLL PATTERN M
                 (QUOTE (BLACK (RED (RED _ _ _ _) _ _ _) _ _ _)))
 dnl -----------                         a x x b  y y c  z z d
