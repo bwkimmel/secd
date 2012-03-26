@@ -279,7 +279,7 @@ _gettoken:
 	cmp		eax, 0
 	jne		.digit
 	cmp		ebx, '-'
-	je		.digit
+	je		.dash
 
 	push	ebx
 	call	_isletter
@@ -300,6 +300,23 @@ _gettoken:
 	mov		[edx], dword tt_eof
 	jmp		.done
 
+.dash:
+    mov		byte [edi], bl
+	inc		edi
+	call	_getchar
+	mov		ebx, dword [char]
+	push	ebx
+	call	_isletter
+	add		esp, 4
+	cmp		eax, 0
+	jne		.letter
+	push	ebx
+	call	_isdigit
+	add		esp, 4
+	cmp		eax, 0
+	jne		.digit
+	jmp		.alpha_endloop
+
 .digit:
 	mov		byte [edi], bl
 	inc		edi
@@ -317,6 +334,11 @@ _gettoken:
 		mov		ebx, dword [char]
 		jmp		.digit_loop
 .digit_endloop:
+	push	ebx
+	call	_isletter
+	add		esp, 4
+	cmp		eax, 0
+	jne		.letter
 	mov		edx, [ebp + 16]
 	mov		[edx], dword tt_num
 	jmp		.done
