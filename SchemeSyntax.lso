@@ -63,8 +63,6 @@ dnl ---------------------------------------------------------------------------
   (LETRECSYNTAX)
   (LETSTAR)
   (LETSYNTAX)
-  (NIL)
-  (NOTE)
   (NUMBER)
   (OPENP)
   (OPENVEC)
