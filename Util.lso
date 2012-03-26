@@ -3,11 +3,11 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
 
   (SPLIT LAMBDA (L N)
     (LETREC
-	  (SPLITCC L N (QUOTE NIL))
-	  (SPLITCC (L N PREFIX)
-	    (IF (EQ N 0)
-		    (L . (REVERSE PREFIX))
-			(SPLITCC (CDR L) (SUB N 1) (CONS (CAR L) PREFIX))))))
+      (SPLITCC L N (QUOTE NIL))
+      (SPLITCC LAMBDA (L N PREFIX)
+        (IF (EQ N 0)
+            (CONS (REVERSE PREFIX) L)
+            (SPLITCC (CDR L) (SUB N 1) (CONS (CAR L) PREFIX))))))
 
   (REVERSE LAMBDA (L)
     (LETREC
