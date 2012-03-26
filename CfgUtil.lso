@@ -69,7 +69,7 @@ include(Util.lso)
                 (SETPUT CC (CAR RHS))
                 (LET
                   (IF (SETCONTAINS CARFIRST (QUOTE NIL))
-                      (LHSFIRST (CDR RHS) V (SETDEL CARFIRST (QUOTE NIL)))
+                      (RHSFIRST (CDR RHS) V (SETDEL CARFIRST (QUOTE NIL)))
                       CARFIRST)
                   (CARFIRST LHSFIRST (CAR RHS) V CC)))))))
 
