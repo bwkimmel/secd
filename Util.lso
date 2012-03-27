@@ -1,6 +1,13 @@
 dnl --- Utility functions ---
 ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Splits a list before the specified index
+  dnl | L = the list to split
+  dnl | N = the index into the list at which to split
+  dnl | RETURNS a pair ( A . B ) consisting of the two lists with length(A) = N,
+  dnl |         length(B) = length(L) - N, and (APPEND A B) = L
+  dnl  -------------------------------------------------------------------------
   (SPLIT LAMBDA (L N)
     (LETREC
       (SPLITCC L N (QUOTE NIL))
@@ -9,6 +16,11 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
             (CONS (REVERSE PREFIX) L)
             (SPLITCC (CDR L) (SUB N 1) (CONS (CAR L) PREFIX))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Reverses a list
+  dnl | L = the list to reverse
+  dnl | RETURNS the list L in reverse order
+  dnl  -------------------------------------------------------------------------
   (REVERSE LAMBDA (L)
     (LETREC
       (REVERSECC L (QUOTE NIL))
@@ -17,11 +29,23 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
             CC
             (REVERSECC (CDR L) (CONS (CAR L) CC))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the item in the list at the specified (zero-based) index
+  dnl | L = the list to search
+  dnl | N = the zero-based index into the list
+  dnl | RETURNS the Nth element in the list, i.e.,
+  dnl |         (CAR (CDR ... <N CDRs> ... (CDR L) ... ))
+  dnl  -------------------------------------------------------------------------
   (NTH LAMBDA (L N)
     (IF (EQ N 0)
         (CAR L)
         (NTH (CDR L) (SUB N 1))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the length of the list
+  dnl | L = the list to get the length of
+  dnl | RETURNS the length of the list
+  dnl  -------------------------------------------------------------------------
   (LENGTH LAMBDA (L)
     (LETREC
       (LENGTHCC L 0)
@@ -30,12 +54,28 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
             CC
             (LENGTHCC (CDR L) (ADD CC 1))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Negates a number
+  dnl | N = the number to negate
+  dnl | RETURNS the additive inverse of N
+  dnl  -------------------------------------------------------------------------
   (NEG LAMBDA (N)
     (MUL N -1))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the absolute value of a number
+  dnl | N = the number to compute the absolute value of
+  dnl | RETURNS N, if N >= 0, or -N if N < 0
+  dnl  -------------------------------------------------------------------------
   (ABS LAMBDA (N)
     (IF (LEQ N 0) (NEG N) N))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Raises a number to an exponent
+  dnl | B = the base (i.e., the number to raise)
+  dnl | E = the exponent
+  dnl | RETURNS the value B * ... <E times> ... * B
+  dnl  -------------------------------------------------------------------------
   (POW LAMBDA (B E)
     (LETREC
       (POWCC E 1)
@@ -44,39 +84,108 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
             CC
             (POWCC (SUB E 1) (MUL B CC))))))
             
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the minimum of two values
+  dnl | X = the first value
+  dnl | Y = the second value
+  dnl | RETURNS X, if X < Y, or Y otherwise
+  dnl  -------------------------------------------------------------------------
   (MIN LAMBDA (X Y)
     (IF (LEQ X Y) X Y))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the maximum of two values
+  dnl | X = the first value
+  dnl | Y = the second value
+  dnl | RETURNS X, if X > Y, or Y otherwise
+  dnl  -------------------------------------------------------------------------
   (MAX LAMBDA (X Y)
     (IF (LEQ X Y) Y X))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the boolean XOR of two values
+  dnl | P = the first value (must be "T" or "F")
+  dnl | Q = the second value (must be "T" or "F")
+  dnl | RETURNS the boolean value P XOR Q
+  dnl  -------------------------------------------------------------------------
   (XOR LAMBDA (P Q)
     (IF P (NOT Q) Q))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if the specified symbol is a boolean value
+  dnl | P = the value to check
+  dnl | RETURNS a value indicating if P evaluates to "T" or "F"
+  dnl  -------------------------------------------------------------------------
   (ISBOOLEAN LAMBDA (P)
     (OR (EQ P (QUOTE T)) (EQ P (QUOTE F))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if the specified symbol is the NIL value (empty list)
+  dnl | X = the value to check
+  dnl | RETURNS a value indicating if X is the empty list (NIL)
+  dnl  -------------------------------------------------------------------------
   (ISNIL LAMBDA (X)
     (EQ X (QUOTE NIL)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if the specified number is zero
+  dnl | N = the value to check
+  dnl | RETURNS a value indicating if N is zero
+  dnl  -------------------------------------------------------------------------
   (ISZERO LAMBDA (N)
     (EQ N 0))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the boolean negation of the specified value
+  dnl | P = the value to negate (must be "T" or "F")
+  dnl | RETURNS the value "F" if P is "T", or "T" if P is "F"
+  dnl  -------------------------------------------------------------------------
   (NOT LAMBDA (P)
     (IF (EQ P (QUOTE T)) (QUOTE F) (QUOTE T)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if X > Y
+  dnl | X = the first value
+  dnl | Y = the second value
+  dnl | RETURNS a value indicating if X > Y
+  dnl  -------------------------------------------------------------------------
   (GT LAMBDA (X Y)
     (NOT (LEQ X Y)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if X < Y
+  dnl | X = the first value
+  dnl | Y = the second value
+  dnl | RETURNS a value indicating if X < Y
+  dnl  -------------------------------------------------------------------------
   (LT LAMBDA (X Y)
     (NOT (LEQ Y X)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if X >= Y
+  dnl | X = the first value
+  dnl | Y = the second value
+  dnl | RETURNS a value indicating if X >= Y
+  dnl  -------------------------------------------------------------------------
   (GEQ LAMBDA (X Y)
     (LEQ Y X))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if X != Y
+  dnl | X = the first value
+  dnl | Y = the second value
+  dnl | RETURNS a value indicating if X != Y
+  dnl  -------------------------------------------------------------------------
   (NEQ LAMBDA (X Y)
     (NOT (EQ X Y)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Appends two lists
+  dnl | A = the first list
+  dnl | B = the second list
+  dnl | RETURNS a list consisting of all of the elements of A, followed by all
+  dnl |         of the elements of B
+  dnl  -------------------------------------------------------------------------
   (APPEND LAMBDA (A B)
     (LETREC
       (PREPENDREVERSE (REVERSE A) B)
@@ -85,9 +194,45 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
             B
             (PREPENDREVERSE (CDR A) (CONS (CAR A) B))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if two objects are equivalent, according to the following
+  dnl | rules:
+  dnl |
+  dnl | 1) Two objects of differing types (e.g., number and symbol) are NOT
+  dnl |    equivalent
+  dnl | 2) Two numbers are equivalent if the have the same value.
+  dnl | 3) Two symbols (including NIL) are equivalent if they are the same
+  dnl |    symbol.
+  dnl | 4) Two cons cells (X . Y) and (Z . W) are equivalent if X is equivalent
+  dnl |    to Z and Y is equivalent to W.
+  dnl |
+  dnl | A = the first item
+  dnl | B = the second item
+  dnl | RETURNS a value indicating whether A and B are equivalent
+  dnl  -------------------------------------------------------------------------
   (DEEPEQ LAMBDA (A B)
     (EQ (DEEPCMP A B) 0))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Compares two objects are equivalent, according to the following rules:
+  dnl |
+  dnl | 1) A total ordering is imposed upon the set of atoms (numbers and
+  dnl |    symbols)
+  dnl | 2) Two numbers are compared according to their natural ordering, but
+  dnl |    there is no guarantee regarding the ordering in comparisons
+  dnl |    involving symbols other than that it will be consistent with the
+  dnl |    definition of a total ordering.
+  dnl | 3) An atomic value is less than a cons cell.
+  dnl | 4) For two cons cells (X . Y) and (Z . W), their ordering is determined
+  dnl |    first by the comparison of X and Z.  If X and Z are equivalent, then
+  dnl |    the result is determined by comparing Y and W.
+  dnl |
+  dnl | A = the first item
+  dnl | B = the second item
+  dnl | RETURNS a value indicating the result of the comparison between A and B,
+  dnl |         with -1 indicating that A < B, 0 indicating that A and B are
+  dnl |         equivalent, and 1 indicating that A > B.
+  dnl  -------------------------------------------------------------------------
   (DEEPCMP LAMBDA (A B)
     (IF (ATOM A)
         (IF (ATOM B)
@@ -101,6 +246,12 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
                    CARCMP)
                (CARCMP DEEPCMP (CAR A) (CAR B))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Applies a function to all elements in a list
+  dnl | F = the function to apply
+  dnl | L = the list elements on which to apply F
+  dnl | RESULT the list ((F a0) (F a1) ... (F an)), where L = (a0 a1 ... an)
+  dnl  -------------------------------------------------------------------------
   (MAP LAMBDA (F L)
     (LETREC
       (MAPREVERSE (REVERSE L) (QUOTE NIL))
@@ -109,6 +260,13 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
             CC
             (MAPREVERSE (CDR L) (CONS (F (CAR L)) CC))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes a list containing the elements of the specified list that
+  dnl | satisfy the provided predicate function
+  dnl | P = a function that takes one argument and returns a boolean value
+  dnl | L = the list to filter
+  dnl | RESULT the list containing the elements "x", for which (P x) is true.
+  dnl  -------------------------------------------------------------------------
   (FILTER LAMBDA (P L)
     (LETREC
       (FILTERREVERSE L (QUOTE NIL))
@@ -119,39 +277,112 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
                                        (CONS (CAR L) CC)
                                        CC))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Evaluates to the first argument but prints the second
+  dnl | VAL = the value of the expression
+  dnl | MSG = the value to print
+  dnl | RETURNS VAL
+  dnl  -------------------------------------------------------------------------
   (TRACE LAMBDA (VAL MSG)
     (IF (ISNIL (PUTEXP MSG)) VAL VAL))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the first item in the list
+  dnl | L = the list
+  dnl | RETURNS the first element of L
+  dnl  -------------------------------------------------------------------------
   (FIRST LAMBDA (L)
     (CAR L))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the second item in the list
+  dnl | L = the list
+  dnl | RETURNS the second element of L
+  dnl  -------------------------------------------------------------------------
   (SECOND LAMBDA (L)
     (CAR (CDR L)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the third item in the list
+  dnl | L = the list
+  dnl | RETURNS the third element of L
+  dnl  -------------------------------------------------------------------------
   (THIRD LAMBDA (L)
     (CAR (CDR (CDR L))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the fourth item in the list
+  dnl | L = the list
+  dnl | RETURNS the fourth element of L
+  dnl  -------------------------------------------------------------------------
   (FOURTH LAMBDA (L)
     (CAR (CDR (CDR (CDR L)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the fifth item in the list
+  dnl | L = the list
+  dnl | RETURNS the fifth element of L
+  dnl  -------------------------------------------------------------------------
   (FIFTH LAMBDA (L)
     (CAR (CDR (CDR (CDR (CDR L))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a list with one element
+  dnl | A = the first element
+  dnl | RETURNS the list (A)
+  dnl  -------------------------------------------------------------------------
   (CONS1 LAMBDA (A)
     (CONS A (QUOTE NIL)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a list with two elements
+  dnl | A = the first element
+  dnl | B = the second element
+  dnl | RETURNS the list (A B)
+  dnl  -------------------------------------------------------------------------
   (CONS2 LAMBDA (A B)
     (CONS A (CONS B (QUOTE NIL))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a list with three elements
+  dnl | A = the first element
+  dnl | B = the second element
+  dnl | C = the third element
+  dnl | RETURNS the list (A B C)
+  dnl  -------------------------------------------------------------------------
   (CONS3 LAMBDA (A B C)
     (CONS A (CONS B (CONS C (QUOTE NIL)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a list with four elements
+  dnl | A = the first element
+  dnl | B = the second element
+  dnl | C = the third element
+  dnl | D = the fourth element
+  dnl | RETURNS the list (A B C D)
+  dnl  -------------------------------------------------------------------------
   (CONS4 LAMBDA (A B C D)
     (CONS A (CONS B (CONS C (CONS D (QUOTE NIL))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a list with five elements
+  dnl | A = the first element
+  dnl | B = the second element
+  dnl | C = the third element
+  dnl | D = the fourth element
+  dnl | E = the fifth element
+  dnl | RETURNS the list (A B C D E)
+  dnl  -------------------------------------------------------------------------
   (CONS5 LAMBDA (A B C D E)
     (CONS A (CONS B (CONS C (CONS D (CONS E (QUOTE NIL)))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Inserts an item into a list
+  dnl | L = the list to insert into
+  dnl | N = the index at which to insert the new item
+  dnl | E = the element to insert
+  dnl | RETURNS the list L with E inserted into the Nth position
+  dnl  -------------------------------------------------------------------------
   (INSERT LAMBDA (L N E)
     (LETREC
       (INSERTCC L N (QUOTE NIL))
