@@ -7,6 +7,27 @@ include(Util.lso)
   (NEWMAP LAMBDA NIL
     MAPEMPTY)
 
+  (MAPBALANCE LAMBDA (M)
+    (LETREC
+      (BALANCE (MAPTOLIST M))
+      (BALANCE LAMBDA (L)
+        (IF (ISNIL L)
+            (NEWMAP)
+            (LET
+              (LET
+                (LET
+                  (LET
+                    (MAPCONS (CAR PIVOT) (CDR PIVOT) MAPBLACK LM RM)
+                    (LM BALANCE LEFT)
+                    (RM BALANCE RIGHT))
+                  (PIVOT CAR RIGHTWPIVOT)
+                  (RIGHT CDR RIGHTWPIVOT))
+                (LEFT CAR S)
+                (RIGHTWPIVOT CDR S))
+              (S SPLITMID L))))
+      (SPLITMID LAMBDA (L)
+        (SPLIT L (DIV (LENGTH L) 2)))))
+
   (MAPPUTALL LAMBDA (M L)
     (IF (ISNIL L)
 	    M
