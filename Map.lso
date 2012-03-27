@@ -1,12 +1,32 @@
-dnl ---
+dnl  ===========================================================================
+dnl | Map Abstract Data Type
+dnl |
+dnl | The MAP is a collection of (key . value) pairs.  Functions are provided to
+dnl | add new entries and to search for entries by their key.
+dnl |
+dnl | The MAP is organized as a binary search tree.  All nodes in the left
+dnl | subtree of node M have keys that are less than the key associated with
+dnl | node M.  All nodes in the right subtree of M have keys which are greater.
+dnl | The red-black tree algorith is used to keep the tree relatively balanced.
+dnl | See http://en.wikipedia.org/wiki/Red-black_tree for details.
+dnl  ===========================================================================
 ifdef(`map_lso_m4',,`define(`map_lso_m4',1)dnl
 
 include(Pattern.lso)
 include(Util.lso)
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a new map
+  dnl | RETURNS an empty map
+  dnl  -------------------------------------------------------------------------
   (NEWMAP LAMBDA NIL
     MAPEMPTY)
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Optimizes the maps internal structure for faster retrieval
+  dnl | M = the map to balance
+  dnl | RETURNS the balanced map
+  dnl  -------------------------------------------------------------------------
   (MAPBALANCE LAMBDA (M)
     (LETREC
       (BALANCE (MAPTOLIST M))
@@ -28,21 +48,47 @@ include(Util.lso)
       (SPLITMID LAMBDA (L)
         (SPLIT L (DIV (LENGTH L) 2)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Puts all of the entries in the specified list into the map.
+  dnl | M = the map to add entries to
+  dnl | L = a list of the form ( (k0.v0) (k1.v1) ... (kn.vn) ) of the key-value
+  dnl |     pairs to add to the map
+  dnl | RETURNS a map with the list of entries added
+  dnl  -------------------------------------------------------------------------
   (MAPPUTALL LAMBDA (M L)
     (IF (ISNIL L)
         M
         (MAPPUTALL (MAPPUT M (CAR (CAR L)) (CDR (CAR L))) (CDR L))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the height of the tree used to hold the entries in the map
+  dnl | M = the map to evaluate
+  dnl | RETURNS the height of the tree representing the map
+  dnl  -------------------------------------------------------------------------
   (MAPDEPTH LAMBDA (M)
     (IF (EQ M MAPEMPTY)
         0
         (ADD 1 (MAX (MAPDEPTH (MAPLEFT M)) (MAPDEPTH (MAPRIGHT M))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Finds all of the entries in the map that match a specified pattern
+  dnl | M = the map to search
+  dnl | P = the pattern to match (see the PATTERN function in Pattern.lso for
+  dnl |     details)
+  dnl | RETURNS a list of all the key-value pairs that match the pattern P
+  dnl  -------------------------------------------------------------------------
   (MAPFINDPATTERN LAMBDA (M P)
     (FILTER (LAMBDA (X) (NEQ X (QUOTE F)))
       (MAP (LAMBDA (E) (PATTERN E P))
         (MAPTOLIST M))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Adds an entry to the map
+  dnl | M = the map
+  dnl | K = the key
+  dnl | V = the value
+  dnl | RETURNS a map with the key value pair (K.V) added
+  dnl  -------------------------------------------------------------------------
   (MAPPUT LAMBDA (M K V)
     (LETREC
       (MAPSETCOLOR (MAPPUTCC M K V) MAPBLACK)
@@ -126,6 +172,13 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
 
               ))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the value associated with the given key
+  dnl | M = the map to search
+  dnl | K = the key to search for
+  dnl | RETURNS the value associated with the key, or NIL if the key is not
+  dnl |         found
+  dnl  -------------------------------------------------------------------------
   (MAPGET LAMBDA (M K)
     (IF (EQ M MAPEMPTY)
         (QUOTE NIL)
@@ -137,6 +190,11 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
                   (MAPGET (MAPRIGHT M) K)))
           (CMP DEEPCMP K (MAPKEY M)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets a list of all of the entries in the map
+  dnl | M = the map
+  dnl | RETURNS a list of the key-value pairs in the map
+  dnl  -------------------------------------------------------------------------
   (MAPTOLIST LAMBDA (M)
     (LETREC
       (MAPTOLISTCC M (QUOTE NIL))
@@ -146,28 +204,90 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
             (MAPTOLISTCC (MAPLEFT M)
               (CONS (CONS (MAPKEY M) (MAPVALUE M)) (MAPTOLISTCC (MAPRIGHT M) CC)))))))
 
-  (MAPBLACK QUOTE BLACK)
-  (MAPRED QUOTE RED)
+
+
+  dnl  =========================================================================
+  dnl | Private functions
+  dnl  =========================================================================
+  
+  (MAPEMPTY QUOTE NIL)		dnl --- The empty map
+  (MAPBLACK QUOTE BLACK)	dnl --- A symbol denoting a black node
+  (MAPRED QUOTE RED)		dnl --- A symbol denoting a red node
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the color of the specified map node (see
+  dnl | http://en.wikipedia.org/wiki/Red-black_tree)
+  dnl | M = the map node
+  dnl | RETURNS the color associated with the node
+  dnl  -------------------------------------------------------------------------
   (MAPCOLOR LAMBDA (M)
     (FIRST M))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the left child of the specified map node
+  dnl | M = the map node
+  dnl | RETURNS the left child of the node
+  dnl  -------------------------------------------------------------------------
   (MAPLEFT LAMBDA (M)
     (SECOND M))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the key stored at the given map node
+  dnl | M = the map node
+  dnl | RETURNS the key stored at the map node
+  dnl  -------------------------------------------------------------------------
   (MAPKEY LAMBDA (M)
     (THIRD M))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the value stored at the given map node
+  dnl | M = the map node
+  dnl | RETURNS the value stored at the map node
+  dnl  -------------------------------------------------------------------------
   (MAPVALUE LAMBDA (M)
     (FOURTH M))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the right child of the specified map node
+  dnl | M = the map node
+  dnl | RETURNS the right child of the node
+  dnl  -------------------------------------------------------------------------
   (MAPRIGHT LAMBDA (M)
     (FIFTH M))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a new map node
+  dnl | K = the key for the new map node
+  dnl | V = the value associated with the key
+  dnl | C = the color of the new map node
+  dnl | L = the left child of the new node
+  dnl | R = the right child of the new node
+  dnl  -------------------------------------------------------------------------
   (MAPCONS LAMBDA (K V C L R)
     (CONS5 C L K V R))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a new node identical to the specified node except with a
+  dnl | different value associated with it
+  dnl | M = the map node
+  dnl | V = the new value
+  dnl | RETURNS the new node with the value substituted
+  dnl  -------------------------------------------------------------------------
   (MAPSUBST LAMBDA (M V)
     (MAPCONS (MAPKEY M) V (MAPCOLOR M) (MAPLEFT M) (MAPRIGHT M)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a new node identical to the specified node except with a
+  dnl | different color
+  dnl | M = the map node
+  dnl | C = the new color
+  dnl | RETURNS the new node with the color substituted
+  dnl  -------------------------------------------------------------------------
   (MAPSETCOLOR LAMBDA (M C)
     (LET
       (IF (EQ C COLOR)
           M
           (CONS C (CDR M)))
       (COLOR MAPCOLOR M)))
-  (MAPEMPTY QUOTE NIL)
 
 ')dnl
