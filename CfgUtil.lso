@@ -30,19 +30,20 @@ include(Util.lso)
               (TOKEN TYPE (CAR TOKENS)))))
       (REDUCE LAMBDA (STACK RULE)
         (LET
-          (REDUCECC STACK LHS (REVERSE RHS) (QUOTE NIL))
+          (REDUCECC STACK LHS RULENUM (REVERSE RHS) (QUOTE NIL))
+          (RULENUM CDR RULE)
           (LHS CAR RULE)
           (RHS MAPGET CFG RULE)))
-      (REDUCECC LAMBDA (STACK LHS REVRHS CC)
+      (REDUCECC LAMBDA (STACK LHS RULENUM REVRHS CC)
         (IF (ISNIL REVRHS)
             (LET
               (LET
                 (IF (ISNIL GOTO)
                     (STOP (QUOTE ParserReduceError))
-                    (CONS (CONS GOTO (CONS LHS CC)) STACK))
+                    (CONS (CONS GOTO (CONS (CONS LHS RULENUM) CC)) STACK))
                 (GOTO MAPGET DFA (CONS STATE LHS)))
               (STATE CAR (CAR STACK)))
-            (REDUCECC (CDR STACK) LHS (CDR REVRHS) (CONS (CDR (CAR STACK)) CC))))
+            (REDUCECC (CDR STACK) LHS RULENUM (CDR REVRHS) (CONS (CDR (CAR STACK)) CC))))
       ))
 
   (CFGFIRST LAMBDA (CFG S)
@@ -75,17 +76,20 @@ include(Util.lso)
 
   (CFGRESOLVEFOLLOW LAMBDA (F SYM)
     (LETREC
-      (CFGRESOLVEFOLLOWCC (CONS1 SYM) (NEWSET))
-      (CFGRESOLVEFOLLOWCC LAMBDA (SYMS CC)
+      (CFGRESOLVEFOLLOWCC (CONS1 SYM) (NEWSET) (NEWSET))
+      (CFGRESOLVEFOLLOWCC LAMBDA (SYMS V CC)
         (IF (ISNIL SYMS)
             CC
-            (LET
-              (IF (ISNIL ENTRY)
-                  (CFGRESOLVEFOLLOWCC (CDR SYMS) CC)
-                  (CFGRESOLVEFOLLOWCC
-                    (APPEND (CDR SYMS) (SETTOLIST (CDR ENTRY)))
-                    (SETUNION CC (CAR ENTRY))))
-              (ENTRY MAPGET F (CAR SYMS)))))))
+            (IF (SETCONTAINS V (CAR SYMS))
+                (CFGRESOLVEFOLLOWCC (CDR SYMS) V CC)
+                (LET
+                  (IF (ISNIL ENTRY)
+                      (CFGRESOLVEFOLLOWCC (CDR SYMS) (SETPUT V (CAR SYMS)) CC)
+                      (CFGRESOLVEFOLLOWCC
+                        (APPEND (CDR SYMS) (SETTOLIST (CDR ENTRY)))
+                        (SETPUT V (CAR SYMS))
+                        (SETUNION CC (CAR ENTRY))))
+                  (ENTRY MAPGET F (CAR SYMS))))))))
 
   (CFGFOLLOW LAMBDA (CFG)
     (LETREC
