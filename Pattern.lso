@@ -1,6 +1,44 @@
-dnl --- Pattern Matching ---
+dnl  ===========================================================================
+dnl | Pattern matching
+dnl  ===========================================================================
 ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if X matches the specified pattern and optionally extracts
+  dnl | matching elements into a list.
+  dnl | 
+  dnl | A number or symbol in the pattern must match the corresponding number
+  dnl | or symbol in X.  A cons cell in the pattern must match a cons cell in
+  dnl | X, and the car and the cdr of the cons cell must match the car and cdr
+  dnl | of the corresponding cell in X.  Note that, since a list is built from
+  dnl | cons cells, this means that a list of n elements in the pattern must
+  dnl | match a list of n elements in X, and corresponding elements of the list
+  dnl | and of the pattern must match.
+  dnl |
+  dnl | The following symbols act as wildcards in the pattern:
+  dnl |
+  dnl | *  - Matches any object (atomic value or cons cell).
+  dnl | _  - Matches any object and specifies that the matching object be
+  dnl |      extracted
+  dnl | !* - Matches any atom (symbol or number)
+  dnl | !_ - Matches any atom and specifies that it be extracted
+  dnl | #* - Matches a number
+  dnl | #_ - Matches and extracts a number
+  dnl | @* - Matches a symbol
+  dnl | @_ - Matches and extracts a symbol
+  dnl |
+  dnl | The pattern "(\ <Y>)" matches only against an exact copy of <Y>.  This
+  dnl | can be used when one wants to match a symbol that is normally
+  dnl | interpreted as a wildcard.  For example, "(\ *)" in the pattern will
+  dnl | match the "*" symbol.  To match the backslash, use the pattern "(\ \)".
+  dnl |
+  dnl | X = the object to match
+  dnl | P = the pattern
+  dnl | RETURNS a list of elements extracted from X, if X matches the pattern P,
+  dnl |         or the boolean value "F" if X does not match P.  Note that if
+  dnl |         X matches P but the pattern P did not specify any elements to
+  dnl |         be extracted, the return value will be NIL.
+  dnl  -------------------------------------------------------------------------
   (PATTERN LAMBDA (X P)
     (LETREC
       (LET
