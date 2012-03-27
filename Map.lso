@@ -30,18 +30,18 @@ include(Util.lso)
 
   (MAPPUTALL LAMBDA (M L)
     (IF (ISNIL L)
-	    M
-		(MAPPUTALL (MAPPUT M (CAR (CAR L)) (CDR (CAR L))) (CDR L))))
+        M
+        (MAPPUTALL (MAPPUT M (CAR (CAR L)) (CDR (CAR L))) (CDR L))))
 
   (MAPDEPTH LAMBDA (M)
     (IF (EQ M MAPEMPTY)
-	    0
-		(ADD 1 (MAX (MAPDEPTH (MAPLEFT M)) (MAPDEPTH (MAPRIGHT M))))))
+        0
+        (ADD 1 (MAX (MAPDEPTH (MAPLEFT M)) (MAPDEPTH (MAPRIGHT M))))))
 
   (MAPFINDPATTERN LAMBDA (M P)
     (FILTER (LAMBDA (X) (NEQ X (QUOTE F)))
-	  (MAP (LAMBDA (E) (PATTERN E P))
-	    (MAPTOLIST M))))
+      (MAP (LAMBDA (E) (PATTERN E P))
+        (MAPTOLIST M))))
 
   (MAPPUT LAMBDA (M K V)
     (LETREC
@@ -129,22 +129,22 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
   (MAPGET LAMBDA (M K)
     (IF (EQ M MAPEMPTY)
         (QUOTE NIL)
-		(LET
+        (LET
           (IF (EQ CMP 0)
               (MAPVALUE M)
               (IF (LEQ CMP 0)
                   (MAPGET (MAPLEFT M) K)
                   (MAPGET (MAPRIGHT M) K)))
-		  (CMP DEEPCMP K (MAPKEY M)))))
+          (CMP DEEPCMP K (MAPKEY M)))))
 
   (MAPTOLIST LAMBDA (M)
     (LETREC
-	  (MAPTOLISTCC M (QUOTE NIL))
-	  (MAPTOLISTCC LAMBDA (M CC)
-	    (IF (EQ M MAPEMPTY)
-		    CC
-			(MAPTOLISTCC (MAPLEFT M)
-			  (CONS (CONS (MAPKEY M) (MAPVALUE M)) (MAPTOLISTCC (MAPRIGHT M) CC)))))))
+      (MAPTOLISTCC M (QUOTE NIL))
+      (MAPTOLISTCC LAMBDA (M CC)
+        (IF (EQ M MAPEMPTY)
+            CC
+            (MAPTOLISTCC (MAPLEFT M)
+              (CONS (CONS (MAPKEY M) (MAPVALUE M)) (MAPTOLISTCC (MAPRIGHT M) CC)))))))
 
   (MAPBLACK QUOTE BLACK)
   (MAPRED QUOTE RED)
