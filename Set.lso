@@ -1,10 +1,10 @@
-dnl  ---------------------------------------------------------------------------
+dnl  ===========================================================================
 dnl | Set Abstract Data Type
 dnl |
 dnl | Implemented as a MAP using the elements as keys and storing boolean values
 dnl | (either T to indicate that the set contains that element, or F to indicate
 dnl | that it has been deleted).
-dnl  ---------------------------------------------------------------------------
+dnl  ===========================================================================
 ifdef(`set_lso_m4',,`define(`set_lso_m4',1)dnl
 
 include(Map.lso)
