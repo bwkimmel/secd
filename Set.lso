@@ -1,34 +1,91 @@
-dnl --- Set Abstract Data Type ---
+dnl  ---------------------------------------------------------------------------
+dnl | Set Abstract Data Type
+dnl |
+dnl | Implemented as a MAP using the elements as keys and storing boolean values
+dnl | (either T to indicate that the set contains that element, or F to indicate
+dnl | that it has been deleted).
+dnl  ---------------------------------------------------------------------------
 ifdef(`set_lso_m4',,`define(`set_lso_m4',1)dnl
 
 include(Map.lso)
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a new set
+  dnl | RETURNS a new set
+  dnl  -------------------------------------------------------------------------
   (NEWSET LAMBDA NIL
     (NEWMAP))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Adds a new element to the set
+  dnl | S = the set to add to
+  dnl | E = the element to add to the set
+  dnl | RETURNS the set S union {E}
+  dnl  -------------------------------------------------------------------------
   (SETPUT LAMBDA (S E)
     (MAPPUT S E (QUOTE T)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Adds all of the items in the specified list to the set
+  dnl | S = the set to add to
+  dnl | L = the list of items to add
+  dnl | RETURNS the set S union {a0,a1,...,an}, where L is the list
+  dnl |         (a0 a1 ... an)
+  dnl  -------------------------------------------------------------------------
   (SETPUTALL LAMBDA (S L)
     (IF (ISNIL L)
 	    S
 		(SETPUTALL (SETPUT S (CAR L)) (CDR L))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Removes the speicifed item from the set
+  dnl | S = the set to remove from
+  dnl | E = the element to remove
+  dnl | RETURNS the set S \ {E}
+  dnl  -------------------------------------------------------------------------
   (SETDEL LAMBDA (S E)
     (MAPPUT S E (QUOTE F)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if the set contains the specified element
+  dnl | S = the set to check
+  dnl | E = the element to search for
+  dnl | RETURNS T if S contains E, F otherwise
+  dnl  -------------------------------------------------------------------------
   (SETCONTAINS LAMBDA (S E)
     (EQ (MAPGET S E) (QUOTE T)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets a list of elements in the set
+  dnl | S = the set
+  dnl | RETURNS a list of elements of the set
+  dnl  -------------------------------------------------------------------------
   (SETTOLIST LAMBDA (S)
     (MAP (LAMBDA (X) (CAR X)) (FILTER (LAMBDA (X) (CDR X)) (MAPTOLIST S))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets a set of all elements in the provided list
+  dnl | L = the list
+  dnl | RETURNS the set containing all of the elements of L
+  dnl  -------------------------------------------------------------------------
   (SETFROMLIST LAMBDA (L)
     (SETPUTALL (NEWSET) L))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the union of two sets
+  dnl | A = the first set
+  dnl | B = the second set
+  dnl | RETURNS a set containing all elements which are in A or in B
+  dnl  -------------------------------------------------------------------------
   (SETUNION LAMBDA (A B)
     (SETPUTALL A (SETTOLIST B)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the intersection of two sets
+  dnl | A = the first set
+  dnl | B = the second set
+  dnl | RETURNS a set containing all elements which are in A and in B
+  dnl  -------------------------------------------------------------------------
   (SETINTERSECT LAMBDA (A B)
     (SETFROMLIST
 	  (FILTER
