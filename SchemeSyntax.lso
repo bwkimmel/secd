@@ -25,7 +25,7 @@ dnl ---------------------------------------------------------------------------
     (IDENT ZeroOrMoreIdentifier))
   (ZeroOrMoreVariable
     NIL
-    (OneOrMoreVariable))
+    (VARIABLE ZeroOrMoreVariable))
   (OneOrMoreVariable
     (VARIABLE ZeroOrMoreVariable))
 
@@ -84,7 +84,7 @@ dnl ---------------------------------------------------------------------------
     (CompoundDatum))
   (ZeroOrMoreDatum
     NIL
-    (OneOrMoreDatum))
+    (Datum ZeroOrMoreDatum))
   (OneOrMoreDatum
     (Datum ZeroOrMoreDatum))
   (SimpleDatum
@@ -173,7 +173,7 @@ dnl ---------------------------------------------------------------------------
     (Expression)
     NIL)
   (Assignment
-    (OPENP SETBANG Variable Expression CLOSEP))
+    (OPENP SETBANG VARIABLE Expression CLOSEP))
   (DerivedExpression
     (OPENP COND OneOrMoreCondClause CLOSEP)
     (OPENP ZeroOrMoreCondClause OPENP ELSE Sequence CLOSEP CLOSEP)
@@ -182,7 +182,7 @@ dnl ---------------------------------------------------------------------------
     (OPENP AND ZeroOrMoreTest CLOSEP)
     (OPENP OR ZeroOrMoreTest CLOSEP)
     (OPENP LET OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
-    (OPENP LET Variable OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
+    (OPENP LET VARIABLE OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
     (OPENP LETSTAR OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
     (OPENP LETREC OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
     (OPENP BEGIN Sequence CLOSEP)
@@ -194,7 +194,7 @@ dnl ---------------------------------------------------------------------------
     (OPENP Test ARROW Recipient CLOSEP))
   (ZeroOrMoreCondClause
     NIL
-    (OneOrMoreCondClause))
+    (CondClause ZeroOrMoreCondClause))
   (OneOrMoreCondClause
     (CondClause ZeroOrMoreCondClause))
   (Recipient
@@ -202,10 +202,10 @@ dnl ---------------------------------------------------------------------------
   (CaseClause
     (OPENP OPENP ZeroOrMoreDatum CLOSEP Sequence CLOSEP))
   (BindingSpec
-    (OPENP Variable Expression CLOSEP))
+    (OPENP VARIABLE Expression CLOSEP))
   (IterationSpec
-    (OPENP Variable Init Step CLOSEP)
-    (OPENP Variable Init CLOSEP))
+    (OPENP VARIABLE Init Step CLOSEP)
+    (OPENP VARIABLE Init CLOSEP))
   (Init
     (Expression))
   (Step
@@ -246,7 +246,7 @@ dnl ---------------------------------------------------------------------------
     (PatternDatum))
   (ZeroOrMorePattern
     NIL
-    (OneOrMorePattern))
+    (Pattern ZeroOrMorePattern))
   (OneOrMorePattern
     (Pattern ZeroOrMorePattern))
   (PatternDatum
@@ -265,7 +265,7 @@ dnl ---------------------------------------------------------------------------
     (Template ELLIPSIS))
   (ZeroOrMoreTemplateElement
     NIL
-    (OneOrMoreTemplateElement))
+    (TemplateElement ZeroOrMoreTemplateElement))
   (OneOrMoreTemplateElement
     (TemplateElement ZeroOrMoreTemplateElement))
   (TemplateDatum
@@ -286,11 +286,11 @@ dnl ---------------------------------------------------------------------------
     (OPENP BEGIN OneOrMoreCommandOrDefinition CLOSEP))
   (ZeroOrMoreCommandOrDefinition
       NIL
-    (OneOrMoreCommandOrDefinition))
+    (CommandOrDefinition ZeroOrMoreCommandOrDefinition))
   (OneOrMoreCommandOrDefinition 
     (CommandOrDefinition ZeroOrMoreCommandOrDefinition))
   (Definition
-    (OPENP DEFINE Variable Expression CLOSEP)
+    (OPENP DEFINE VARIABLE Expression CLOSEP)
     (OPENP DEFINE OPENP VARIABLE DefFormals CLOSEP Body CLOSEP)
     (OPENP BEGIN ZeroOrMoreDefinition CLOSEP))
   (ZeroOrMoreDefinition
@@ -298,7 +298,7 @@ dnl ---------------------------------------------------------------------------
     (Definition ZeroOrMoreDefinition))
   (DefFormals
     (ZeroOrMoreVariable)
-    (ZeroOrMoreVariable DOT Variable))
+    (ZeroOrMoreVariable DOT VARIABLE))
   (SyntaxDefinition
     (OPENP DEFINESYNTAX IDENT TransformerSpec CLOSEP))
 
@@ -309,7 +309,7 @@ dnl ---------------------------------------------------------------------------
     (BindingSpec ZeroOrMoreBindingSpec))
   (ZeroOrMoreCaseClause
     NIL
-    (OneOrMoreCaseClause))
+    (CaseClause ZeroOrMoreCaseClause))
   (ZeroOrMoreIterationSpec
     NIL
     (IterationSpec ZeroOrMoreIterationSpec))
