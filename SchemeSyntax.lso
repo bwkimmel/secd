@@ -1,9 +1,24 @@
-dnl ---------------------------------------------------------------------------
-dnl Grammar for Scheme (R5RS) syntax
-dnl ---------------------------------------------------------------------------
-dnl NOTE:  This file must be processed by m4 before being fed to the secd
-dnl        machine.
-dnl ---------------------------------------------------------------------------
+dnl  ===========================================================================
+dnl | Grammar for Scheme (R5RS) syntax
+dnl |
+dnl | See http://www.schemers.org/Documents/Standards/R5RS for details
+dnl |
+dnl | The following grammar is structured as a list of items of the form:
+dnl |
+dnl |   (<non-terminal> (<right-hand-side-1>) (<right-hand-side-2>) ... ), or
+dnl |   (<terminal>)
+dnl |
+dnl | where <non-terminal> is a non-terminal symbol, and is followed by a list
+dnl | one or more production rules for that symbol, or where <terminal> is a
+dnl | terminal symbol, and thus has no production rules.  Each production rule
+dnl | <right-hand-side-#> is a list of the symbols on the right hand side of the
+dnl | production rule.  The production rule NIL denotes a production of the form
+dnl |
+dnl |   <non-terminal>  -->  <empty-string>
+dnl |
+dnl | There is a special non-terminal symbol "START" which must have exactly one
+dnl | production rule.
+dnl  ===========================================================================
 ifdef(`scheme_syntax_lso_m4',,`define(`scheme_syntax_lso_m4',1)dnl
 
 (SchemeGrammar QUOTE (
