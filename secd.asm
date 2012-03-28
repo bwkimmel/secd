@@ -300,10 +300,10 @@ _instr \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
 		_instr_STOP, _instr_SYM , _instr_NUM , _instr_GET , _instr_PUT , \
-        _instr_APR , _instr_TSEL, _instr_APCC, _instr_RC  , _instr_CVEC, \
+		_instr_APR , _instr_TSEL, _instr_MULX, _instr_PEXP, _instr_CVEC, \
 		_instr_VSET, _instr_VREF, _instr_VLEN, _instr_VCPY, _instr_CBIN, \
 		_instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, _instr_BS16, \
-		_instr_BR16, _instr_BS32, _instr_BR32, _instr_MULX, _instr_PEXP
+		_instr_BR16, _instr_BS32, _instr_BR32
 
 numinstr	equ		($ - _instr) >> 2
 	
@@ -669,32 +669,6 @@ _instr_TSEL:
 	cmove	C, edx		; IF car(S) == true THEN C' <-- car(cdr(C))
 	cmovne	C, ecx		; IF car(S) != true THEN C' <-- car(cdr(cdr(C)))
 	pop		S
-	jmp		_cycle
-
-_instr_APCC:
-	cons	C, [D]
-	mov		eax, [E]
-	cons	eax, C		; EAX <-- cons(E, cons(cdr(C), D))
-	carcdr	edx, S		; EDX <-- car(S), S' <-- cdr(S)
-	carcdr	C, edx		; C' <-- car(car(S)), EDX <-- cdr(car(S))
-	car		ecx, S		; ECX <-- car(cdr(S)), S' <-- cdr(cdr(S))
-	cons	S, eax
-	mov		[D], S		; D' <-- cons(cdr(cdr(S)), cons(e, cons(cdr(c), d)))
-	cons	S, 0
-	cons	S, edx
-	mov		[E], S		; E' <-- cons(car(cdr(S)), cdr(car(S)))
-	mov		S, 0		; S' <-- nil
-	jmp		_cycle
-
-_instr_RC:
-	carcdr	eax, S
-	car		S, S
-	carcdr	edx, eax
-	cons	S, edx
-	carcdr	edx, eax
-	mov		[E], edx
-	carcdr	C, eax
-	mov		[D], eax
 	jmp		_cycle
 
 _instr_CVEC:
