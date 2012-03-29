@@ -12,7 +12,7 @@
 ; to find the new object.
 ; ==============================================================================
 ;
-%%define HEAP_SIZE (1*1024*1024)
+%define HEAP_SIZE (1*1024*1024)
 
 segment .data
 next		dd		0				; where to allocate next chunk
