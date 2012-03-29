@@ -1,18 +1,40 @@
-%define HEAP_SIZE (1*1024*1024)
+; ==============================================================================
+; Heap implementation                                                 UNFINISHED
+;
+; This implements dynamic allocation of variable-length chunks of memory.  To
+; perform garbage collection, the heap is divided into two halves.  Allocation
+; takes place in a linear fashion on one half.  When that half becomes full,
+; a we perform a garbage collection cycle.  This consists of marking all the
+; chunks which are still in use (which is the responsibility of the client of
+; the heap), and then copying the marked objects to the other half of the heap
+; (thus compacting the heap in the process).  Forwarding markers must be left in
+; place of the old objects so that references to those old objects know where
+; to find the new object.
+; ==============================================================================
+;
+%%define HEAP_SIZE (1*1024*1024)
 
 segment .data
-next		dd		0
-active_heap	dd		0
+next		dd		0				; where to allocate next chunk
+active_heap	dd		0				; pointer to active half of heap
 
 segment .bss
 align 8
-heap1		resb	HEAP_SIZE
-heap2		resb	HEAP_SIZE
+heap1		resb	HEAP_SIZE		; first half of heap
+heap2		resb	HEAP_SIZE		; second half of heap
 
+; ==============================================================================
+; Exported functions
+;
 segment .text
 global		_heap_alloc, _heap_forward, _heap_mark, _heap_sweep, \
 			_heap_item_length
 
+; ------------------------------------------------------------------------------
+; Allocate a new chunk
+; EXPECTS eax = size of chunk to allocate
+; RETURNS pointer to new chunk, or 0 if the heap is full
+; ------------------------------------------------------------------------------
 _heap_alloc:
 	push	ebx
 	mov		ecx, eax
@@ -47,10 +69,17 @@ _heap_alloc:
 	pop		ebx
 	ret
 
+; ------------------------------------------------------------------------------
+; Marks a chunk
+; EXPECTS eax = pointer to chunk
+; ------------------------------------------------------------------------------
 _heap_mark:
 	or		[eax - 4], dword 0x80000000
 	ret
 
+; ------------------------------------------------------------------------------
+; Compacts heap by moving all marked chunks to the other half.
+; ------------------------------------------------------------------------------
 _heap_sweep:
 	push	ebx
 	push	esi
@@ -101,10 +130,20 @@ _heap_sweep:
 	pop		ebx
 	ret
 
+; ------------------------------------------------------------------------------
+; Follows chunk forwarding pointer
+; EXPECTS eax = pointer to forwarded chunk
+; RETURNS pointer to new location of chunk
+; ------------------------------------------------------------------------------
 _heap_forward:
 	mov		eax, dword [eax - 4]
 	ret
 
+; ------------------------------------------------------------------------------
+; Gets the size of a chunk
+; EXPECTS eax = pointer to chunk
+; RETURNS size of chunk
+; ------------------------------------------------------------------------------
 _heap_item_length:
 	mov		eax, dword [eax - 4]
 	and		eax, 0x7fffffff
