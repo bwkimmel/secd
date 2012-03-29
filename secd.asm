@@ -1,29 +1,67 @@
-; Reserved registers:
-; EBX - (S)tack
-; ESI - (C)ontrol
-; EDI - Head of free list (ff)
-
+; ==============================================================================
+; SECD machine implementation
+;
+; This file implements the instruction cycle for an SECD (Stack, Environment,
+; Code, Dump) machine.  For details, see:
+;
+; Peter Henderson, "Functional Programming: Application and Implementation",
+; Prentice Hall, 1980.
+; ==============================================================================
+;
 %include 'secd.inc'
 %include 'system.inc'
 
-%define SECD_MARKED 0x80
-%define HEAP_MARK 0x01
-%define HEAP_FORWARD 0x02
 
-%define S ebx
-%define C esi
-%define ff edi
+; ==============================================================================
+; Flags
+;
+%define SECD_MARKED		0x80	; GC-bit for cell array
+%define HEAP_MARK		0x01	; GC-bit for heap items
+%define HEAP_FORWARD	0x02	; Indicates that heap item has been moved
 
+
+; ==============================================================================
+; Reserved registers
+;
+%define S ebx		; (S)tack
+%define C esi		; (C)ontrol
+%define ff edi		; Head of the free list (ff)
+
+
+; ==============================================================================
+; Instruction macros
+;
+
+; ------------------------------------------------------------------------------
+; Extracts the first element of a cons cell
+; USAGE: car <dest>, <src>
+; <dest> = the location to put the result into
+; <src>  = the cons cell from which to exract the first element
+; ------------------------------------------------------------------------------
 %macro car 2 
 	mov		%1, [dword values + %2 * 4]
 	shr		%1, 16
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Extracts the second element of a cons cell
+; USAGE: cdr <dest>, <src>
+; <dest> = the location to put the result into
+; <src>  = the cons cell from which to extract the second element
+; ------------------------------------------------------------------------------
 %macro cdr 2
 	mov		%1, [dword values + %2 * 4]
 	and		%1, 0xffff
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Extracts both elements of a cons cell, replacing the source argument with its
+; second element.
+; USAGE: carcdr <car>, <cdr/src>
+; <car>     = the location to put the first element of the cons cell into
+; <cdr/src> = the cons cell from which to extract both elements, and the
+;             location in which to put the second element
+; ------------------------------------------------------------------------------
 %macro carcdr 2
 	mov		%2, [dword values + %2 * 4]
 	mov		%1, %2
@@ -31,6 +69,14 @@
 	and		%2, 0xffff
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Extracts both elements of a cons cell, replacing the source argument with its
+; first element.
+; USAGE: cdrcar <cdr>, <car/src>
+; <cdr>     = the location to put the second element of the cons cell into
+; <car/src> = the cons cell from which to extract both elements, and the
+;             location in which to put the first element
+; ------------------------------------------------------------------------------
 %macro cdrcar 2
 	mov		%2, [dword values + %2 * 4]
 	mov		%1, %2
@@ -38,47 +84,93 @@
 	shr		%2, 16
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Dereferences a cell index
+; USAGE: ivalue <dest>
+; <dest> = the index into the cell array to dereference, and the location into
+;          which to put the value at that location
+; ------------------------------------------------------------------------------
 %macro ivalue 1
 	mov		%1, [dword values + %1 * 4]
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Allocates a cell for a new value
+; USAGE: alloc <dest>, <value>, <flags>
+; <dest>  = the location in which to put the index of the newly allocated cell
+; <value> = the value to place in the new cell
+; <flags> = the flags indicating the type of the new cell
+; ------------------------------------------------------------------------------
 %macro alloc 3
-	cmp		ff, 0
+	cmp		ff, 0						; check if we have free cells available
 	jne		%%nogc
 	jmp		_gc.out_of_space
 	call	_gc
 %%nogc:
 	dec		dword [free]
-	mov		[flags + ff], byte %3
-%ifidni %1,%2
+	mov		[flags + ff], byte %3		; set flags for new cell
+%ifidni %1,%2							; special handling if <dest> == <value>
 	xchg	%1, ff
 	xchg	ff, [dword values + %1 * 4]
 	and		ff, 0xffff
-%else
+%else									; <dest> != <value>
 	mov		%1, ff
 	cdr		ff, ff
 	mov		[dword values + %1 * 4], %2
 %endif
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Allocates a new cons cell
+; USAGE: cons <car/dest>, <cdr>
+; <car/dest> = the location in which to put the index of the new cons cell, and
+;              the first element of the new cell
+; <cdr>      = the second element of the new cell
+; ------------------------------------------------------------------------------
 %macro cons 2
 	shl		%1, 16
 	or		%1, %2
 	alloc	%1, %1, SECD_CONS
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Allocates a new number cell
+; USAGE: number <dest>, <value>
+; <dest>  = the location in which to put the index of the new cell
+; <value> = the numeric value to place in the new cell
+; ------------------------------------------------------------------------------
 %macro number 2
 	alloc	%1, %2, SECD_NUMBER
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Allocates a new symbolic cell
+; USAGE: symbol <dest>, <value>
+; <dest>  = the location in which to put the index of the new cell
+; <value> = the address of the symbol in the string store
+; ------------------------------------------------------------------------------
 %macro symbol 2
 	alloc	%1, %2, SECD_SYMBOL
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Tests if the indicate cell is a number cell.  If it is, ZF will be clear,
+; otherwise ZF will be set.
+; USAGE: isnumber <cell>
+; <cell> = the cell to test
+; ------------------------------------------------------------------------------
 %macro isnumber 1
 	test	byte [flags + %1], 0x02
 %endmacro
 
+; ------------------------------------------------------------------------------
+; Checks if the arguments are suitable for arithmetic operations.  If they are
+; not, control will jump to "_arith_nonnum", which will push NIL onto the stack
+; and return control to the top of the instruction cycle.
+; USAGE: check_arith_args <arg1>, <arg2>
+; <arg1> = the first argument
+; <arg2> = the second argument
+; ------------------------------------------------------------------------------
 %macro check_arith_args 2
 	isnumber %1
 	jz		_arith_nonnum
@@ -87,6 +179,9 @@
 %endmacro
 
 
+; ==============================================================================
+; Builtin strings
+;
 segment .data
 tstr		db		"T"
 tstr_len	equ		$ - tstr
@@ -113,10 +208,29 @@ maj_sep_len	equ		$ - maj_sep
 free		dd		0
 gcheap		db		0
 
+
+; ==============================================================================
+; Storage for cells
+;
+; Each cell consists of a 32-bit value and an 8-bit set of flags.  The format of
+; the cell is determined by the flags from the table below
+;
+; TYPE     DATA                                   FLAGS
+; Cons     [31.....CAR.....16|15.....CDR......0]  x000 x000
+; Symbol   [31............POINTER.............0]  x000 x001
+; Number   [31.............VALUE..............0]  x000 x011
+;                                                 ^---------- GC-bit
+;
+; For a cons cell, the CAR and the CDR are 16-bit indices into the cell array.
+;
 segment .bss
 values		resd	65536	; Storage for cons cells and ivalues
 flags		resb	65536	; Storage for isatom and isnumber bits
 
+
+; ==============================================================================
+; SECD-machine registers stored in memory
+;
 E			resd	1		; (E)nvironment register
 D			resd	1		; (D)ump register
 true		resd	1		; true register
@@ -125,6 +239,10 @@ Sreg		resd	1
 Creg		resd	1
 ffreg		resd	1
 
+
+; ==============================================================================
+; SECD-machine code
+; ==============================================================================
 segment .text
 	global _exec, _flags, _car, _cdr, _ivalue, _issymbol, _isnumber, \
 		_iscons, _cons, _svalue, _init, _number, _symbol
@@ -132,6 +250,13 @@ segment .text
 		_heap_alloc, _heap_mark, _heap_sweep, _heap_forward, \
 		_heap_item_length
 
+; ==============================================================================
+; Exported functions
+;
+
+; ------------------------------------------------------------------------------
+; Prints the current state of the machine for diagnostic purposes
+;
 _dumpstate:
 	sys.write stdout, maj_sep, maj_sep_len
 	push	dword S
@@ -262,9 +387,15 @@ _exec:
 	cons	S, 0
 	mov		eax, dword free
 	mov		[eax], dword 0
+	;
+	; ---> to top of instruction cycle ...
 	
+
+; ==============================================================================
+; Top of SECD Instruction Cycle
+;
 _cycle:
-	mov		eax, dword free
+	mov		eax, dword free				; call GC if we have < 10 free cells
 	cmp		[eax], dword 10
 	jg		.nogc
 	cmp		[eax], dword 0
@@ -273,13 +404,13 @@ _cycle:
 	call	_gc
 	pop		eax
 .nogc:
-	carcdr	eax, C
-	ivalue	eax	
-	cmp		eax, 1
+	carcdr	eax, C						; Pop next instruction from code list
+	ivalue	eax							; Get its numeric value
+	cmp		eax, 1						; Check that it is a valid opcode
 	jl		_illegal
 	cmp		eax, dword numinstr
-	jge		_illegal	
-	jmp		[dword _instr + eax * 4]
+	jge		_illegal
+	jmp		[dword _instr + eax * 4]	; Jump to opcode handler
 
 _illegal:
 	sys.write stderr, err_ii, err_ii_len
@@ -293,6 +424,62 @@ _memerror:
 .stop:
 	jmp		.stop
 
+
+; ==============================================================================
+; SECD Instruction Set
+;
+; The first 21 instructions (LD - STOP) come directly from Henderson's book.
+; The remainder are extensions.
+;
+; Summary (from Sec. 6.2 of Henderson (1980)):
+;   LD   - Load (from environment)
+;   LDC  - Load constant
+;   LDF  - Load function
+;   AP   - Apply function
+;   RTN  - Return
+;   DUM  - Create dummy environment
+;   RAP  - Recursive apply
+;   SEL  - Select subcontrol
+;   JOIN - Rejoin main control
+;   CAR  - Take car of item on top of stack
+;   CDR  - Take cdr of item on top of stack
+;   ATOM - Apply atom predicate to top stack item
+;   CONS - Form cons of top two stack items
+;   EQ   - Apply eq predicate to top two stack items
+;   ADD  - \
+;   SUB  - |
+;   MUL  - \_ Apply arithmetic operation to top two stack items
+;   DIV  - /
+;   REM  - |
+;   LEQ  - /
+;   STOP - Stop
+;
+; Extensions:
+;   SYM  - Apply issymbol predicate to top stack item
+;   NUM  - Apply isnumber predicate to top stack item
+;   GET  - Push ASCII value of a character from stdin onto stack
+;   PUT  - Pop ASCII value from stack and write it to stdout
+;   APR  - Apply and return (for tail-call optimization)
+;   TSEL - Tail-select (for IF statement in tail position)
+;   MULX - Extended multiply (returns a pair representing 64-bit result)
+;   PEXP - Print expression on top of stack to stdout
+;
+; The following are not yet fully implemented:
+;   CVEC - Create vector
+;   VSET - Set element of vector
+;   VREF - Get element of vector
+;   VLEN - Get length of vector
+;   VCPY - Bulk copy between vectors
+;   CBIN - Create binary blob
+;   BSET - Set byte in binary blob
+;   BREF - Get byte in binary blob
+;   BLEN - Get size of binary blob
+;   BCPY - Bulk copy between binary blobs
+;   BS16 - Set 16-bit value in binary blob
+;   BR16 - Get 16-bit value in binary blob
+;   BS32 - Set 32-bit value in binary blob
+;   BR32 - Get 32-bit value in binary blob
+;
 _instr \
 	dd	0, \
 		_instr_LD  , _instr_LDC , _instr_LDF , _instr_AP  , _instr_RTN , \
@@ -307,6 +494,17 @@ _instr \
 
 numinstr	equ		($ - _instr) >> 2
 	
+
+; ==============================================================================
+; SECD Instruction Implementations
+;
+
+; ------------------------------------------------------------------------------
+; LD - Load (from environment)
+;
+; TRANSITION:  s e (LD i.c) d  -->  (x.s) e c d
+;              where x = locate(i,e)
+; ------------------------------------------------------------------------------
 _instr_LD:
 	mov		eax, [E]	; W <-- E
 	carcdr	edx, C		; EDX <-- car(cdr(C)), C' <-- cdr(cdr(C))
@@ -333,12 +531,22 @@ _instr_LD:
 	mov		S, eax		; S <-- cons(W, S)
 	jmp		_cycle
 	
+; ------------------------------------------------------------------------------
+; LDC - Load constant
+;
+; TRANSITION:  s e (LDC x.c) d  --> (x.s) e c d
+; ------------------------------------------------------------------------------
 _instr_LDC:
 	carcdr	eax, C
 	xchg	S, eax
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; LDF - Load function
+;
+; TRANSITION:  s e (LDF c'.c) d  --> ((c'.e).s) e c d 
+; ------------------------------------------------------------------------------
 _instr_LDF:
 	carcdr	eax, C
 	cons	eax, [E]
@@ -346,6 +554,11 @@ _instr_LDF:
 	mov		S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; AP - Apply function
+;
+; TRANSITION:  ((c'.e') v.s) e (AP.c) d  -->  NIL (v.e') c' (s e c.d)
+; ------------------------------------------------------------------------------
 _instr_AP:
 	cons	C, [D]
 	mov		eax, [E]
@@ -360,6 +573,11 @@ _instr_AP:
 	mov		S, 0		; S' <-- nil
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; RTN - Return
+;
+; TRANSITION:  (x) e' (RTN) (s e c.d)  -->  (x.s) e c d
+; ------------------------------------------------------------------------------
 _instr_RTN:
 	mov		edx, [D]
 	carcdr	eax, edx	; EAX <-- car(D), EDX <-- cdr(D)
@@ -371,12 +589,22 @@ _instr_RTN:
 	mov		[D], edx	; D' <-- cdr(cdr(cdr(D)))
 	jmp		_cycle
 	
+; ------------------------------------------------------------------------------
+; DUM - Create dummy environment
+;
+; TRANSITION:  s e (DUM.c) d  -->  s (Ω.e) c d
+; ------------------------------------------------------------------------------
 _instr_DUM:
 	mov		eax, 0
 	cons	eax, [E]
 	mov		[E], eax	; E' <-- cons(nil, E)
 	jmp		_cycle
 	
+; ------------------------------------------------------------------------------
+; RAP - Recursive apply
+;
+; TRANSITION:  ((c'.e') v.s) (Ω.e) (RAP.c) d  -->  NIL rplaca(e',v) c' (s e c.d)
+; ------------------------------------------------------------------------------
 _instr_RAP:
 	cons	C, [D]		; C' <-- cons(cdr(C), D)
 	mov		edx, [E]
@@ -402,6 +630,12 @@ _instr_RAP:
 	
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; SEL - Select subcontrol
+;
+; TRANSITION:  (x.s) e (SEL ct cf.c) d  -->  s e c' (c.d)
+;              where c' = ct if x = T, and c' = cf if x = F
+; ------------------------------------------------------------------------------
 _instr_SEL:
 	mov		eax, C
 	carcdr	edx, eax	; EDX <-- car(cdr(C))
@@ -419,12 +653,22 @@ _instr_SEL:
 	pop		S
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; JOIN - Rejoin main control
+;
+; TRANSITION:  s e (JOIN) (c.d)  -->  s e c d
+; ------------------------------------------------------------------------------
 _instr_JOIN:
 	mov		eax, [D]
 	carcdr	C, eax
 	mov		[D], eax 
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; CAR - Take car of item on top of stack
+;
+; TRANSITION:  ((a.b) s) e (CAR.c) d  -->  (a.s) e c d
+; ------------------------------------------------------------------------------
 _instr_CAR:
 	cdrcar	eax, S
 	mov		edx, [flags + S]
@@ -439,6 +683,11 @@ _instr_CAR:
 	cons	S, eax 
 	jmp		_cycle
 	
+; ------------------------------------------------------------------------------
+; CDR - Take cdr of item on top of stack
+;
+; TRANSITION:  ((a.b) s) e (CAR.c) d  -->  (b.s) e c d
+; ------------------------------------------------------------------------------
 _instr_CDR:
 	cdrcar	eax, S
 	mov		edx, [flags + S]
@@ -453,6 +702,12 @@ _instr_CDR:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; ATOM - Apply atom predicate to top stack item
+;
+; TRANSITION:  (a.s) e (ATOM.c) d  -->  (t.s) e c d
+;              where t = T if a is an atom and t = F if a is not an atom.
+; ------------------------------------------------------------------------------
 _instr_ATOM:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
 	mov		dl, byte [flags + eax]
@@ -464,6 +719,11 @@ _instr_ATOM:
 	mov		S, eax		; S' <-- cons(true/false, cdr(S))
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; CONS - Form cons of top two stack items
+;
+; TRANSITION:  (a b.s) e (CONS.c) d  -->  ((a.b).s) e c d
+; ------------------------------------------------------------------------------
 _instr_CONS:
 	cdrcar	edx, S
 	carcdr	eax, edx	; EAX = car(cdr(S)), EDX = cdr(cdr(S)), S' = car(S)
@@ -471,6 +731,11 @@ _instr_CONS:
 	cons	S, edx
 	jmp		_cycle
 	
+; ------------------------------------------------------------------------------
+; EQ - Apply eq predicate to top two stack items
+;
+; TRANSITION:  (a b.s) e (EQ.c) d  -->  ([a=b].s) e c d
+; ------------------------------------------------------------------------------
 _instr_EQ:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
 	mov		dl, byte [flags + eax]
@@ -494,12 +759,21 @@ _instr_EQ:
 	mov		S, eax		; S' <-- cons(T/F, cdr(cdr(S)))
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; Arithmetic operation on non-numeric operands - push NIL onto stack as the
+; result of this operation and jump to the top of the instruction cycle
+; 
 _arith_nonnum:
 	mov		eax, 0
 	cons	eax, S
 	mov		S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; ADD - Add top two stack items
+;
+; TRANSITION:  (a b.s) e (ADD.c) d  -->  ([a+b].s) e c d
+; ------------------------------------------------------------------------------
 _instr_ADD:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
@@ -512,6 +786,11 @@ _instr_ADD:
 	mov		S, eax
 	jmp		_cycle
 	
+; ------------------------------------------------------------------------------
+; SUB - Subtract top two stack items
+;
+; TRANSITION:  (a b.s) e (SUB.c) d  -->  ([a-b].s) e c d
+; ------------------------------------------------------------------------------
 _instr_SUB:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
@@ -524,6 +803,11 @@ _instr_SUB:
 	mov		S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; MUL - Multiply top two stack items
+;
+; TRANSITION:  (a b.s) e (MUL.c) d  -->  ([a*b].s) e c d
+; ------------------------------------------------------------------------------
 _instr_MUL:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
@@ -536,6 +820,13 @@ _instr_MUL:
 	mov		S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; MUL - Extended multiply top two stack items
+;
+; TRANSITION:  (a b.s) e (MULX.c) d  -->  ((lo.hi).s) e c d
+;              where lo is the least significant 32-bits of a*b and hi is the
+;              most significant 32-bits of a*b
+; ------------------------------------------------------------------------------
 _instr_MULX:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
@@ -550,6 +841,11 @@ _instr_MULX:
 	mov		S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; DIV - Divide top two stack items
+;
+; TRANSITION:  (a b.s) e (DIV.c) d  -->  ([a/b].s) e c d
+; ------------------------------------------------------------------------------
 _instr_DIV:
 	carcdr	ecx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), ECX = car(S), S' = cdr(cdr(S))
@@ -563,6 +859,12 @@ _instr_DIV:
 	mov		S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; REM - Compute the remainder resulting from the division of the top two stack
+;       items
+;
+; TRANSITION:  (a b.s) e (REM.c) d  -->  ([a%b].s) e c d
+; ------------------------------------------------------------------------------
 _instr_REM:
 	carcdr	ecx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), ECX = car(S), S' = cdr(cdr(S))
@@ -577,6 +879,12 @@ _instr_REM:
 	mov		S, edx
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; LEQ - Test whether the top stack item is less than or equal to the second item
+;       on the stack
+;
+; TRANSITION:  (a b.s) e (REM.c) d  -->  ([a≤b].s) e c d
+; ------------------------------------------------------------------------------
 _instr_LEQ:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
@@ -589,6 +897,11 @@ _instr_LEQ:
 	mov		S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; STOP - Halt the machine
+;
+; TRANSITION:  s e (STOP) d  -->  <undefined>
+; ------------------------------------------------------------------------------
 _instr_STOP:
 	car		eax, S
 	pop		edi
@@ -597,6 +910,12 @@ _instr_STOP:
 	leave
 	ret
 
+; ------------------------------------------------------------------------------
+; SYM - Apply issymbol predicate to top stack item
+;
+; TRANSITION:  (x.s) e (SYM.c) d  -->  (t.s) e c d
+;              where t = T if x is a symbol, and t = F if x is not a symbol
+; ------------------------------------------------------------------------------
 _instr_SYM:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
 	mov		dl, byte [flags + eax]
@@ -609,6 +928,12 @@ _instr_SYM:
 	mov		S, eax		; S' <-- cons(true/false, cdr(S))
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; NUM - Apply isnumber predicate to top stack item
+;
+; TRANSITION:  (x.s) e (NUM.c) d  -->  (t.s) e c d
+;              where t = T if x is a number, and t = F if x is not a number
+; ------------------------------------------------------------------------------
 _instr_NUM:
 	carcdr	eax, S		; EAX <-- car(S), S' <-- cdr(S)
 	mov		dl, byte [flags + eax]
@@ -621,6 +946,12 @@ _instr_NUM:
 	mov		S, eax		; S' <-- cons(true/false, cdr(S))
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; GET - Push ASCII value of a character from stdin onto stack
+;
+; TRANSITION:  s e (GET.c) d  -->  (x.s) e c d
+;              where x is the ASCII value of the character read from stdin
+; ------------------------------------------------------------------------------
 _instr_GET:
 	call	_getchar
 	number	eax, eax
@@ -628,6 +959,12 @@ _instr_GET:
 	mov		S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; PUT - Pop ASCII value from stack and write it to stdout
+;
+; TRANSITION:  (x.s) e (PUT.c) d  -->  s e c d
+; SIDE EFFECT:  The character with the ASCII value x is printed to stdout
+; ------------------------------------------------------------------------------
 _instr_PUT:
 	car		eax, S
 	ivalue	eax
@@ -637,6 +974,12 @@ _instr_PUT:
 	add		esp, 4
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; PEXP - Print expression on top of stack to stdout
+;
+; TRANSITION:  (x.s) e (PEXP.c) d  -->  (x.s) e c d
+; SIDE EFFECT:  The expression x is printed to stdout
+; ------------------------------------------------------------------------------
 _instr_PEXP:
     car		eax, S
 	push	eax
@@ -644,6 +987,16 @@ _instr_PEXP:
 	add		esp, 4
 	jmp		_cycle
 		
+; ------------------------------------------------------------------------------
+; APR - Apply and return (for tail-call optimization)
+;
+; Note that the only difference between the transition for APR and the that of
+; AP is that the dump register is left untouched.  Hence, the effect of RTN will
+; be to return control to the current function's caller rather than to this
+; function.
+;
+; TRANSITION:  ((c'.e') v.s) e (APR.c) d  -->  NIL (v.e') c' d
+; ------------------------------------------------------------------------------
 _instr_APR:
 	cons	C, [D]
 	mov		eax, [E]
@@ -656,6 +1009,16 @@ _instr_APR:
 	mov		S, 0		; S' <-- nil
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; TSEL - Tail-select (for IF statement in tail position)
+;
+; Note that the only difference between the transition for TSEL and the that of
+; SEL is that the dump register is left untouched.  Hence, JOIN should not be
+; used at the end of ct or cf, as this would result in undefined behavior.
+; Instead, a RTN instruction should be encountered at the end of ct or cf.
+;
+; TRANSITION:  (x.s) e (TSEL ct cf) d  -->  s e c' d
+; ------------------------------------------------------------------------------
 _instr_TSEL:
 	mov		eax, C
 	carcdr	edx, eax	; EDX <-- car(cdr(C))
@@ -671,6 +1034,12 @@ _instr_TSEL:
 	pop		S
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; CVEC - Create vector
+;
+; TRANSITION:  (n.s) e (CVEC.c) d  -->  (v.s) e c d
+;              where v is a newly allocated vector of length n
+; ------------------------------------------------------------------------------
 _instr_CVEC:
 	carcdr	eax, S		; EAX <-- number of elements in vector
 	ivalue	eax
@@ -681,6 +1050,12 @@ _instr_CVEC:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; VSET - Set element of vector
+;
+; TRANSITION:  (v i x.s) e (VSET.c) d  -->  (v.s) e c d
+; SIDE EFFECT:  v[i] <-- x
+; ------------------------------------------------------------------------------
 _instr_VSET:
 	carcdr	eax, S
 	carcdr	ecx, S
@@ -702,6 +1077,11 @@ _instr_VSET:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; VREF - Get element of vector
+;
+; TRANSITION:  (v i.s) e (VREF.c) d  -->  (v[i].s) e c d
+; ------------------------------------------------------------------------------
 _instr_VREF:
 	carcdr	eax, S
 	carcdr	ecx, S
@@ -720,6 +1100,12 @@ _instr_VREF:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; VLEN - Get length of vector
+;
+; TRANSITION:  (v.s) e (VLEN.c) d  -->  (n.s) e c d
+;              where n is the number of elements in v
+; ------------------------------------------------------------------------------
 _instr_VLEN:
 	carcdr	eax, S
 	ivalue	eax
@@ -730,6 +1116,12 @@ _instr_VLEN:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; VCPY - Bulk copy between vectors
+;
+; TRANSITION:  (v i w j n.s) e (VCPY.c) d  -->  (v.s) e c d
+; SIDE EFFECT:  w[j+k] <-- v[i+k] for all k, 0 ≤ k < n
+; ------------------------------------------------------------------------------
 _instr_VCPY:
 	push	esi
 	push	edi
@@ -776,6 +1168,12 @@ _instr_VCPY:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; CBIN - Create binary blob
+;
+; TRANSITION:  (n.s) e (CBIN.c) d  -->  (b.s) e c d
+;              where b is a newly allocated n-byte binary blob
+; ------------------------------------------------------------------------------
 _instr_CBIN:
 	carcdr	eax, S		; EAX <-- length of binary
 	ivalue	eax
@@ -785,6 +1183,12 @@ _instr_CBIN:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; BSET - Set byte in binary blob
+;
+; TRANSITION:  (b i x.s) e (BSET.c) d  -->  (b.s) e c d
+; SIDE EFFECT:  [b+i] <-- x
+; ------------------------------------------------------------------------------
 _instr_BSET:
 	carcdr	eax, S
 	carcdr	ecx, S
@@ -806,6 +1210,11 @@ _instr_BSET:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; BGET - Get byte in binary blob
+;
+; TRANSITION:  (b i.s) e (BGET.c) d  -->  ([b+i].s) e c d
+; ------------------------------------------------------------------------------
 _instr_BREF:
 	carcdr	eax, S
 	carcdr	ecx, S
@@ -824,6 +1233,12 @@ _instr_BREF:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; BLEN - Get size of binary blob
+;
+; TRANSITION:  (b.s) e (BLEN.c) d  -->  (n.s) e c d
+;              where n is the length of b, in bytes
+; ------------------------------------------------------------------------------
 _instr_BLEN:
 	carcdr	eax, S
 	ivalue	eax
@@ -833,6 +1248,12 @@ _instr_BLEN:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; BCPY - Bulk copy between binary blobs
+;
+; TRANSITION:  (b1 i b2 j n.s) e (BCPY.c) d  -->  (b1.s) e c d
+; SIDE EFFECT:  b2[j+k] <-- b1[i+k] for all k, 0 ≤ k < n
+; ------------------------------------------------------------------------------
 _instr_BCPY:
 	push	esi
 	push	edi
@@ -877,15 +1298,37 @@ _instr_BCPY:
 	cons	S, eax
 	jmp		_cycle
 
+; ------------------------------------------------------------------------------
+; BS16 - Set 16-bit value in binary blob                           UNIMPLEMENTED
+;
+; TRANSITION:  (b i x.s) e (BSET.c) d  -->  (b.s) e c d
+; SIDE EFFECT:  [b+i*2]@2 <-- x
+; ------------------------------------------------------------------------------
 _instr_BS16:
 	jmp		_illegal
 
+; ------------------------------------------------------------------------------
+; BG16 - Get 16-bit value in binary blob                           UNIMPLEMENTED
+;
+; TRANSITION:  (b i.s) e (BGET.c) d  -->  ([b+i*2]@2.s) e c d
+; ------------------------------------------------------------------------------
 _instr_BR16:
 	jmp		_illegal
 
+; ------------------------------------------------------------------------------
+; BS32 - Set 32-bit value in binary blob                           UNIMPLEMENTED
+;
+; TRANSITION:  (b i x.s) e (BSET.c) d  -->  (b.s) e c d
+; SIDE EFFECT:  [b+i*4]@4 <-- x
+; ------------------------------------------------------------------------------
 _instr_BS32:
 	jmp		_illegal
 
+; ------------------------------------------------------------------------------
+; BG32 - Get 32-bit value in binary blob                           UNIMPLEMENTED
+;
+; TRANSITION:  (b i.s) e (BGET.c) d  -->  ([b+i*4]@4.s) e c d
+; ------------------------------------------------------------------------------
 _instr_BR32:
 	jmp		_illegal
 
@@ -895,8 +1338,23 @@ _index_out_of_bounds:
 .halt:
 	jmp		.halt
 	
+
+; ==============================================================================
+; Garbage Collection
+;
+; We use a mark-and-sweep garbage collector to find unreferenced cells.  We
+; begin by marking the cells referenced by the registers of the machine: S, E,
+; C, D, true, and false.  Whenever we mark a cons cell, we recursively mark that
+; cell's car and cdr (if they are not already marked).  After this phase is
+; complete, we iterate over all cells and push the unmarked cells onto the free
+; list.
+; 
+
+; ------------------------------------------------------------------------------
+; Traces referenced cells starting with the registers of the SECD machine
+;
 _trace:
-	push	eax
+	push	eax			; Save current SECD-machine state
 	push	ecx
 	push	edx
 	push	S
@@ -911,6 +1369,7 @@ _trace:
 		dec		ecx
 		jnz		.loop_clearmarks
 
+    ; Trace from root references (SECD-machine registers)
 	mov		eax, S
 	call	_mark
 	mov		eax, C
@@ -924,13 +1383,70 @@ _trace:
 	mov		eax, [false]
 	call	_mark
 
-	pop		C
+	pop		C			; Restore SECD-machine state
 	pop		S
 	pop		edx
 	pop		ecx
 	pop		eax
 	ret
 
+; ------------------------------------------------------------------------------
+; Find and mark referenced cells recursively
+; EXPECTS eax = the index of the cell from which to start tracing
+;
+_mark:
+	mov		dl, byte [flags + eax]			; DL <-- flags for current cell
+	test	dl, SECD_MARKED
+	jz		.if
+	ret										; quit if cell already marked
+	.if:
+		or		dl, SECD_MARKED
+		mov		byte [flags + eax], dl		; mark this cell
+		test	dl, SECD_ATOM
+		jnz		.else						; if this is a cons cell then...
+			cdrcar	edx, eax				; recurse on car and cdr
+			push	edx
+			call	_mark
+			pop		eax
+			call	_mark
+	.else:
+		test	dl, SECD_HEAP				; if cell is a heap reference...
+		jz		.endif
+		push	ebx
+		mov		ebx, eax
+		ivalue	eax
+		test	byte [gcheap], HEAP_FORWARD
+		jz		.endif_heap_forward
+			call	_heap_forward			; update reference if forwarded
+			mov		[values + ebx * 4], eax			
+	.endif_heap_forward:	
+		test	byte [gcheap], HEAP_MARK
+		jz		.endif_heap_mark			; if heap item not marked then...
+			call	_heap_mark				; mark the heap item
+	.endif_heap_mark:
+		and		dl, SECD_TYPEMASK
+		cmp		dl, SECD_VECTOR
+		jne		.endif_vector				; if cell is a vector reference...
+			mov		eax, ebx
+			call	_heap_item_length
+			mov		ecx, eax
+			shr		ecx, 1
+		.loop:								; recurse on all entries in vector
+				mov		eax, 0
+				mov		ax, word [ebx]
+				add		ebx, 2
+				push	ecx
+				call	_mark
+				pop		ecx
+				loop	.loop
+	.endif_vector:
+		pop		ebx	
+.endif:
+	ret
+
+; ------------------------------------------------------------------------------
+; Finds unused cells and adds them to the free list.
+;
 _gc:
 	call	_trace
 
@@ -959,6 +1475,9 @@ _gc:
 .halt:
 	jmp		.halt	
 
+; ------------------------------------------------------------------------------
+; Garbage collection for heap (vectors and binary blobs)              UNFINISHED
+;
 _heap_gc:
 	mov		byte [gcheap], HEAP_MARK
 	call	_trace
@@ -968,7 +1487,9 @@ _heap_gc:
 	mov		byte [gcheap], 0
 	ret
 
-
+; ------------------------------------------------------------------------------
+; Allocate a block of memory on the heap                              UNFINISHED
+;
 _malloc:
 	push	eax
 	call	_heap_alloc
@@ -985,58 +1506,5 @@ _malloc:
 	jmp		.halt	
 .done:
 	add		esp, 4
-	ret
-
-	
-
-
-_mark:
-	mov		dl, byte [flags + eax]
-	test	dl, SECD_MARKED
-	jz		.if
-	ret
-	.if:
-		or		dl, SECD_MARKED
-		mov		byte [flags + eax], dl
-		test	dl, SECD_ATOM
-		jnz		.else
-			cdrcar	edx, eax
-			push	edx
-			call	_mark
-			pop		eax
-			call	_mark
-	.else:
-		test	dl, SECD_HEAP
-		jz		.endif
-		push	ebx
-		mov		ebx, eax
-		ivalue	eax
-		test	byte [gcheap], HEAP_FORWARD
-		jz		.endif_heap_forward
-			call	_heap_forward
-			mov		[values + ebx * 4], eax			
-	.endif_heap_forward:	
-		test	byte [gcheap], HEAP_MARK
-		jz		.endif_heap_mark
-			call	_heap_mark
-	.endif_heap_mark:
-		and		dl, SECD_TYPEMASK
-		cmp		dl, SECD_VECTOR
-		jne		.endif_vector
-			mov		eax, ebx
-			call	_heap_item_length
-			mov		ecx, eax
-			shr		ecx, 1
-		.loop:
-				mov		eax, 0
-				mov		ax, word [ebx]
-				add		ebx, 2
-				push	ecx
-				call	_mark
-				pop		ecx
-				loop	.loop
-	.endif_vector:
-		pop		ebx	
-.endif:
 	ret
 
