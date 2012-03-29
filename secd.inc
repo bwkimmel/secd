@@ -1,4 +1,10 @@
 ; vim: filetype=nasm
+; ==============================================================================
+; Data cell type flags
+;
+; See secd.asm for details on data cell format and flags.
+; ==============================================================================
+;
 %define SECD_TYPEMASK	0x77
 %define SECD_CONS		0x00
 %define SECD_ATOM		0x01
