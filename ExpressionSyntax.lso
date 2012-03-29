@@ -1,0 +1,66 @@
+dnl ---------------------------------------------------------------------------
+dnl Grammar for Scheme (R5RS) syntax
+dnl ---------------------------------------------------------------------------
+dnl NOTE:  This file must be processed by m4 before being fed to the secd
+dnl        machine.
+dnl ---------------------------------------------------------------------------
+ifdef(`expression_syntax_lso_m4',,`define(`expression_syntax_lso_m4',1)dnl
+
+(SchemeGrammar QUOTE (
+
+  (START (S))
+
+dnl   (Expression
+dnl     (Expression PLUS Expression)
+dnl 	(Expression TIMES Expression)
+dnl 	(OPENP Expression CLOSEP)
+dnl 	(IDENT))
+
+  (S
+    (B)
+	(E))
+
+  (B
+    (E < E)
+	(E > E)
+	(E <= E)
+	(E >= E)
+	(E == E)
+	(E != E))
+
+  (E
+    (E + T)
+	(E - T)
+	(T))
+  (T
+    (T * F)
+	(T / F)
+	(F))
+  (F
+    ([ E ])
+    ({ E })
+	(OPENP E CLOSEP)
+	(ID))
+
+  (ID)
+  (-)
+  (+)
+  (*)
+  (/)
+  ([)
+  (])
+  ({)
+  (})
+  (OPENP)
+  (CLOSEP)
+  (<)
+  (>)
+  (<=)
+  (>=)
+  (==)
+  (!=)
+
+dnl ---------------------------------------------------------------------------
+  ))
+
+')dnl
