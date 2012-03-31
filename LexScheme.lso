@@ -1,9 +1,29 @@
-dnl --- Scheme lexer ---
+dnl  ===========================================================================
+dnl | Lexical analyser for Scheme (R5RS)
+dnl |
+dnl | 
+dnl  ===========================================================================
 ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Entry point for lexical analyser
+  dnl | CC = continuation function.  This function should take two parameters:
+  dnl |       - A token parsed from the input
+  dnl |       - A re-entry function, this function should take one parameter,
+  dnl |         which is to be a continuation function
+  dnl |      This allows control to be passed back and forth between the lexical
+  dnl |      analyser and whatever code requires tokens to be parsed from the
+  dnl |      input, rather than having the lexical analyser return a list of all
+  dnl |      the tokens in the input.
+  dnl  -------------------------------------------------------------------------
   (LEX LAMBDA (CC)
     (LEXINITIAL (SCAN) CC))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses the next character the input and branches accordingly.
+  dnl | C = the next character
+  dnl | CC = a continuation function as described in the LEX function
+  dnl  -------------------------------------------------------------------------
   (LEXINITIAL LAMBDA (C CC)
     (IF (LEQ C 0)
         (YIELDEOF CC)
@@ -37,26 +57,65 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
         (LEXSTARTSWITHSIGN (GET) (QUOTE (MINUS)) CC)
         (YIELDERROR CC)))))))))))))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Passes a token to the provided continuation function
+  dnl | TOKEN = the token to pass
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (YIELD LAMBDA (TOKEN CC)
     (CC TOKEN (LAMBDA (CC) (LEXINITIAL (SCAN) CC))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Passes a token to the provided continuation function, ensuring that an
+  dnl | already-read character will be processed upon re-entry.
+  dnl | TOKEN = the token to pass
+  dnl | C = the character to be processed upon re-entry to the lexer
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (YIELDC LAMBDA (TOKEN C CC)
     (CC TOKEN (LAMBDA (CC) (LEXENDTOKEN C CC))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Signals to the continuation function that the end of the input has been
+  dnl | reached.
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (YIELDEOF LAMBDA (CC)
     (CC (QUOTE NIL) (LAMBDA (CC) (YIELDEOF CC))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Passes an ERROR token to the continuation function, indicating that a
+  dnl | token could not be parsed.
+  dnl  -------------------------------------------------------------------------
   (YIELDERROR LAMBDA (CC)
     (CC (QUOTE (ERROR)) (LAMBDA (CC) (YIELDEOF CC))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a symbol that starts with a "+" or a "-"
+  dnl | C = the next character (after the sign)
+  dnl | TOKEN = the token to yield assuming the sign is not part of a longer
+  dnl |         token (such as a number).
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXSTARTSWITHSIGN LAMBDA (C TOKEN CC)
     (IF (OR (ISDELIM C) (ISWHITESPACE C))
         (YIELDC TOKEN C CC)
         (LEXCOMPLEX4 C 10 (QUOTE NIL) DIGITVALUEDEC CC)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses an identifier
+  dnl | C = the first character
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXIDENT LAMBDA (C CC)
     (CONTINUELEXIDENT (GET) (CONS C (QUOTE NIL)) CC))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses the remainder of an identifier (after the first character)
+  dnl | C = the next character
+  dnl | I = a list of the characters in the identifier so far, in reverse
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (CONTINUELEXIDENT LAMBDA (C I CC)
     (IF (ISSUBSEQUENT C)
         (CONTINUELEXIDENT (GET) (CONS C I) CC)
@@ -68,6 +127,12 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
             (KEYWORD GETKEYWORD NAME))
           (NAME REVERSE I))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a token that starts with a dot.  It could be an ellipsis, a
+  dnl | number, or just a dot).
+  dnl | C = the next (second) character
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXSTARTSWITHDOT LAMBDA (C CC)
     (IF (ISDOT C)
         (LEXELLIPSIS (GET) CC)
@@ -75,16 +140,34 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
         (LEXREAL7 C 10 (QUOTE NIL) DIGITVALUEDEC LEXCOMPLEX1 CC)
         (YIELDC (QUOTE (DOT)) C CC))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a token that starts with a comma.  It could be ",@" or just a
+  dnl | comma.
+  dnl | C = the next (second) character
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXSTARTSWITHCOMMA LAMBDA (C CC)
     (IF (ISATSIGN C)
         (YIELD (QUOTE (COMMAAT)) CC)
         (CC (QUOTE (COMMA)) (LAMBDA (CC) (LEXINITIAL C CC)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses an ellipsis token.
+  dnl | C = the next (third) character.  If it is a dot, then we have parsed an
+  dnl |     ellipsis.  If not, then yield an error.
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXELLIPSIS LAMBDA (C CC)
     (IF (ISDOT C)
         (CC (QUOTE (IDENT ELLIPSIS)) (LAMBDA (CC) (LEXENDTOKEN (GET) CC)))
         (YIELDERROR CC)))
   
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses the end of a token -- either skipping whitespace or passing
+  dnl | control along to the next analysis function.
+  dnl | C = the next character
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXENDTOKEN LAMBDA (C CC)
     (IF (LEQ C 0)
         (YIELDEOF CC)
@@ -94,6 +177,13 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
         (LEXINITIAL C CC)
         (YIELDERROR CC)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a token that starts with a pound sign (#).  It could be a
+  dnl | boolean literal ("#t" or "#f"), the beginning of a vector ("#("), a
+  dnl | character token (e.g., "#\x"), or a number prefix (i.e., #e or #i).
+  dnl | C = the next character
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXSTARTSWITHPOUND LAMBDA (C CC)
     (IF (IST C)
         (CC (QUOTE (BOOL T)) (LAMBDA (CC) (LEXENDTOKEN (GET) CC)))
@@ -107,11 +197,25 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
         (LEXNUMBERPREFIXITEM C (QUOTE NIL) (QUOTE NIL) CC)
         (YIELDERROR CC)))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses subsequent number prefix items (after the first one).
+  dnl | C = the next character
+  dnl | BASE = the base of the number being parsed
+  dnl | EXACT = a value indicating if the number being parsed is exact
+  dnl | CC = the coninuation function
+  dnl  -------------------------------------------------------------------------
   (LEXNUMBERPREFIX LAMBDA (C BASE EXACT CC)
     (IF (ISPOUND C)
         (LEXNUMBERPREFIX (GET) BASE EXACT CC)
         (LEXNUMBER C BASE EXACT CC)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a number
+  dnl | C = the next character
+  dnl | BASE = the base in which the number is expressed
+  dnl | EXACT = a value that indicates whether the value is exact or inexact
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXNUMBER LAMBDA (C BASE EXACT CC)
     (LET
       (LET
@@ -123,6 +227,59 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
                           (LAMBDA (C) (QUOTE -1))))))))
       (EXACT IF (ISNIL EXACT) (QUOTE T) EXACT)
       (BASE IF (ISNIL BASE) 10 BASE)))
+
+  dnl  =========================================================================
+  dnl | The following functions analyse a number token from the input, which has
+  dnl | the grammar below (reproduced from R5RS).  To build these functions, the
+  dnl | grammar was rewritten as an LL(1) grammar and the corresponding DFA was
+  dnl | designed by hand based on that grammar.  The numeric suffixes on the
+  dnl | function names correspond to a node in the DFA.
+  dnl  -------------------------------------------------------------------------
+  dnl |
+  dnl | Grammar for a number in Scheme (reproduced from R5RS):
+  dnl |
+  dnl |   <number> --> <num 2>| <num 8>
+  dnl |        | <num 10>| <num 16>
+  dnl |   
+  dnl |   The following rules for <num R>, <complex R>, <real R>, <ureal R>,
+  dnl |   <uinteger R>, and <prefix R> should be replicated for R = 2, 8, 10,
+  dnl |   and 16. There are no rules for <decimal 2>, <decimal 8>, and
+  dnl |   <decimal 16>, which means that numbers containing decimal points or
+  dnl |   exponents must be in decimal radix.
+  dnl |   
+  dnl |   <num R> --> <prefix R> <complex R>
+  dnl |   <complex R> --> <real R> | <real R> @ <real R>
+  dnl |       | <real R> + <ureal R> i | <real R> - <ureal R> i
+  dnl |       | <real R> + i | <real R> - i
+  dnl |       | + <ureal R> i | - <ureal R> i | + i | - i
+  dnl |   <real R> --> <sign> <ureal R>
+  dnl |   <ureal R> --> <uinteger R>
+  dnl |       | <uinteger R> / <uinteger R>
+  dnl |       | <decimal R>
+  dnl |   <decimal 10> --> <uinteger 10> <suffix>
+  dnl |       | . <digit 10>+ #* <suffix>
+  dnl |       | <digit 10>+ . <digit 10>* #* <suffix>
+  dnl |       | <digit 10>+ #+ . #* <suffix>
+  dnl |   <uinteger R> --> <digit R>+ #*
+  dnl |   <prefix R> --> <radix R> <exactness>
+  dnl |       | <exactness> <radix R>
+  dnl |   
+  dnl |   
+  dnl |   <suffix> --> <empty> 
+  dnl |       | <exponent marker> <sign> <digit 10>+
+  dnl |   <exponent marker> --> e | s | f | d | l
+  dnl |   <sign> --> <empty>  | + |  -
+  dnl |   <exactness> --> <empty> | #i | #e
+  dnl |   <radix 2> --> #b
+  dnl |   <radix 8> --> #o
+  dnl |   <radix 10> --> <empty> | #d
+  dnl |   <radix 16> --> #x
+  dnl |   <digit 2> --> 0 | 1
+  dnl |   <digit 8> --> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+  dnl |   <digit 10> --> <digit>
+  dnl |   <digit 16> --> <digit 10> | a | b | c | d | e | f 
+  dnl |   
+  dnl  =========================================================================
 
   (LEXCOMPLEX LAMBDA (C BASE EXACT DIGITVALUE CC)
     (IF (ISSIGN C)
@@ -291,42 +448,61 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
           (TERMINAL C BASE EXACT DIGITVALUE CC))
       (DIGIT DIGITVALUE C)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a number prefix item (either an exactness prefix item or a base
+  dnl | prefix item).
+  dnl | C = the next character (after the "#")
+  dnl | BASE = the base of the number being analysed
+  dnl | EXACT = a value indicating if the number being analysed is exact
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXNUMBERPREFIXITEM LAMBDA (C BASE EXACT CC)
-    (IF (ISB C)
+    (IF (ISB C)				dnl --- #b = binary
         (IF (ISNIL BASE)
             (LEXNUMBERPREFIX (GET) 2 EXACT CC)
             (YIELDERROR CC))
-    (IF (ISO C)
+    (IF (ISO C)				dnl --- #o = octal
         (IF (ISNIL BASE)
             (LEXNUMBERPREFIX (GET) 8 EXACT CC)
             (YIELDERROR CC))
-    (IF (ISD C)
+    (IF (ISD C)				dnl --- #d = decimal
         (IF (ISNIL BASE)
             (LEXNUMBERPREFIX (GET) 10 EXACT CC)
             (YIELDERROR CC))
-    (IF (ISX C)
+    (IF (ISX C)				dnl --- #x = hexadecimal
         (IF (ISNIL BASE)
             (LEXNUMBERPREFIX (GET) 16 EXACT CC)
             (YIELDERROR CC))
-    (IF (ISI C)
+    (IF (ISI C)				dnl --- #i = inexact
         (IF (ISNIL EXACT)
             (LEXNUMBERPREFIX (GET) BASE (QUOTE F) CC)
             (YIELDERROR CC))
-    (IF (ISE C)
+    (IF (ISE C)				dnl --- #e = exact
         (IF (ISNIL EXACT)
             (LEXNUMBERPREFIX (GET) BASE (QUOTE T) CC)
             (YIELDERROR CC))
         (YIELDERROR CC))))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a character literal.  This assumes that "#\" has been read.
+  dnl | C = the next character in the token (after "#\")
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXCHARACTER LAMBDA (C CC)
     (IF (LEQ C 0)
         (YIELDERROR CC)
-    (IF (ISN C)
+    (IF (ISN C)			dnl --- could be #\newline
         (LEXCHARACTERSTARTSWITHN (GET) CC)
-    (IF (ISS C)
+    (IF (ISS C)			dnl --- could be #\space
         (LEXCHARACTERSTARTSWITHS (GET) CC)
         (YIELDC (CONS (QUOTE CHAR) (CONS C (QUOTE NIL))) (GET) CC)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a character literal that starts with "#\n".  It could be
+  dnl | "#\newline" or just "#\n".
+  dnl | C = the next character in the token (after "#\n")
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXCHARACTERSTARTSWITHN LAMBDA (C CC)
     (IF (ISE C)
         (IF (EXPECT (QUOTE (119 108 105 110 101)))
@@ -334,6 +510,12 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
             (YIELDERROR CC))
         (YIELDC (QUOTE (CHAR 110)) C CC)))
  
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a character literal that starts with "#\s".  It could be
+  dnl | "#\space" or just "#\s".
+  dnl | C = the next character in the token (after "#\s")
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXCHARACTERSTARTSWITHS LAMBDA (C CC)
     (IF (ISP C)
         (IF (EXPECT (QUOTE (97 99 101)))
@@ -341,6 +523,13 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
             (YIELDERROR CC))
         (YIELDC (QUOTE (CHAR 115)) C CC)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Checks that the next characters in the input match those in the provided
+  dnl | list.
+  dnl | S = the list of characters to expect
+  dnl | RETURNS a value indicating whether the following characters in the input
+  dnl |         match those in S
+  dnl  -------------------------------------------------------------------------
   (EXPECT LAMBDA (S)
     (IF (ISNIL S)
         (QUOTE T)
@@ -348,18 +537,37 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
             (EXPECT (CDR S))
             (QUOTE F))))
         
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a string literal
+  dnl | C = the next character
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXSTRING LAMBDA (C CC)
     (LEXSTRINGELEM C (QUOTE NIL) CC))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses a string literal
+  dnl | C = the next character
+  dnl | S = a list of the characters already read from the string literal (in
+  dnl |     reverse)
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXSTRINGELEM LAMBDA (C S CC)
-    (IF (LEQ C 0)
+    (IF (LEQ C 0)			dnl --- EOF in middle of string literal
         (YIELDERROR CC)
-    (IF (ISDQUOTE C)
+    (IF (ISDQUOTE C)		dnl --- end of string literal
         (YIELD (CONS (QUOTE STRING) (REVERSE S)) CC)
-    (IF (ISBACKSLASH C)
+    (IF (ISBACKSLASH C)		dnl --- escape character
         (LEXSTRINGESC (GET) S CC)
         (LEXSTRINGELEM (GET) (CONS C S) CC)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Analyses an escape sequence in a string literal
+  dnl | C = the character after the escape character
+  dnl | S = a list of the characters already read from the string literal (in
+  dnl |     reverse)
+  dnl | CC = the continuation function
+  dnl  -------------------------------------------------------------------------
   (LEXSTRINGESC LAMBDA (C S CC)
     (IF (LEQ C 0)
         (YIELDERROR CC)
@@ -369,6 +577,13 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
         (LEXSTRINGELEM (GET) (CONS C S) CC)
         (YIELDERROR CC)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the token denoting the keyword corresponding to the provided list
+  dnl | of characters.
+  dnl | S = the list of characters
+  dnl | RETURNS the token for the corresponding keyword, or NIL if no keyword
+  dnl |         corresponds to the list of characters in S
+  dnl  -------------------------------------------------------------------------
   (GETKEYWORD LAMBDA (S)
     (CONTINUEGETKEYWORD S KEYWORDS))
 
@@ -380,7 +595,13 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
                 (CAR K)
                 (QUOTE NIL))
             (CONTINUEGETKEYWORD (CDR S) (TRIECHILD (CAR S) K)))))
-
+  
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the child of a trie node
+  dnl | C = the character indicating the child to get
+  dnl | K = the parent trie node
+  dnl | RETURNS the child node, or NIL if no such child exists
+  dnl  -------------------------------------------------------------------------
   (TRIECHILD LAMBDA (C K)
     (IF (ISNIL K)
         K
@@ -390,6 +611,9 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
                 (TRIECHILD C (CDR K)))
             (TRIECHILD C (CDR K)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | A trie containing the Scheme keywords.
+  dnl  -------------------------------------------------------------------------
   (KEYWORDS QUOTE (
     (61  (62  ARROW))
     (97  (110 (100 AND)))
@@ -412,6 +636,10 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
     (117 (110 (113 (117 (111 (116 (101 UNQUOTE
                                        (45  (115 (112 (108 (105 (99  (105 (110 (103 UNQUOTESPLICING))))))))))))))))
       ))
+
+  dnl  =========================================================================
+  dnl | Helper functions
+  dnl  =========================================================================
 
   (ISCONS LAMBDA (E) (IF (ATOM E) (QUOTE F) (QUOTE T)))
   (GEQ LAMBDA (A B) (LEQ B A))
