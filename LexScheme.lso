@@ -206,7 +206,7 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
   dnl  -------------------------------------------------------------------------
   (LEXNUMBERPREFIX LAMBDA (C BASE EXACT CC)
     (IF (ISPOUND C)
-        (LEXNUMBERPREFIX (GET) BASE EXACT CC)
+        (LEXNUMBERPREFIXITEM (GET) BASE EXACT CC)
         (LEXNUMBER C BASE EXACT CC)))
 
   dnl  -------------------------------------------------------------------------
