@@ -196,7 +196,7 @@ include(Util.lso)
         (IF (CFGISTERMINAL CFG (CAR RHS))
             (CFGFOLLOWRULE LHS (CDR RHS) REST CC)
         (IF (ISNIL (CDR RHS))
-            dnl --- Add Constraint FOLLOW(LHS) <= FOLLOW(CAR RHS)
+            dnl --- Add Constraint FOLLOW(LHS) ⊆ FOLLOW(CAR RHS)
             (CFGFOLLOWRULES REST (ADDFOLLOWCONSTRAINT (CAR RHS) LHS CC))
             (CFGFOLLOWRULE LHS (CDR RHS) REST
               (LET
