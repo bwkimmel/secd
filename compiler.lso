@@ -1,8 +1,26 @@
+dnl  ===========================================================================
+dnl | Extended LispKit Lisp Compiler
+dnl |
+dnl | This compiler is substantially the same as the one in Henderson's [1]
+dnl | book, except that additional commands have been added to make use of the
+dnl | additional opcodes that have been added to the SECD machine (see
+dnl | secd.asm).  The generated code has also been modified to implement proper
+dnl | handling of tail recursion (Exercise 6.6 in Henderson's book).
+dnl |
+dnl | Chapter 6 of Henderson's book describes the construction of this compiler
+dnl | in detail.  The original compiler and object file, transcribed from
+dnl | Appendix 2 of the book, may be found in APENDIX2.LSO and APENDIX2.LOB,
+dnl | respectively.
+dnl |
+dnl | [1] P. Henderson, "Functional Programming: Application and Implementation",
+dnl |     Prentice Hall, 1980.
+dnl  ===========================================================================
+dnl
         (LETREC COMPILE
             (COMPILE LAMBDA (E)
                  (COMP E (QUOTE NIL) (QUOTE (4 21))))
         (COMP LAMBDA (E N C)
-           (IF (EQ (SUB E E) (QUOTE 0))
+           (IF (EQ (SUB E E) (QUOTE 0))			dnl --- is the token a number?
                 (CONS (QUOTE 2) (CONS E C))
            (IF (ATOM E)
                 (CONS (QUOTE 1) (CONS (LOCATION E N) C))
