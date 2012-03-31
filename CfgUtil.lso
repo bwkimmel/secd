@@ -1,10 +1,48 @@
-dnl ---
+dnl  ===========================================================================
+dnl | Context Free Grammar Functions
+dnl |
+dnl | These functions provide methods for handling Context Free Grammars (CFGs)
+dnl | and building an LR parser based on a CFG.  Details on this process can be
+dnl | found at http://en.wikipedia.org/wiki/LR_parser.
+dnl |
+dnl | Representation of various constructions
+dnl |
+dnl |  - A RULE is represented as a pair ( <symbol> . <n> ), which denotes the
+dnl |    nth production rule for the non-terminal symbol <symbol>.
+dnl |  - An ITEM is represented as a list ( <symbol> <n> <k> ), which dnotes the
+dnl |    item for the rule ( <symbol> . <n> ) with the dot in the kth position.
+dnl  ===========================================================================
 ifdef(`cfg_util_lso_m4',,`define(`cfg_util_lso_m4', 1)dnl
 
 include(Set.lso)
 include(Map.lso)
 include(Util.lso)
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Builds a parse tree for a list of tokens using a context free grammar.
+  dnl | An internal node in the parse tree consists of a list of the form:
+  dnl |
+  dnl |   ( <rule> <RHS1> <RHS2> ... <RHSn> )
+  dnl |
+  dnl | where <rule> denotes the production rule that was applied, and the
+  dnl | remaining entries, <RHSj>, are the child nodes for each symbol on the
+  dnl | right hand side of the production rule indicate by <rule>.  A leaf node
+  dnl | in the parse tree is represented as the token itself (i.e., an element
+  dnl | from the list TOKENS).
+  dnl |
+  dnl | CFG = the context free grammar
+  dnl | DFA = the deterministic finite automaton for the CFG (must have been
+  dnl |       generated using CFGDFA)
+  dnl | TYPE = a function that takes a token as an argument (i.e., an element of
+  dnl |        the TOKENS list) and returns a symbol denoting the type of that
+  dnl |        token, which must be a terminal symbol in the CFG
+  dnl | ERROR = a function to call if a parsing error occurs.  The function
+  dnl |         should take a single argument, which is the token at which the
+  dnl |         error occurred on
+  dnl | TOKENS = a list of tokens to parse
+  dnl | RETURNS the parse tree if parsing succeded, or the result of the ERROR
+  dnl |         function if parsing failed
+  dnl  -------------------------------------------------------------------------
   (CFGPARSE LAMBDA (CFG DFA TYPE ERROR TOKENS)
     (LETREC
       (CFGPARSECC TOKENS (QUOTE ((0))))
@@ -46,17 +84,39 @@ include(Util.lso)
             (REDUCECC (CDR STACK) LHS RULENUM (CDR REVRHS) (CONS (CDR (CAR STACK)) CC))))
       ))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the FIRST set for a symbol or list of symbols.  The FIRST set
+  dnl | for a symbol "A" is the set of terminals which may appear in the
+  dnl | left-most position of an expansion of A using the production rules for
+  dnl | a CFG.  The FIRST set for a list of symbols ( A1 A2 ... An ) is the set
+  dnl | of terminals which may appear in the left-most position of an expansion
+  dnl | of the string of symbols "A1 A2 ... An" if that string were to appear
+  dnl | on the right hand side of a production rule.  Formally, the FIRST set is
+  dnl | the minimal set satisfying the following:
+  dnl |
+  dnl | 1.  If "x" is a terminal, FIRST(x) = {x}
+  dnl | 2.  If "A → ε" is a production rule, then ε ∈ FIRST(A)
+  dnl | 3.  If "A → B1 B2 ... Bn" is a production rule, then
+  dnl |        FIRST(B1 B2 ... Bn) ⊆ FIRST(A)
+  dnl | 4.  If ε ∉ FIRST(B1), then FIRST(B1 B2 ... Bn) = FIRST(B1)
+  dnl | 5.  If ε ∈ FIRST(B1), then
+  dnl |        FIRST(B1 B2 ... Bn) = (FIRST(B1) ∖ {ε}) ∪ FIRST(B2 ... Bn)
+  dnl |
+  dnl | CFG = the context free grammar
+  dnl | S = the symbol or list of symbols
+  dnl | RETURNS a SET of the terminals in FIRST(S)
+  dnl  -------------------------------------------------------------------------
   (CFGFIRST LAMBDA (CFG S)
     (LETREC
       (IF (ATOM S)
           (LHSFIRST S (NEWSET) (NEWSET))
           (RHSFIRST S (NEWSET) (NEWSET)))
       (LHSFIRST LAMBDA (SYM V CC)
-        (IF (CFGISTERMINAL CFG SYM)
+        (IF (CFGISTERMINAL CFG SYM)                                            dnl -- Rule 1
             (SETPUT CC SYM)
         (IF (SETCONTAINS V SYM)
             CC
-            (ALLRHSFIRST SYM (MAPGET CFG SYM) (SETPUT V SYM) CC))))
+            (ALLRHSFIRST SYM (MAPGET CFG SYM) (SETPUT V SYM) CC))))            dnl -- Rule 3
       (ALLRHSFIRST LAMBDA (SYM N V CC)
         (IF (EQ N 0)
             CC
@@ -65,15 +125,24 @@ include(Util.lso)
               (INDEX SUB N 1))))
       (RHSFIRST LAMBDA (RHS V CC)
         (IF (ISNIL RHS)
-            (SETPUT CC (QUOTE NIL))
+            (SETPUT CC (QUOTE NIL))                                            dnl -- Rule 2
             (IF (CFGISTERMINAL CFG (CAR RHS))
                 (SETPUT CC (CAR RHS))
                 (LET
                   (IF (SETCONTAINS CARFIRST (QUOTE NIL))
-                      (RHSFIRST (CDR RHS) V (SETDEL CARFIRST (QUOTE NIL)))
-                      CARFIRST)
+                      (RHSFIRST (CDR RHS) V (SETDEL CARFIRST (QUOTE NIL)))    dnl -- Rule 5
+                      CARFIRST)                                                dnl -- Rule 4
                   (CARFIRST LHSFIRST (CAR RHS) V CC)))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the FOLLOW set for a non-terminal symbol given the constraints
+  dnl | previously computed.
+  dnl | F = the constraints on the FOLLOW sets for the CFG (must be the result
+  dnl |     of a call to CFGFOLLOW).
+  dnl | SYM = the non-terminal symbol for which to compute the FOLLOW set
+  dnl | RETURNS a SET of the terminal symbols which may appear immediately to
+  dnl |         the right of SYM in an expansion of the START symbol
+  dnl  -------------------------------------------------------------------------
   (CFGRESOLVEFOLLOW LAMBDA (F SYM)
     (LETREC
       (CFGRESOLVEFOLLOWCC (CONS1 SYM) (NEWSET) (NEWSET))
@@ -91,6 +160,27 @@ include(Util.lso)
                         (SETUNION CC (CAR ENTRY))))
                   (ENTRY MAPGET F (CAR SYMS))))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the FOLLOW sets for all non-terminal symbols in a CFG.  The
+  dnl | FOLLOW set for a non-terminal A is the set of terminal symbols that may
+  dnl | appear immedately to the right of A in an expansion of the START symbol.
+  dnl | Formally, the FOLLOW set is the minimal set satisfying:
+  dnl |
+  dnl | 1. FOLLOW(START) = {$}  (the end of file marker)
+  dnl | 2. If "A → α B β" is a production rule, then
+  dnl |    a) If ε ∈ FIRST(β), then (FIRST(β) ∖ {ε}) ∪ FOLLOW(A) ⊆ FOLLOW(B)
+  dnl |    b) If ε ∉ FIRST(β), then FIRST(β) ⊆ FOLLOW(B)
+  dnl | 3. If "A → α B" is a production rule, then FOLLOW(A) ⊆ FOLLOW(B)
+  dnl |
+  dnl | In the foregoing, α is a (possibly empty) list of symbols, and β is a
+  dnl | non-empty list of symbols.
+  dnl |
+  dnl | CFG = the context free grammar
+  dnl | RETURNS a structure that describes the constraints on each symbol by
+  dnl |         following the above rules.  To compute the FOLLOW set for a
+  dnl |         particular symbol, call CFGRESOLVEFOLLOW, passing it the
+  dnl |         structure obtained from this function.
+  dnl  -------------------------------------------------------------------------
   (CFGFOLLOW LAMBDA (CFG)
     (LETREC
       (CFGFOLLOWRULES (CFGRULES) (ADDFIRSTCONSTRAINT (QUOTE START) (QUOTE ($)) (NEWMAP)))
@@ -142,6 +232,21 @@ include(Util.lso)
               ENTRY)
           (ENTRY MAPGET CC SYM)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the closure of a set of items.  Formally, CLOSURE(K) of a set
+  dnl | of items, K, is the minimal set of items satisfying:
+  dnl |
+  dnl | 1.  K ⊆ CLOSURE(K)
+  dnl | 2.  If "A → α·B β" ∈ CLOSURE(K) and "B → γ" is a production rule, then
+  dnl |        "B → ·γ" ∈ CLOSURE(K)
+  dnl |
+  dnl | In the foregoing, α, β, and γ are (possibly empty) lists of symbols.
+  dnl | The set K is called the "kernel" of CLOSURE(K).
+  dnl |
+  dnl | CFG = the context free grammar
+  dnl | KERNEL = the set of items for which to compute a closure
+  dnl | RETURNS a LIST of items in CLOSURE(KERNEL)
+  dnl  -------------------------------------------------------------------------
   (CFGCLOSURE LAMBDA (CFG KERNEL)
     (LETREC
       (SETTOLIST (CFGCLOSURECC KERNEL (NEWSET)))
@@ -164,6 +269,13 @@ include(Util.lso)
                   (ADDITEMSFORSYM SYM (SUB N 1) (CONS ITEM KERNEL) (SETPUT CC ITEM)))
               (ITEM CONS3 SYM (SUB N 1) 0))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the symbol after the "dot" in an LR(0) item
+  dnl | CFG = the context free grammar
+  dnl | ITEM = the LR(0) item to examine
+  dnl | RETURNS the symbol after the "dot" in ITEM, or NIL if the "dot" occurs
+  dnl |         at the end of the production rule
+  dnl  -------------------------------------------------------------------------
   (CFGSYMAFTERDOT LAMBDA (CFG ITEM)
     (LETREC
       (RHSNTH (CFGGETRHS CFG ITEM) (THIRD ITEM))
@@ -174,17 +286,14 @@ include(Util.lso)
             (CAR RHS)
             (RHSNTH (CDR RHS) (SUB N 1)))))))
 
-  (CFGGETRHS LAMBDA (CFG ITEM)
-    (MAPGET CFG (CONS (FIRST ITEM) (SECOND ITEM))))
-
-  (CFGGOTO LAMBDA (CFG ITEMS SYM)
-    (CFGCLOSURE CFG
-      (MAP
-        (LAMBDA (ITEM) (CONS3 (FIRST ITEM) (SECOND ITEM) (ADD 1 (THIRD ITEM))))
-        (FILTER
-          (LAMBDA (ITEM) (EQ SYM (CFGSYMAFTERDOT CFG ITEM)))
-          ITEMS))))
-
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets a list of all symbols immediately following the "dot" in a list of
+  dnl | LR(0) items
+  dnl | CFG = the context free grammar
+  dnl | ITEMS = the list of LR(0) items to examine
+  dnl | RETURNS a list of all symbols immediately following the "dot" in an
+  dnl |         LR(0) item from ITEMS
+  dnl  -------------------------------------------------------------------------
   (CFGALLSYMSAFTERDOT LAMBDA (CFG ITEMS)
     (LETREC
       (SETTOLIST (SETDEL (CFGALLSYMSAFTERDOTCC ITEMS (NEWSET)) (QUOTE NIL)))
@@ -193,13 +302,69 @@ include(Util.lso)
             CC
             (CFGALLSYMSAFTERDOTCC (CDR ITEMS) (SETPUT CC (CFGSYMAFTERDOT CFG (CAR ITEMS))))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the production rule associated with an LR(0) item
+  dnl | CFG = the context free grammar
+  dnl | ITEM = the LR(0) item for which to get the associated production
+  dnl |        rule
+  dnl | RETURNS the production rule associated with ITEM
+  dnl  -------------------------------------------------------------------------
+  (CFGGETRHS LAMBDA (CFG ITEM)
+    (MAPGET CFG (CONS (FIRST ITEM) (SECOND ITEM))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes the next state for a set of LR(0) items.
+  dnl | Formally, S is a set of items and x is a terminal, then:
+  dnl |
+  dnl |   next(S,x) = {"A → α x·β" | "A → α·x β" ∈ S, α,β a list of symbols}
+  dnl |   goto(S,x) = CLOSURE(next(S,x))
+  dnl |
+  dnl | CFG = the context free grammar
+  dnl | ITEMS = a set of items
+  dnl | SYM = a terminal symbol
+  dnl | RETURNS goto(ITEMS,SYM)
+  dnl  -------------------------------------------------------------------------
+  (CFGGOTO LAMBDA (CFG ITEMS SYM)
+    (CFGCLOSURE CFG
+      (MAP
+        (LAMBDA (ITEM) (CONS3 (FIRST ITEM) (SECOND ITEM) (ADD 1 (THIRD ITEM))))
+        (FILTER
+          (LAMBDA (ITEM) (EQ SYM (CFGSYMAFTERDOT CFG ITEM)))
+          ITEMS))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Builds the deterministic finite automaton (DFA) to recognize lists of
+  dnl | tokens using the provided context free grammar.
+  dnl |
+  dnl | The DFA is represented as a map representing the entries in the LR(0)
+  dnl | parsing tables (the action and goto tables).  See
+  dnl |
+  dnl |   http://en.wikipedia.org/wiki/LR_parser
+  dnl |
+  dnl | for details.  The keys are pairs ( <state> . <sym> ), where <state> is a
+  dnl | numerical value indicating the current state and <sym> is either a
+  dnl | terminal symbol or the end of file marker ($) (action table) or
+  dnl | non-terminal symbol (goto table).
+  dnl |
+  dnl | For the action table, the value is one of:
+  dnl |
+  dnl |   ( SHIFT . <state> ) - push <state> onto the stack
+  dnl |   ( REDUCE . <rule> ) - apply reduction according to the production rule
+  dnl |                         <rule>.
+  dnl |   ACCEPT              - the input should be accepted
+  dnl |
+  dnl | For the goto table, the value is a number indicating the state to go to
+  dnl | after a reduction to the corresponding symbol.
+  dnl |
+  dnl | CFG = the context free grammar
+  dnl | RETURNS a DFA that may be used with CFGPARSE
+  dnl  -------------------------------------------------------------------------
   (CFGDFA LAMBDA (CFG)
     (LETREC
       (CFGSTATESCC (CONS1 (CFGCLOSURE CFG (CONS1 (CONS3 (QUOTE START) 0 0)))) 0 (NEWMAP) (NEWMAP))
       (CFGSTATESCC LAMBDA (Q N STATES TRANSITIONS)
         (IF (ISNIL Q)
             dnl ---- Result ----
-dnl            STATES
             (ADDREDUCTIONS (MAPTOLIST STATES) TRANSITIONS)
             dnl ----------------
             (LET
@@ -257,7 +422,18 @@ dnl            STATES
         (EQ (THIRD ITEM) (LENGTH (MAPGET CFG (CONS (FIRST ITEM) (SECOND ITEM))))))
       (FOLLOW CFGFOLLOW CFG)))
 
-
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes a list of LR(0) states for the given context free grammar,
+  dnl | according to the following rules:
+  dnl |
+  dnl | 1.  CLOSURE({START → ·α}) is a state, where "START → α" is the single
+  dnl |     production rule for the START symbol.
+  dnl | 2.  If S is a state and x is a terminal, then goto(S,x) is a state (see
+  dnl |     the definition of CFGGOTO).
+  dnl |
+  dnl | CFG = the context free grammar
+  dnl | RETURNS a LIST of the states for the CFG
+  dnl  -------------------------------------------------------------------------
   (CFGSTATES LAMBDA (CFG)
     (LETREC
       (SETTOLIST (CFGSTATESCC (CONS1 (CFGCLOSURE CFG (CONS1 (CONS3 (QUOTE START) 0 0)))) (NEWSET)))
@@ -274,10 +450,27 @@ dnl            STATES
                   (CFGGOTOSTATES (CONS NEXT Q) STATE (CDR SYMS) (SETPUT CC NEXT)))
               (NEXT CFGGOTO CFG STATE (CAR SYMS)))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Constructs a list that, when printed, will display an LR(0) item in a
+  dnl | readable format.
+  dnl | CFG = the context free grammar
+  dnl | ITEM = the LR(0) item to put into a readable format
+  dnl | RETURNS a list of the form "( LHS > RHS1 RHS2 ... _ ... RHSn )" where
+  dnl |         LHS is the non-terminal symbol for the production rule, RHS1
+  dnl |         through RHSn are the symbols on the right hand side of the
+  dnl |         production rule, and the symbol "_" is inserted at the position
+  dnl |         of the "dot" for the LR(0) item
+  dnl  -------------------------------------------------------------------------
   (CFGEXPANDITEM LAMBDA (CFG ITEM)
     (CONS (FIRST ITEM) (CONS (QUOTE >) (INSERT (CFGGETRHS CFG ITEM) (THIRD ITEM) (QUOTE _)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if a symbol is a terminal
+  dnl | CFG = the context free grammar
+  dnl | SYM = the symbol to check
+  dnl | RETURNS a value indicating whether SYM is a terminal symbol in CFG.
+  dnl  -------------------------------------------------------------------------
   (CFGISTERMINAL LAMBDA (CFG SYM)
-    (EQ (MAPGET CFG SYM) 0))
+    (EQ (MAPGET CFG SYM) 0))        dnl --- terminal if no production rules
 
 ')dnl
