@@ -7,10 +7,25 @@ dnl | found at http://en.wikipedia.org/wiki/LR_parser.
 dnl |
 dnl | Representation of various constructions
 dnl |
+dnl |  - A CFG is a MAP with the following entries:
+dnl |
+dnl |     Key         Value   Description
+dnl |     <symbol>    <n>     Indicates that there are <n> production rules with
+dnl |                         <symbol> as the left hand side.  A value for <n>
+dnl |                         of zero indicates that <symbol> is a terminal.
+dnl |     <rule>      <rhs>   <rule> has the form of a RULE (see below) and
+dnl |                         <rhs> is a list of symbols on the right hand side
+dnl |                         of the corresponding production rules.
+dnl |
 dnl |  - A RULE is represented as a pair ( <symbol> . <n> ), which denotes the
 dnl |    nth production rule for the non-terminal symbol <symbol>.
+dnl |
 dnl |  - An ITEM is represented as a list ( <symbol> <n> <k> ), which dnotes the
 dnl |    item for the rule ( <symbol> . <n> ) with the dot in the kth position.
+dnl |
+dnl |  - A DFA describes transitions between states while parsing.  See CFGDFA
+dnl |    below for details on its representation.
+dnl |
 dnl  ===========================================================================
 ifdef(`cfg_util_lso_m4',,`define(`cfg_util_lso_m4', 1)dnl
 
