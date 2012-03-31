@@ -413,12 +413,14 @@ _cycle:
 	jmp		[dword _instr + eax * 4]	; Jump to opcode handler
 
 _illegal:
+	call	_flush
 	sys.write stderr, err_ii, err_ii_len
 	sys.exit 1
 .stop:
 	jmp		.stop
 	
 _memerror:
+	call	_flush
 	sys.write stderr, err_mem, err_mem_len
 	sys.exit 1
 .stop:
@@ -674,6 +676,7 @@ _instr_CAR:
 	mov		edx, [flags + S]
 	test	edx, SECD_ATOM
 	jz		.endif
+		call	_flush
 		sys.write stderr, err_car, err_car_len
 		sys.exit 1
 .halt:
@@ -693,6 +696,7 @@ _instr_CDR:
 	mov		edx, [flags + S]
 	test	edx, SECD_ATOM
 	jz		.endif
+		call	_flush
 		sys.write stderr, err_cdr, err_cdr_len
 		sys.exit 1
 .halt:
@@ -1333,6 +1337,7 @@ _instr_BR32:
 	jmp		_illegal
 
 _index_out_of_bounds:
+	call	_flush
 	sys.write stderr, err_oob, err_oob_len
 	sys.exit 1
 .halt:
@@ -1470,6 +1475,7 @@ _gc:
 	ret
 
 .out_of_space:
+	call	_flush
 	sys.write stderr, err_hf, err_hf_len
 	sys.exit 1
 .halt:
@@ -1500,6 +1506,7 @@ _malloc:
 	call	_heap_alloc
 	cmp		eax, 0
 	jnz		.done
+	call	_flush
 	sys.write stderr, err_hf, err_hf_len
 	sys.exit 1
 .halt:
