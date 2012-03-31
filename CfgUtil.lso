@@ -34,6 +34,46 @@ include(Map.lso)
 include(Util.lso)
 
   dnl  -------------------------------------------------------------------------
+  dnl | Creates a new CFG from a list of production rules.  The list of rules
+  dnl | is expected to have the following structure:
+  dnl |
+  dnl |   ( <symbol_rule_set1> <symbol_rule_set2> ... <symbol_rule_setn> )
+  dnl |
+  dnl | Each <symbol_rule_set> must specify all of the production rules for a
+  dnl | single symbol.  It should be structured as follows:
+  dnl |
+  dnl |   ( <symbol> <rhs1> <rhs2> ... <rhsn> )    for a non-terminal symbol, or
+  dnl |   ( <symbol> )                             for a terminal symbol,
+  dnl |
+  dnl | where <symbol> is the non-terminal or terminal symbol, and <rhs1>,
+  dnl | <rhs2>, etc., are the lists of symbols for the right hand sides of the
+  dnl | production rules for the non-terminal <symbol>.  An <rhs> of NIL denotes
+  dnl | the production rule "<symbol> → ε".
+  dnl |
+  dnl | There must be a non-terminal called START.  It must have exactly one
+  dnl | production rule.
+  dnl |
+  dnl | G = the list of production rules from which to build the CFG structure.
+  dnl | RETURNS the CFG for the set of production rules G.
+  dnl  -------------------------------------------------------------------------
+  (NEWCFG LAMBDA (G)
+    (LETREC
+      (BUILDGRAMMARMAP G (NEWMAP))
+
+      (BUILDGRAMMARMAP LAMBDA (G CC)
+        (IF (EQ G (QUOTE NIL))
+            CC
+            (BUILDGRAMMARMAP (CDR G) (BUILDSYMRULES (CAR G) CC))))
+    
+      (BUILDSYMRULES LAMBDA (R CC)
+        (BUILDSYMRULELIST (CAR R) (CDR R) 0 CC))
+    
+      (BUILDSYMRULELIST LAMBDA (LHS RHS I CC)
+        (IF (EQ RHS (QUOTE NIL))
+            (MAPPUT CC LHS I)
+            (BUILDSYMRULELIST LHS (CDR RHS) (ADD I 1) (MAPPUT CC (CONS LHS I) (CAR RHS)))))))
+
+  dnl  -------------------------------------------------------------------------
   dnl | Builds a parse tree for a list of tokens using a context free grammar.
   dnl | An internal node in the parse tree consists of a list of the form:
   dnl |
