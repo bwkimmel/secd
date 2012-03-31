@@ -1,0 +1,2 @@
+TOPDIR = ..
+include ../Rules.mk
