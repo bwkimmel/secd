@@ -43,3 +43,6 @@ compiler.lob: compiler.lso primitive-compiler.lob secd
 
 %.lob : %.lso compiler.lob secd
 	$(M4) $< | cat compiler.lob - | ./secd > $@
+
+run-% : %.lob
+	cat $< - | ./secd
