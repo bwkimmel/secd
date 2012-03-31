@@ -16,5 +16,4 @@ dnl ---------------------------------------------------------------------------
 
 
 include(LexScheme.lso)
-include(ParseScheme.lso)
 )
