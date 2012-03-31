@@ -131,7 +131,7 @@ include(Util.lso)
                 (LET
                   (IF (SETCONTAINS CARFIRST (QUOTE NIL))
                       (RHSFIRST (CDR RHS) V (SETDEL CARFIRST (QUOTE NIL)))    dnl -- Rule 5
-                      CARFIRST)                                                dnl -- Rule 4
+                      CARFIRST)                                               dnl -- Rule 4
                   (CARFIRST LHSFIRST (CAR RHS) V CC)))))))
 
   dnl  -------------------------------------------------------------------------
