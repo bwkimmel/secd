@@ -2,10 +2,18 @@ dnl  ===========================================================================
 dnl | Extended LispKit Lisp Compiler
 dnl |
 dnl | This compiler is substantially the same as the one in Henderson's [1]
-dnl | book, except that additional commands have been added to make use of the
-dnl | additional opcodes that have been added to the SECD machine (see
-dnl | secd.asm).  The generated code has also been modified to implement proper
-dnl | handling of tail recursion (Exercise 6.6 in Henderson's book).
+dnl | book, except for the following:
+dnl |
+dnl |  - additional commands have been added to make use of the additional
+dnl |    opcodes that have been added to the SECD machine (see secd.asm).
+dnl |  - the generated code has also been modified to implement proper handling
+dnl |    of tail calls (Exercise 6.6 in Henderson's book).  We also handle
+dnl |    handling of tail calls when they occur within an (IF ...) expression.
+dnl |  - For code compiled with this compiler, numbers do not need to be quoted.
+dnl |    For example, one may use "(EQ X 0)" instead of "(EQ X (QUOTE 0))".
+dnl |
+dnl | NOTE: This compiler is intended to be compiled by the original LispKit
+dnl |       Lisp compiler, and so must not use these extended features.
 dnl |
 dnl | Chapter 6 of Henderson's book describes the construction of this compiler
 dnl | in detail.  The original compiler and object file, transcribed from
