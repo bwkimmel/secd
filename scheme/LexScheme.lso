@@ -1,7 +1,7 @@
 dnl  ===========================================================================
 dnl | Lexical analyser for Scheme (R5RS)
 dnl |
-dnl | 
+dnl | See http://www.schemers.org/Documents/Standards/R5RS/
 dnl  ===========================================================================
 ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
 
