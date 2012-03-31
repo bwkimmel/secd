@@ -80,7 +80,7 @@ dnl     (CFGALLSYMSAFTERDOT SchemeGrammarMap (CFGGOTO SchemeGrammarMap (CFGCLOSU
 dnl   (CFG LAMBDA (KEY)
 dnl     (MAPGET SchemeGrammarMap KEY))
 
-include(CfgUtil.lso)
+include(Cfg.lso)
 
   (SchemeGrammarMap QUOTE
 include(SchemeGrammarMap.lso)

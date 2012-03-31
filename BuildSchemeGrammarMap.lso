@@ -5,6 +5,6 @@ dnl ---
 
 include(SchemeSyntax.lso)
 include(Map.lso)
-include(CfgUtil.lso)
+include(Cfg.lso)
 
   )
