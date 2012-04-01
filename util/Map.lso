@@ -204,6 +204,15 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
             (MAPTOLISTCC (MAPLEFT M)
               (CONS (CONS (MAPKEY M) (MAPVALUE M)) (MAPTOLISTCC (MAPRIGHT M) CC)))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a new map using the entries in the provided list.  Each entry
+  dnl | must be a pair of the form ( <key> . <value> ).
+  dnl | L = the list of entries
+  dnl | RETURNS a new map containing the entries from L
+  dnl  -------------------------------------------------------------------------
+  (MAPFROMLIST LAMBDA (L)
+    (MAPPUTALL (NEWMAP) L))
+
 
 
   dnl  =========================================================================
