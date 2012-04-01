@@ -1,0 +1,13 @@
+dnl ---
+(LETREC BuildExpressionDFA
+  (BuildExpressionDFA LAMBDA NIL
+    (MAPTOLIST (CFGDFA (MAPFROMLIST ExpressionCFG))))
+
+include(Map.lso)
+include(Cfg.lso)
+
+  (ExpressionCFG QUOTE
+include(ExpressionCFG.lso)
+    )
+
+  )

@@ -1,0 +1,9 @@
+dnl ---
+(LETREC BuildExpressionCFG
+  (BuildExpressionCFG LAMBDA NIL
+    (MAPTOLIST (NEWCFG ExpressionGrammar)))
+
+include(ExpressionSyntax.lso)
+include(Cfg.lso)
+
+  )

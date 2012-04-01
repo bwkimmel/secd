@@ -1,0 +1,32 @@
+dnl --- Test expression parsing
+(LETREC TEST
+  (TEST LAMBDA (EXPR)
+    (CFGPARSE
+	  (MAPFROMLIST ExpressionCFG)
+	  (MAPFROMLIST ExpressionDFA)
+	  (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
+	  (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
+	  (FLATTEN EXPR)))
+
+  (FLATTEN LAMBDA (L)
+    (LETREC
+	  (FLATTENCC L (QUOTE NIL))
+	  (FLATTENCC LAMBDA (L CC)
+	    (IF (ISNIL L)
+		    CC
+		(IF (ATOM (CAR L))
+		    (FLATTENCC (CDR L) (CONS (CAR L) CC))
+		    (FLATTENCC (CDR L) (CONS (QUOTE OPENP) (APPEND (CAR L) (CONS (QUOTE CLOSEP) CC)))))))))
+
+  (ExpressionCFG QUOTE
+include(ExpressionCFG.lso)
+    )
+
+  (ExpressionDFA QUOTE
+include(ExpressionDFA.lso)
+    )
+
+include(Cfg.lso)
+include(Util.lso)
+
+  )

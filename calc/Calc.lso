@@ -1,0 +1,63 @@
+dnl --- Test expression parsing
+(LETREC TEST
+  (TEST LAMBDA (EXPR)
+    (EVAL (CFGPARSE
+	  (MAPFROMLIST ExpressionCFG)
+	  (MAPFROMLIST ExpressionDFA)
+	  (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
+	  (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
+	  (FLATTEN EXPR))))
+
+  (FLATTEN LAMBDA (L)
+    (LETREC
+	  (FLATTENCC L (QUOTE NIL))
+	  (FLATTENCC LAMBDA (L CC)
+	    (IF (ISNIL L)
+		    CC
+		(IF (ATOM (CAR L))
+		    (FLATTENCC (CDR L) (CONS (CAR L) CC))
+		    (FLATTENCC (CDR L) (CONS (QUOTE OPENP) (APPEND (CAR L) (CONS (QUOTE CLOSEP) CC)))))))))
+
+  (EVAL LAMBDA (TREE)
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+    (LET (IF (EQ V (QUOTE F))
+	     (STOP (QUOTE UnexpectedError))
+    (EVAL (FIRST V))) (V PATTERN TREE (QUOTE ((*.*) _))))
+    (LT  (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((C.*) _ < _))))
+    (GT  (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((C.*) _ > _))))
+    (LEQ (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((C.*) _ <= _))))
+    (GEQ (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((C.*) _ >= _))))
+    (EQ  (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((C.*) _ == _))))
+    (NEQ (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((C.*) _ != _))))
+    (ADD (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((E.*) _ + _))))
+    (SUB (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((E.*) _ - _))))
+    (MUL (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((T.*) _ (\ *) _))))
+    (DIV (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((T.*) _ / _))))
+    (EVAL (FIRST V))) (V PATTERN TREE (QUOTE ((F.*) * _ *))))
+    (FIRST V)) (V PATTERN TREE (QUOTE ((F.*) _))))
+	)
+
+  (ExpressionCFG QUOTE
+include(ExpressionCFG.lso)
+    )
+
+  (ExpressionDFA QUOTE
+include(ExpressionDFA.lso)
+    )
+
+include(Cfg.lso)
+include(Util.lso)
+include(Pattern.lso)
+
+  )
