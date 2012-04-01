@@ -7,13 +7,52 @@ dnl ---------------------------------------------------------------------------
 
 (LETREC COMPILE
   (COMPILE LAMBDA NIL
-    (LEX BUILDLIST))
+    (LEX PRINTTOKENS))
 
-  (BUILDLIST LAMBDA (X REENTRY)
-    (IF (ISNIL X)
+  dnl  -------------------------------------------------------------------------
+  dnl | Processes tokens provided by the lexer by printing them to stdout and
+  dnl | then passing control back to the lexer.
+  dnl | X = the token
+  dnl | REENTRY = the continuation for the lexer
+  dnl  -------------------------------------------------------------------------
+  (PRINTTOKENS LAMBDA (X REENTRY)
+    (IF (ISNIL (PRINT X))
         (QUOTE NIL)
-        (CONS X (REENTRY BUILDLIST))))
+        (REENTRY PRINTTOKENS)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Prints a token to stdout
+  dnl | X = the token to print
+  dnl  -------------------------------------------------------------------------
+  (PRINT LAMBDA (X)
+    (IF (ISNIL X)							dnl --- End of tokens
+        X
+    (IF (EQ (CAR X) (QUOTE VARIABLE))		dnl --- VARIABLE token
+        (FIRST X
+          (FIRST (PRINTSTR (CONS 32 (CONS 41 (CONS 32 (QUOTE NIL)))))
+														dnl ^-- print ' ) '
+          (FIRST (PRINTSTR (CDR X))						dnl --- print name
+          (FIRST (PUTEXP (QUOTE VARIABLE))				dnl --- print 'VARIABLE'
+            (PRINTSTR (CONS 40 (CONS 32 (QUOTE NIL))))))))
+														dnl ^-- print '( '
+    (IF (EQ (CAR X) (QUOTE STRING))			dnl --- STRING token
+        (FIRST X
+          (FIRST (PRINTSTR (CONS 34 (CONS 32 (CONS 41 (CONS 32 (QUOTE NIL))))))
+    	  												dnl ^-- print '" ) '
+          (FIRST (PRINTSTR (CONS 34 (CDR X)))			dnl --- print '"' + str
+          (FIRST (PUTEXP (QUOTE STRING))				dnl --- print "STRING"
+            (PRINTSTR (CONS 40 (CONS 32 (QUOTE NIL))))))))
+														dnl ^-- print '( '
+        (PUTEXP X)))))						dnl --- Everything else
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Prints a token to stdout
+  dnl | X = the token to print
+  dnl  -------------------------------------------------------------------------
+  (PRINTSTR LAMBDA (S)
+    (IF (ISNIL S)
+        (QUOTE NIL)
+        (FIRST (PRINTSTR (CDR S)) (PUT (CAR S)))))
 
 include(LexScheme.lso)
 )
