@@ -28,19 +28,19 @@ dnl ---------------------------------------------------------------------------
     (IF (ISNIL X)							dnl --- End of tokens
         X
     (IF (EQ (CAR X) (QUOTE VARIABLE))		dnl --- VARIABLE token
-        (FIRST X
-          (FIRST (PRINTSTR (CONS 32 (CONS 41 (CONS 32 (QUOTE NIL)))))
+        (FIRSTARG X
+          (FIRSTARG (PRINTSTR (CONS 32 (CONS 41 (CONS 32 (QUOTE NIL)))))
 														dnl ^-- print ' ) '
-          (FIRST (PRINTSTR (CDR X))						dnl --- print name
-          (FIRST (PUTEXP (QUOTE VARIABLE))				dnl --- print 'VARIABLE'
+          (FIRSTARG (PRINTSTR (CDR X))					dnl --- print name
+          (FIRSTARG (PUTEXP (QUOTE VARIABLE))			dnl --- print 'VARIABLE'
             (PRINTSTR (CONS 40 (CONS 32 (QUOTE NIL))))))))
 														dnl ^-- print '( '
     (IF (EQ (CAR X) (QUOTE STRING))			dnl --- STRING token
-        (FIRST X
-          (FIRST (PRINTSTR (CONS 34 (CONS 32 (CONS 41 (CONS 32 (QUOTE NIL))))))
+        (FIRSTARG X
+          (FIRSTARG (PRINTSTR (CONS 34 (CONS 32 (CONS 41 (CONS 32 (QUOTE NIL))))))
     	  												dnl ^-- print '" ) '
-          (FIRST (PRINTSTR (CONS 34 (CDR X)))			dnl --- print '"' + str
-          (FIRST (PUTEXP (QUOTE STRING))				dnl --- print "STRING"
+          (FIRSTARG (PRINTSTR (CONS 34 (CDR X)))		dnl --- print '"' + str
+          (FIRSTARG (PUTEXP (QUOTE STRING))				dnl --- print "STRING"
             (PRINTSTR (CONS 40 (CONS 32 (QUOTE NIL))))))))
 														dnl ^-- print '( '
         (PUTEXP X)))))						dnl --- Everything else
@@ -52,7 +52,7 @@ dnl ---------------------------------------------------------------------------
   (PRINTSTR LAMBDA (S)
     (IF (ISNIL S)
         (QUOTE NIL)
-        (FIRST (PRINTSTR (CDR S)) (PUT (CAR S)))))
+        (FIRSTARG (PRINTSTR (CDR S)) (PUT (CAR S)))))
 
 include(LexScheme.lso)
 )

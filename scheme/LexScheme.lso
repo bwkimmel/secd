@@ -5,6 +5,8 @@ dnl | See http://www.schemers.org/Documents/Standards/R5RS/
 dnl  ===========================================================================
 ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
 
+include(Util.lso)
+
   dnl  -------------------------------------------------------------------------
   dnl | Entry point for lexical analyser
   dnl | CC = continuation function.  This function should take two parameters:
@@ -46,7 +48,7 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
     (IF (ISCOMMA C)
         (LEXSTARTSWITHCOMMA (GET) CC)
     (IF (ISSEMI C)
-        (LEXINITIAL (FIRST (SCAN) (SKIPCOMMENT)) CC)
+        (LEXINITIAL (FIRSTARG (SCAN) (SKIPCOMMENT)) CC)
     (IF (ISWHITESPACE C)
         (LEXINITIAL (SCAN) CC)
     (IF (ISDIGIT C)
@@ -646,9 +648,6 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
   dnl  =========================================================================
 
   (ISCONS LAMBDA (E) (IF (ATOM E) (QUOTE F) (QUOTE T)))
-  (GEQ LAMBDA (A B) (LEQ B A))
-  (AND LAMBDA (P Q) (IF P Q (QUOTE F)))
-  (OR LAMBDA (P Q) (IF P (QUOTE T) Q))
   (IST LAMBDA (C) (OR (EQ C 116) (EQ C 84)))
   (ISF LAMBDA (C) (OR (EQ C 102) (EQ C 70)))
   (ISB LAMBDA (C) (OR (EQ C 98) (EQ C 66)))
@@ -662,13 +661,6 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
   (ISP LAMBDA (C) (OR (EQ C 112) (EQ C 80)))
   (ISNUMBERPREFIX LAMBDA (C)
     (CONTAINS (TOLOWER C) (QUOTE (98 111 100 120 105 101))))
-  (ISNIL LAMBDA (L) (EQ L (QUOTE NIL)))
-  (REVERSE LAMBDA (L)
-    (CONTINUEREVERSE L (QUOTE NIL)))
-  (CONTINUEREVERSE LAMBDA (L A)
-    (IF (ISNIL L)
-        A
-        (CONTINUEREVERSE (CDR L) (CONS (CAR L) A))))
   (ISINRANGE LAMBDA (X MIN MAX)
     (AND (LEQ MIN X) (LEQ X MAX)))
   (ISDIGIT LAMBDA (C) (ISINRANGE C 48 57))
@@ -754,13 +746,13 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
       (IF (ISWHITESPACE C)
           (SCAN)
           (IF (ISSEMI C)
-              (FIRST (SCAN) (SKIPCOMMENT))
+              (FIRSTARG (SCAN) (SKIPCOMMENT))
               C))
       (C GET)))
   (SKIPCOMMENT LAMBDA NIL
     (LET
       (IF (ISNEWLINE C) (GET) (SKIPCOMMENT))
       (C GET)))
-  (FIRST LAMBDA (A B) A)
+  (FIRSTARG LAMBDA (A B) A)
 
 ')dnl
