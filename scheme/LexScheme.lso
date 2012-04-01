@@ -137,7 +137,7 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
     (IF (ISDOT C)
         (LEXELLIPSIS (GET) CC)
     (IF (ISDIGIT C)
-        (LEXREAL7 C 10 (QUOTE NIL) DIGITVALUEDEC LEXCOMPLEX1 CC)
+        (LEXREAL7 C 10 (QUOTE NIL) DIGITVALUEDEC 43 LEXCOMPLEX1 CC)
         (YIELDC (QUOTE (DOT)) C CC))))
 
   dnl  -------------------------------------------------------------------------
