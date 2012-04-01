@@ -1,10 +1,10 @@
 TOPDIR = ..
 
-all: CompileScheme.lob
+all: TestLex.lob
 
-run: CompileScheme.lob
+run: TestLex.lob
 	@echo ")) " > .init
-	@cat CompileScheme.lob .init - | $(SECD)
+	@cat TestLex.lob .init - | $(SECD)
 	@rm -f .init
 
 include $(TOPDIR)/Rules.mk
