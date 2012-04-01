@@ -121,8 +121,8 @@ include(Util.lso)
                 (ACTION MAPGET DFA (CONS STATE TOKEN)))
               (STATE CAR (CAR STACK))
               (TOKEN IF (EQ (CAR TOKENS) (QUOTE $))
-			            (QUOTE $)
-						(TYPE (CAR TOKENS))))))
+                        (QUOTE $)
+                        (TYPE (CAR TOKENS))))))
       (REDUCE LAMBDA (STACK RULE)
         (LET
           (REDUCECC STACK LHS RULENUM (REVERSE RHS) (QUOTE NIL))
@@ -440,10 +440,10 @@ include(Util.lso)
               (LET
                 (IF (ISNIL TOSTATE)
                     (CFGGOTOSTATES (CONS NEXT Q) STATE (CDR SYMS) (ADD N 1) (MAPPUT STATES NEXT N)
-                      (MAPPUT TRANSITIONS (CONS FROMSTATE (CAR SYMS))
+                      (ADDTRANSITION TRANSITIONS (CONS FROMSTATE (CAR SYMS))
                         (IF (CFGISTERMINAL CFG (CAR SYMS)) (CONS (QUOTE SHIFT) N) N)))
                     (CFGGOTOSTATES Q STATE (CDR SYMS) N STATES
-                      (MAPPUT TRANSITIONS (CONS FROMSTATE (CAR SYMS))
+                      (ADDTRANSITION TRANSITIONS (CONS FROMSTATE (CAR SYMS))
                         (IF (CFGISTERMINAL CFG (CAR SYMS)) (CONS (QUOTE SHIFT) TOSTATE) TOSTATE))))
                 (FROMSTATE MAPGET STATES STATE)
                 (TOSTATE MAPGET STATES NEXT))
@@ -469,7 +469,7 @@ include(Util.lso)
         (IF (ISNIL FOLLOWSET)
             TRANSITIONS
             (ADDFOLLOWREDUCTIONS (CDR FOLLOWSET) STATENUM RULE
-              (MAPPUT TRANSITIONS (CONS STATENUM (CAR FOLLOWSET))
+              (ADDTRANSITION TRANSITIONS (CONS STATENUM (CAR FOLLOWSET))
                 (IF (AND (EQ (CAR RULE) (QUOTE START))
                          (EQ (CAR FOLLOWSET) (QUOTE $)))
                     (QUOTE ACCEPT)
@@ -477,6 +477,13 @@ include(Util.lso)
 
       (ISTAILITEM LAMBDA (ITEM)
         (EQ (THIRD ITEM) (LENGTH (MAPGET CFG (CONS (FIRST ITEM) (SECOND ITEM))))))
+      (ADDTRANSITION LAMBDA (TRANSITIONS KEY VALUE)
+        (LET
+          (IF (EQ EXISTING (QUOTE NIL))
+              (MAPPUT TRANSITIONS KEY VALUE)
+              (STOP (CONS4 (QUOTE Conflict) KEY VALUE (MAPGET TRANSITIONS KEY))))
+          (EXISTING MAPGET TRANSITIONS KEY)))
+
       (FOLLOW CFGFOLLOW CFG)))
 
   dnl  -------------------------------------------------------------------------
