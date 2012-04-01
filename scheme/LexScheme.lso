@@ -122,7 +122,7 @@ ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
         (LET
           (LET
             (IF (ISNIL KEYWORD)
-                (YIELDC (CONS (QUOTE IDENT) NAME) C CC)
+                (YIELDC (CONS (QUOTE VARIABLE) NAME) C CC)
                 (YIELDC (CONS KEYWORD (QUOTE NIL)) C CC))
             (KEYWORD GETKEYWORD NAME))
           (NAME REVERSE I))))
