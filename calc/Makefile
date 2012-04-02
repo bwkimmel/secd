@@ -1,7 +1,7 @@
 TOPDIR = ..
 CLEANFILES = ExpressionCFG.lso ExpressionDFA.lso
 
-all: TestParse.lob Calc.lso
+all: TestParse.lob Calc.lob
 
 TestParse.lob: ExpressionCFG.lso ExpressionDFA.lso ../util/Cfg.lso ../util/Util.lso
 
