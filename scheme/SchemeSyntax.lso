@@ -111,7 +111,7 @@ dnl  ---------------------------------------------------------------------------
     (STRING)
     (Symbol))
   (Symbol
-    (IDENT))
+	(VARIABLE))
   (CompoundDatum
     (List)
     (Vector))
@@ -157,7 +157,8 @@ dnl  ---------------------------------------------------------------------------
     (QUOTE Datum)
     (OPENP KEYWORDQUOTE Datum CLOSEP))
   (ProcedureCall
-    (OPENP Operator ZeroOrMoreOperand CLOSEP))
+    (OPENP Operator OneOrMoreOperand CLOSEP)
+    (OPENP Operator CLOSEP))
   (Operator
     (Expression))
   (Operand
@@ -165,6 +166,9 @@ dnl  ---------------------------------------------------------------------------
   (ZeroOrMoreOperand
     NIL
     (ZeroOrMoreOperand Operand))
+  (OneOrMoreOperand
+    (Operand)
+    (OneOrMoreOperand Operand))
   (LambdaExpression
     (OPENP LAMBDA Formals Body CLOSEP))
   (Formals
