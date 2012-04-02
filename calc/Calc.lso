@@ -1,4 +1,4 @@
-dnl --- Test expression parsing
+dnl --- Simple Calculator
 (LETREC TEST
   (TEST LAMBDA (EXPR)
     (EVAL (CFGPARSE
