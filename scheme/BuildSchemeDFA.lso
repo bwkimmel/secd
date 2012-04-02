@@ -1,0 +1,13 @@
+dnl ---
+(LETREC BuildSchemeDFA
+  (BuildSchemeDFA LAMBDA NIL
+    (MAPTOLIST (CFGDFA (MAPFROMLIST SchemeCFG))))
+
+include(Map.lso)
+include(Cfg.lso)
+
+  (SchemeCFG QUOTE
+include(SchemeCFG.lso)
+    )
+
+  )
