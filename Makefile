@@ -1,6 +1,6 @@
 include Rules.mk
 
-SUBDIRS = secd lispkit test scheme calc
+SUBDIRS = secd lispkit example scheme calc
 
 clean-all: clean
 	for dir in $(SUBDIRS); do \
