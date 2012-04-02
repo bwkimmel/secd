@@ -10,7 +10,7 @@ dnl --- Test expression parsing
 
   (FLATTEN LAMBDA (L)
     (LETREC
-	  (FLATTENCC L (QUOTE NIL))
+	  (REVERSE (FLATTENCC L (QUOTE NIL)))
 	  (FLATTENCC LAMBDA (L CC)
 	    (IF (ISNIL L)
 		    CC
