@@ -8,6 +8,8 @@ dnl --- Simple Calculator
 	  (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
 	  (FLATTEN EXPR))))
 
+  dnl --- Flattens the list, turning the beginning and end of sub-lists
+  dnl     into OPENP & CLOSEP tokens, respectively.
   (FLATTEN LAMBDA (L)
     (LETREC
 	  (REVERSE (FLATTENCC L (QUOTE NIL)))
@@ -18,6 +20,8 @@ dnl --- Simple Calculator
 		    (FLATTENCC (CDR L) (CONS (CAR L) CC))
 		    (FLATTENCC (CDR L) (CONS (QUOTE OPENP) (APPEND (CAR L) (CONS (QUOTE CLOSEP) CC)))))))))
 
+  dnl --- Recursively descend into the parse tree using pattern matching,
+  dnl     evaluating the expressions as we ascend.
   (EVAL LAMBDA (TREE)
     (LET (IF (EQ V (QUOTE F))
     (LET (IF (EQ V (QUOTE F))

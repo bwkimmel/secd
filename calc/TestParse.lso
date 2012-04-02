@@ -8,6 +8,8 @@ dnl --- Test expression parsing
 	  (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
 	  (FLATTEN EXPR)))
 
+  dnl --- Flattens the list, turning the beginning and end of sub-lists
+  dnl     into OPENP & CLOSEP tokens, respectively.
   (FLATTEN LAMBDA (L)
     (LETREC
 	  (REVERSE (FLATTENCC L (QUOTE NIL)))
