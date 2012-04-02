@@ -1,4 +1,5 @@
 TOPDIR = ..
-include $(TOPDIR)/Rules.mk
 
-all: $(LISPKITDIR)/compiler.lob
+all: $(TOPDIR)/lispkit/compiler.lob
+
+include $(TOPDIR)/Rules.mk
