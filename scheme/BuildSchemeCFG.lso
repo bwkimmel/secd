@@ -1,10 +1,9 @@
 dnl ---
-(LETREC BuildSchemeGrammarMap
-  (BuildSchemeGrammarMap LAMBDA NIL
-    (NEWCFG SchemeGrammar))
+(LETREC BuildSchemeCFG
+  (BuildSchemeCFG LAMBDA NIL
+    (MAPTOLIST (NEWCFG SchemeGrammar)))
 
 include(SchemeSyntax.lso)
-include(Map.lso)
 include(Cfg.lso)
 
   )
