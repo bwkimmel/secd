@@ -135,7 +135,7 @@ include(Util.lso)
               (LET
                 (IF (ISNIL GOTO)
                     (STOP (QUOTE ParserReduceError))
-                    (CONS (CONS GOTO (CONS (CONS LHS RULENUM) (REVERSE CC))) STACK))
+                    (CONS (CONS GOTO (CONS (CONS LHS RULENUM) CC)) STACK))
                 (GOTO MAPGET DFA (CONS STATE LHS)))
               (STATE CAR (CAR STACK)))
             (REDUCECC (CDR STACK) LHS RULENUM (CDR REVRHS) (CONS (CDR (CAR STACK)) CC))))
