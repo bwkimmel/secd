@@ -8,6 +8,8 @@ of
   P. Henderson, "Functional Programming: Application and Implementation",
   Prentice Hall, 1980.
 
+The transcriptions were obtained from <http://www.ocs.net/~jfurman/lispkit/bookversion>.
+
 The extended version (`compiler.lso`) adds the following:
 
 	- commands to utilize extensions to the SECD instruction set
