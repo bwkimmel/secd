@@ -404,4 +404,17 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
         (QUOTE F)
         (OR (EQ C (CAR L)) (CONTAINS C (CDR L)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Prints a string (represented as a list of ASCII values) to stdout
+  dnl | S = the string to print.
+  dnl | RETURNS NIL
+  dnl  -------------------------------------------------------------------------
+  (PRINTSTR LAMBDA (S)
+    (LETREC
+      (CONTINUEPRINTSTR S (QUOTE NIL))
+      (CONTINUEPRINTSTR LAMBDA (S A)
+        (IF (ISNIL S)
+            S
+            (CONTINUEPRINTSTR (CDR S) (PUT (CAR S)))))))
+
 ')dnl

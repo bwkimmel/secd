@@ -1,0 +1,51 @@
+dnl  ===========================================================================
+dnl | Unicode functions
+dnl |
+dnl | Functions for encoding and printing Unicode characters.
+dnl  ===========================================================================
+ifdef(`unicode_lso_m4',,`define(`unicode_lso_m4',1)dnl
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Prints a string of Unicode characters to stdout
+  dnl | S = a list of Unicode code points
+  dnl | RETURNS NIL
+  dnl  -------------------------------------------------------------------------
+  (PRINTUTF8 LAMBDA (S)
+    (LETREC
+      (CONTINUEPRINTUTF8 S (QUOTE NIL))
+      (CONTINUEPRINTUTF8 LAMBDA (S A)
+        (IF (ISNIL S)
+            S
+            (CONTINUEPRINTUTF8 (CDR S) (PRINTSTR (UTF8 (CAR S))))))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Encodes a Unicode code-point usint UTF-8.
+  dnl | CODE = the Unicode code point to convert.
+  dnl | RETURNS a list of numbers (in the range of 0-255) represnting the bytes
+  dnl |         of the UTF-8 encoding of the Unicode character U+<CODE>.
+  dnl  -------------------------------------------------------------------------
+  (UTF8 LAMBDA (CODE)
+    (LETREC
+      (IF (LEQ CODE -1)
+          (CONS1 0)
+      (IF (LEQ CODE 127)
+          (CONS1 CODE)
+      (IF (LEQ CODE 2047)
+          (CONS2 (ADD 192 (DIV CODE 64)) (ADD 128 (REM CODE 64)))
+      (IF (LEQ CODE 65535)
+          (CONS (ADD 224 (DIV CODE 4096)) (UTF8TAIL (REM CODE 4096)))
+      (IF (LEQ CODE 2097151)
+          (CONS (ADD 240 (DIV CODE 262144)) (UTF8TAIL (REM CODE 262144)))
+      (IF (LEQ CODE 67108863)
+          (CONS (ADD 248 (DIV CODE 16777216)) (UTF8TAIL (REM CODE 16777216)))
+      (IF (LEQ CODE 2147483647)
+          (CONS (ADD 252 (DIV CODE 1073741824)) (UTF8TAIL (REM CODE 1073741824)))
+          (STOP (QUOTE InvalidUTFCodePoint)))))))))
+      (UTF8TAIL LAMBDA (CODE)
+        (CONTINUEUTF8TAIL CODE (QUOTE NIL)))
+      (CONTINUEUTF8TAIL LAMBDA (CODE TAIL)
+        (IF (EQ CODE 0)
+            TAIL
+            (CONTINUEUTF8TAIL (DIV CODE 64) (CONS (ADD 128 (REM CODE 64)) TAIL))))))
+
+')dnl
