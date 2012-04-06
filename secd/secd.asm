@@ -1094,7 +1094,7 @@ _instr_PEXP:
 ; be to return control to the current function's caller rather than to this
 ; function.
 ;
-; TRANSITION:  ((c'.e') v.s) e (APR.c) d  -->  NIL (v.e') c' d
+; TRANSITION:  ((c'.e') v.s) e (APR) d  -->  NIL (v.e') c' d
 ; ------------------------------------------------------------------------------
 _instr_APR:
 	cons	C, [D]
