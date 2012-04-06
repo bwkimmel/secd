@@ -547,6 +547,7 @@ _memerror:
 ;   TSEL - Tail-select (for IF statement in tail position)
 ;   MULX - Extended multiply (returns a pair representing 64-bit result)
 ;   PEXP - Print expression on top of stack to stdout
+;   POP  - Pop an item off of the stack
 ;
 ; The following are not yet fully implemented:
 ;   CVEC - Create vector
@@ -571,10 +572,10 @@ _instr \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
 		_instr_SUB , _instr_MUL , _instr_DIV , _instr_REM , _instr_LEQ , \
 		_instr_STOP, _instr_SYM , _instr_NUM , _instr_GET , _instr_PUT , \
-		_instr_APR , _instr_TSEL, _instr_MULX, _instr_PEXP, _instr_CVEC, \
-		_instr_VSET, _instr_VREF, _instr_VLEN, _instr_VCPY, _instr_CBIN, \
-		_instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, _instr_BS16, \
-		_instr_BR16, _instr_BS32, _instr_BR32
+		_instr_APR , _instr_TSEL, _instr_MULX, _instr_PEXP, _instr_POP, \
+		_instr_CVEC, _instr_VSET, _instr_VREF, _instr_VLEN, _instr_VCPY, \
+		_instr_CBIN, _instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, \
+		_instr_BS16, _instr_BR16, _instr_BS32, _instr_BR32
 
 numinstr	equ		($ - _instr) >> 2
 	
@@ -589,6 +590,15 @@ numinstr	equ		($ - _instr) >> 2
 ; TRANSITION:  s e (NOP.c) d  -->  s e c d
 ; ------------------------------------------------------------------------------
 _instr_NOP:
+	jmp		_cycle
+
+; ------------------------------------------------------------------------------
+; POP - Pop item off of the stack
+;
+; TRANSITION:  (x.s) e (POP.c) d  -->  s e c d
+; ------------------------------------------------------------------------------
+_instr_POP:
+	cdr		S, S
 	jmp		_cycle
 
 ; ------------------------------------------------------------------------------
