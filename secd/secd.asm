@@ -29,6 +29,45 @@
 
 
 ; ==============================================================================
+; Debugging
+;
+%ifdef DEBUG
+
+; ------------------------------------------------------------------------------
+; Displays the error for a bad cell reference and exits.
+; ------------------------------------------------------------------------------
+_bad_cell_ref:
+	sys.write stderr, err_bc, err_bc_len
+	sys.exit 1
+.halt:
+	jmp		.halt
+
+; ------------------------------------------------------------------------------
+; Checks that the specified value is a valid cell reference.
+; ------------------------------------------------------------------------------
+_check_cell_ref:
+	enter	0, 0
+	cmp		dword [ebp + 8], 0xffff
+	ja		_bad_cell_ref
+	leave
+	ret
+
+%macro check_cell_ref 1
+	push	dword %1
+	call	_check_cell_ref
+	add		esp, 4
+%endmacro
+
+%else	; !DEBUG
+
+%macro check_cell_ref 1
+	; nothing to do
+%endmacro
+
+%endif
+
+
+; ==============================================================================
 ; Instruction macros
 ;
 
@@ -39,6 +78,7 @@
 ; <src>  = the cons cell from which to exract the first element
 ; ------------------------------------------------------------------------------
 %macro car 2 
+	check_cell_ref %2
 	mov		%1, [dword values + %2 * 4]
 	shr		%1, 16
 %endmacro
@@ -50,6 +90,7 @@
 ; <src>  = the cons cell from which to extract the second element
 ; ------------------------------------------------------------------------------
 %macro cdr 2
+	check_cell_ref %2
 	mov		%1, [dword values + %2 * 4]
 	and		%1, 0xffff
 %endmacro
@@ -63,6 +104,7 @@
 ;             location in which to put the second element
 ; ------------------------------------------------------------------------------
 %macro carcdr 2
+	check_cell_ref %2
 	mov		%2, [dword values + %2 * 4]
 	mov		%1, %2
 	shr		%1, 16
@@ -78,6 +120,7 @@
 ;             location in which to put the first element
 ; ------------------------------------------------------------------------------
 %macro cdrcar 2
+	check_cell_ref %2
 	mov		%2, [dword values + %2 * 4]
 	mov		%1, %2
 	and		%1, 0xffff
@@ -91,6 +134,7 @@
 ;          which to put the value at that location
 ; ------------------------------------------------------------------------------
 %macro ivalue 1
+	check_cell_ref %1
 	mov		%1, [dword values + %1 * 4]
 %endmacro
 
@@ -128,6 +172,11 @@
 ; <cdr>      = the second element of the new cell
 ; ------------------------------------------------------------------------------
 %macro cons 2
+	check_cell_ref %1
+%ifidni %1,%2
+%else
+	check_cell_ref %2
+%endif
 	shl		%1, 16
 	or		%1, %2
 	alloc	%1, %1, SECD_CONS
@@ -160,6 +209,7 @@
 ; <cell> = the cell to test
 ; ------------------------------------------------------------------------------
 %macro isnumber 1
+	check_cell_ref %1
 	test	byte [flags + %1], 0x02
 %endmacro
 
@@ -201,6 +251,12 @@ err_cdr		db		"Attempt to CDR an atom", 10
 err_cdr_len	equ		$ - err_cdr
 err_oob		db		"Index out of bounds", 10
 err_oob_len	equ		$ - err_oob
+
+%ifdef DEBUG
+err_bc		db		"Bad cell reference", 10
+err_bc_len	equ		$ - err_bc
+%endif
+
 sep			db		10, "-----------------", 10
 sep_len		equ		$ - sep
 maj_sep		db		10, "==============================================", 10
@@ -404,6 +460,11 @@ _cycle:
 	call	_gc
 	pop		eax
 .nogc:
+	check_cell_ref dword S				; Check that all registers are valid
+	check_cell_ref dword [E]			; cell references
+	check_cell_ref dword C
+	check_cell_ref dword [D]
+	check_cell_ref dword ff
 	carcdr	eax, C						; Pop next instruction from code list
 	ivalue	eax							; Get its numeric value
 	cmp		eax, 1						; Check that it is a valid opcode

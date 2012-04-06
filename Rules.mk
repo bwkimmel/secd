@@ -7,14 +7,17 @@ LISPKIT		= $(LISPKITDIR)/compiler.lob
 
 CLEANFILES	?=
 
+DEBUG=0
 M4=m4 -I$(TOPDIR) -I$(TOPDIR)/util
 CC=gcc
 AS=nasm -g
 ARCH=elf32
 ASFLAGS=-f $(ARCH) -I$(SECDDIR)/
+ifeq ($(DEBUG),1)
+	ASFLAGS+=-D DEBUG=1
+endif
 LD=ld
 LDFLAGS=-m elf_i386
-DEBUG=0
 
 $(SECD): $(SECDDIR)/support.o $(SECDDIR)/string.o $(SECDDIR)/heap.o $(SECDDIR)/secd.o $(SECDDIR)/main.o
 	$(LD) $(LDFLAGS) -o $@ $^
