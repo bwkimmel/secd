@@ -54,9 +54,9 @@ include(Util.lso)
     (IF (ISDIGIT C)
         (LEXCOMPLEX C 10 (QUOTE NIL) DIGITVALUEDEC CC)
     (IF (ISPLUS C)
-        (LEXSTARTSWITHSIGN (GET) (QUOTE (PLUS)) CC)
+        (LEXSTARTSWITHSIGN (GET) 43 CC)
     (IF (ISMINUS C)
-        (LEXSTARTSWITHSIGN (GET) (QUOTE (MINUS)) CC)
+        (LEXSTARTSWITHSIGN (GET) 45 CC)
         (YIELDERROR CC)))))))))))))))))
 
   dnl  -------------------------------------------------------------------------
@@ -99,9 +99,9 @@ include(Util.lso)
   dnl |         token (such as a number).
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXSTARTSWITHSIGN LAMBDA (C TOKEN CC)
+  (LEXSTARTSWITHSIGN LAMBDA (C SIGN CC)
     (IF (OR (ISDELIM C) (ISWHITESPACE C))
-        (YIELDC TOKEN C CC)
+        (YIELDC (CONS2 (QUOTE VARIABLE) SIGN) C CC)
         (LEXCOMPLEX4 C 10 (QUOTE NIL) DIGITVALUEDEC CC)))
 
   dnl  -------------------------------------------------------------------------
