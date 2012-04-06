@@ -33,7 +33,7 @@ the parse tree to standard output.
 KNOWN ISSUES
 ------------
 
-This program pushes against the limits of the SECD machine (64K cons-cells) and
+This program pushes against the limits of the SECD machine (64K cells) and
 will likely crash if it is fed a Scheme program that is too large.  The reason
 for the 64K limit is that each cell in the SECD machine is 32-bits.  A cons pair
 (used for building lists) is stored in a single cell as two 16-bit cell indices.

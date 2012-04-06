@@ -393,4 +393,28 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
             (REVERSE CC)
             (INSERTCC (CDR L) (SUB N 1) (CONS (CAR L) CC)))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if a list contains a given number or symbol
+  dnl | C = the value to search for
+  dnl | L = the list to scan
+  dnl | RETURNS a value indicating if the list L contains C as an element
+  dnl  -------------------------------------------------------------------------
+  (CONTAINS LAMBDA (C L)
+    (IF (ISNIL L)
+        (QUOTE F)
+        (OR (EQ C (CAR L)) (CONTAINS C (CDR L)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Prints a string (represented as a list of ASCII values) to stdout
+  dnl | S = the string to print.
+  dnl | RETURNS NIL
+  dnl  -------------------------------------------------------------------------
+  (PRINTSTR LAMBDA (S)
+    (LETREC
+      (CONTINUEPRINTSTR S (QUOTE NIL))
+      (CONTINUEPRINTSTR LAMBDA (S A)
+        (IF (ISNIL S)
+            S
+            (CONTINUEPRINTSTR (CDR S) (PUT (CAR S)))))))
+
 ')dnl
