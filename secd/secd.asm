@@ -273,6 +273,8 @@ err_oob		db		"Index out of bounds", 10
 err_oob_len	equ		$ - err_oob
 
 %ifdef DEBUG
+err_ff		db		"Free cells in use", 10
+err_ff_len	equ		$ - err_ff
 err_bc		db		"Bad cell reference", 10
 err_bc_len	equ		$ - err_bc
 %endif
@@ -1485,6 +1487,27 @@ _trace:
 	call	_mark
 	mov		eax, 0
 	call	_mark
+
+; Sanity check -- scan free list for marked cells.  There should not be any.
+%ifdef DEBUG
+	mov		eax, ff
+.loop_checkff:
+		cmp		eax, 0								; while (eax != 0)
+		je		.done
+		test	byte [flags + eax], SECD_MARKED		;   if cell marked...
+		jnz		.error								;	  break to error
+		mov		eax, dword [values + 4 * eax]		;   advance to next cell
+		and		eax, 0xffff
+		jmp		.loop_checkff						; end while
+.error:
+	call	_flush									; found in-use cell in free
+	sys.write stderr, err_ff, err_ff_len			; list.
+	sys.exit 1
+.halt:
+	jmp		.halt
+
+.done:
+%endif	; DEBUG
 
 	pop		C			; Restore SECD-machine state
 	pop		S
