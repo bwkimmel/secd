@@ -538,6 +538,7 @@ _memerror:
 ;   STOP - Stop
 ;
 ; Extensions:
+;   NOP  - No operation
 ;   SYM  - Apply issymbol predicate to top stack item
 ;   NUM  - Apply isnumber predicate to top stack item
 ;   GET  - Push ASCII value of a character from stdin onto stack
