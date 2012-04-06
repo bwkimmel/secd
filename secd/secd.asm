@@ -1022,6 +1022,7 @@ _instr_APR:
 ; Instead, a RTN instruction should be encountered at the end of ct or cf.
 ;
 ; TRANSITION:  (x.s) e (TSEL ct cf) d  -->  s e c' d
+;              where c' = ct if x = T, and c' = cf if x = F
 ; ------------------------------------------------------------------------------
 _instr_TSEL:
 	mov		eax, C
