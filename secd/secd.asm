@@ -489,10 +489,8 @@ _cycle:
 	check_cell_ref dword ff
 	carcdr	eax, C						; Pop next instruction from code list
 	ivalue	eax							; Get its numeric value
-	cmp		eax, 0						; Check that it is a valid opcode
-	jl		_illegal
-	cmp		eax, dword numinstr
-	jge		_illegal
+	cmp		eax, dword numinstr			; Check that it is a valid opcode
+	jae		_illegal
 	jmp		[dword _instr + eax * 4]	; Jump to opcode handler
 
 _illegal:
