@@ -1097,9 +1097,6 @@ _instr_PEXP:
 ; TRANSITION:  ((c'.e') v.s) e (APR) d  -->  NIL (v.e') c' d
 ; ------------------------------------------------------------------------------
 _instr_APR:
-	cons	C, [D]
-	mov		eax, [E]
-	cons	eax, C		; EAX <-- cons(E, cons(cdr(C), D))
 	carcdr	edx, S		; EDX <-- car(S), S' <-- cdr(S)
 	carcdr	C, edx		; C' <-- car(car(S)), EDX <-- cdr(car(S))
 	car		ecx, S		; ECX <-- car(cdr(S)), S' <-- cdr(cdr(S))
