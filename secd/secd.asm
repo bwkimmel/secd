@@ -1554,6 +1554,12 @@ _mark:
 _gc:
 	call	_trace
 
+	push	eax
+	push	ecx
+	push	edx
+	push	S
+	push	C
+
 	mov		ff, 0
 	mov		edx, 0
 	mov		ecx, 65535
@@ -1573,6 +1579,12 @@ _gc:
 
 	cmp		ff, 0
 	je		.out_of_space
+
+	pop		C
+	pop		S
+	pop		edx
+	pop		ecx
+	pop		eax
 
 	ret
 
