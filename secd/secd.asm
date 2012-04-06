@@ -72,6 +72,26 @@ _check_cell_ref:
 ;
 
 ; ------------------------------------------------------------------------------
+; Save reserved registers for an external function call
+; USAGE: pushsecd
+; ------------------------------------------------------------------------------
+%macro pushsecd 0
+	push	S
+	push	C
+	push	ff
+%endmacro
+
+; ------------------------------------------------------------------------------
+; Restore reserved registers after an external function call
+; USAGE: popsecd
+; ------------------------------------------------------------------------------
+%macro popsecd 0
+	pop		ff
+	pop		C
+	pop		S
+%endmacro
+
+; ------------------------------------------------------------------------------
 ; Extracts the first element of a cons cell
 ; USAGE: car <dest>, <src>
 ; <dest> = the location to put the result into
@@ -152,7 +172,7 @@ _check_cell_ref:
 	call	_gc
 %%nogc:
 	dec		dword [free]
-	mov		[flags + ff], byte %3		; set flags for new cell
+	mov		byte [flags + ff], %3		; set flags for new cell
 %ifidni %1,%2							; special handling if <dest> == <value>
 	xchg	%1, ff
 	xchg	ff, [dword values + %1 * 4]
@@ -467,7 +487,7 @@ _cycle:
 	check_cell_ref dword ff
 	carcdr	eax, C						; Pop next instruction from code list
 	ivalue	eax							; Get its numeric value
-	cmp		eax, 1						; Check that it is a valid opcode
+	cmp		eax, 0						; Check that it is a valid opcode
 	jl		_illegal
 	cmp		eax, dword numinstr
 	jge		_illegal
@@ -544,7 +564,7 @@ _memerror:
 ;   BR32 - Get 32-bit value in binary blob
 ;
 _instr \
-	dd	0, \
+	dd	_instr_NOP , \
 		_instr_LD  , _instr_LDC , _instr_LDF , _instr_AP  , _instr_RTN , \
 		_instr_DUM , _instr_RAP , _instr_SEL , _instr_JOIN, _instr_CAR , \
 		_instr_CDR , _instr_ATOM, _instr_CONS, _instr_EQ  , _instr_ADD , \
@@ -561,6 +581,14 @@ numinstr	equ		($ - _instr) >> 2
 ; ==============================================================================
 ; SECD Instruction Implementations
 ;
+
+; ------------------------------------------------------------------------------
+; NOP - No operation
+;
+; TRANSITION:  s e (NOP.c) d  -->  s e c d
+; ------------------------------------------------------------------------------
+_instr_NOP:
+	jmp		_cycle
 
 ; ------------------------------------------------------------------------------
 ; LD - Load (from environment)
@@ -734,8 +762,8 @@ _instr_JOIN:
 ; ------------------------------------------------------------------------------
 _instr_CAR:
 	cdrcar	eax, S
-	mov		edx, [flags + S]
-	test	edx, SECD_ATOM
+	mov		dl, byte [flags + S]
+	test	dl, SECD_ATOM
 	jz		.endif
 		call	_flush
 		sys.write stderr, err_car, err_car_len
@@ -754,8 +782,8 @@ _instr_CAR:
 ; ------------------------------------------------------------------------------
 _instr_CDR:
 	cdrcar	eax, S
-	mov		edx, [flags + S]
-	test	edx, SECD_ATOM
+	mov		dl, byte [flags + S]
+	test	dl, SECD_ATOM
 	jz		.endif
 		call	_flush
 		sys.write stderr, err_cdr, err_cdr_len
@@ -1018,7 +1046,9 @@ _instr_NUM:
 ;              where x is the ASCII value of the character read from stdin
 ; ------------------------------------------------------------------------------
 _instr_GET:
+	pushsecd
 	call	_getchar
+	popsecd
 	number	eax, eax
 	cons	eax, S
 	mov		S, eax
@@ -1034,9 +1064,11 @@ _instr_PUT:
 	car		eax, S
 	ivalue	eax
 	and		eax, 0x000000ff
+	pushsecd
 	push	eax
 	call	_putchar
 	add		esp, 4
+	popsecd
 	jmp		_cycle
 
 ; ------------------------------------------------------------------------------
@@ -1047,11 +1079,13 @@ _instr_PUT:
 ; ------------------------------------------------------------------------------
 _instr_PEXP:
     car		eax, S
+	pushsecd
 	push	eax
 	call	_putexp
 	add		esp, 4
+	popsecd
 	jmp		_cycle
-		
+
 ; ------------------------------------------------------------------------------
 ; APR - Apply and return (for tail-call optimization)
 ;
@@ -1449,6 +1483,8 @@ _trace:
 	call	_mark
 	mov		eax, [false]
 	call	_mark
+	mov		eax, 0
+	call	_mark
 
 	pop		C			; Restore SECD-machine state
 	pop		S
@@ -1476,6 +1512,7 @@ _mark:
 			call	_mark
 			pop		eax
 			call	_mark
+			jmp		.endif
 	.else:
 		test	dl, SECD_HEAP				; if cell is a heap reference...
 		jz		.endif
@@ -1517,6 +1554,7 @@ _mark:
 _gc:
 	call	_trace
 
+	mov		ff, 0
 	mov		edx, 0
 	mov		ecx, 65535
 .loop_scan:
@@ -1524,6 +1562,7 @@ _gc:
 		test	al, SECD_MARKED
 		jnz		.endif
 			mov		dword [values + ecx * 4], ff
+			mov		byte [flags + ecx], byte SECD_CONS
 			mov		ff, ecx		
 			inc		edx
 	.endif:
@@ -1534,6 +1573,7 @@ _gc:
 
 	cmp		ff, 0
 	je		.out_of_space
+
 	ret
 
 .out_of_space:

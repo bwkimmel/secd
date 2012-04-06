@@ -32,6 +32,8 @@ dnl
                 (CONS (QUOTE 2) (CONS E C))
            (IF (ATOM E)
                 (CONS (QUOTE 1) (CONS (LOCATION E N) C))
+           (IF (EQ (CAR E) (QUOTE NOP))
+                (COMP (CAR (CDR E)) N (CONS (QUOTE 0) C))
            (IF (EQ (CAR E) (QUOTE QUOTE))
                 (CONS (QUOTE 2) (CONS (CAR (CDR E)) C))
            (IF (EQ (CAR E) (QUOTE ADD))
@@ -126,7 +128,7 @@ dnl
         (COMPLIS (CDR E) N (COMP (CAR E) N
           (IF (EQ (CAR C) (QUOTE 5))
                (CONS (QUOTE 26) (CDR C))
-               (CONS (QUOTE 4) C))))))))))))))))))))))))))))))))))))))))))
+               (CONS (QUOTE 4) C)))))))))))))))))))))))))))))))))))))))))))
         (COMPLIS LAMBDA (E N C)
            (IF (EQ E (QUOTE NIL)) (CONS (QUOTE 2) (CONS (QUOTE NIL) C))
                 (COMPLIS (CDR E) N (COMP (CAR E) N (CONS (QUOTE 13) C)))))
