@@ -48,7 +48,7 @@ include(Util.lso)
     (IF (ISCOMMA C)
         (LEXSTARTSWITHCOMMA (GET) CC)
     (IF (ISSEMI C)
-        (LEXINITIAL (FIRSTARG (SCAN) (SKIPCOMMENT)) CC)
+        (LEXINITIAL (BEGIN (SKIPCOMMENT) (SCAN)) CC)
     (IF (ISWHITESPACE C)
         (LEXINITIAL (SCAN) CC)
     (IF (ISDIGIT C)
@@ -746,13 +746,12 @@ include(Util.lso)
       (IF (ISWHITESPACE C)
           (SCAN)
           (IF (ISSEMI C)
-              (FIRSTARG (SCAN) (SKIPCOMMENT))
+              (BEGIN (SKIPCOMMENT) (SCAN))
               C))
       (C GET)))
   (SKIPCOMMENT LAMBDA NIL
     (LET
       (IF (ISNEWLINE C) (GET) (SKIPCOMMENT))
       (C GET)))
-  (FIRSTARG LAMBDA (A B) A)
 
 ')dnl
