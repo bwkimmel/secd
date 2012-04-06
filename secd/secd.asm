@@ -1099,7 +1099,7 @@ _instr_PEXP:
 _instr_APR:
 	carcdr	edx, S		; EDX <-- car(S), S' <-- cdr(S)
 	carcdr	C, edx		; C' <-- car(car(S)), EDX <-- cdr(car(S))
-	car		ecx, S		; ECX <-- car(cdr(S)), S' <-- cdr(cdr(S))
+	car		ecx, S		; ECX <-- car(cdr(S))
 	cons	ecx, edx
 	mov		[E], ecx	; E' <-- cons(car(cdr(S)), cdr(car(S)))
 	mov		S, 0		; S' <-- nil
