@@ -957,7 +957,7 @@ _instr_DIV:
 	ivalue	eax
 	ivalue	ecx
 	cdq					; Extend sign of EAX into all bits of EDX
-	div		ecx			; Compute EAX <-- EDX:EAX / ECX
+	idiv	ecx			; Compute EAX <-- EDX:EAX / ECX
 	number	eax, eax
 	cons	eax, S
 	mov		S, eax
