@@ -3,6 +3,8 @@ dnl | Pattern matching
 dnl  ===========================================================================
 ifdef(`pattern_lso_m4',,`define(`pattern_lso_m4',1)dnl
 
+include(Util.lso)
+
   dnl  -------------------------------------------------------------------------
   dnl | Determines if X matches the specified pattern and optionally extracts
   dnl | matching elements into a list.
