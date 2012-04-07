@@ -977,7 +977,7 @@ _instr_REM:
 	ivalue	ecx
 	mov		edx, eax
 	sar		edx, 31		; Extend sign of EAX into all bits of EDX
-	div		ecx			; Compute EDX <-- EDX:EAX % ECX
+	idiv	ecx			; Compute EDX <-- EDX:EAX % ECX
 	number	edx, edx
 	cons	edx, S
 	mov		S, edx
