@@ -992,9 +992,16 @@ _instr_REM:
 _instr_LEQ:
 	carcdr	edx, S
 	carcdr	eax, S		; EAX = car(cdr(S)), EDX = car(S), S' = cdr(cdr(S))
+	mov		cl, byte [flags + edx]
+	and		cl, SECD_TYPEMASK
+	mov		ch, byte [flags + eax]
+	and		ch, SECD_TYPEMASK
+	cmp		ch, cl		; First compare types
+	jne		.result		; If they have different types, we have a result, else..
 	ivalue	eax
 	ivalue	edx
-	cmp		eax, edx
+	cmp		eax, edx	; Compare their values
+.result:
 	cmovle	eax, [true]
 	cmovnle	eax, [false]
 	cons	eax, S
