@@ -142,33 +142,33 @@ include(Util.lso)
                                                 MATCHRR)
 
               (MATCHRR PATTERN M
-                (QUOTE (BLACK _ _ _ (RED _ _ _ (RED _ _ _ _)))))
-dnl -----------               a x x      b y y      c z z d
-dnl -----------                (k,v)      (k,v)      (k,v)
+                (QUOTE (_ _ _ (_ _ _ (_ _ _ _ . RED) . RED) . BLACK)))
+dnl -----------         a x x  b y y  c z z d
+dnl -----------          (k,v)  (k,v)  (k,v)
 
                                          )
                                        MATCHRL)
 
               (MATCHRL PATTERN M
-                (QUOTE (BLACK _ _ _ (RED (RED _ _ _ _) _ _ _))))
-dnl -----------               a x x           b y y c  z z d
-dnl -----------                (k,v)           (k,v)  (k,v)
+                (QUOTE (_ _ _ ((_ _ _ _ . RED) _ _ _ . RED) . BLACK)))
+dnl -----------         a x x   b y y c        z z d
+dnl -----------          (k,v)   (k,v)        (k,v)
 
                                 )
                               MATCHLR)
 
               (MATCHLR PATTERN M
-                (QUOTE (BLACK (RED _ _ _ (RED _ _ _ _)) _ _ _)))
-dnl -----------                    a x x      b y y c   z z d
-dnl -----------                     (k,v)      (k,v)   (k,v)
+                (QUOTE ((_ _ _ (_ _ _ _ . RED) . RED) _ _ _ . BLACK)))
+dnl -----------          a x x  b y y c               z z d
+dnl -----------           (k,v)  (k,v)               (k,v)
 
                        )
                      MATCHLL)
 
               (MATCHLL PATTERN M
-                (QUOTE (BLACK (RED (RED _ _ _ _) _ _ _) _ _ _)))
-dnl -----------                         a x x b  y y c  z z d
-dnl -----------                          (k,v)  (k,v)  (k,v)
+                (QUOTE (((_ _ _ _ . RED) _ _ _ . RED) _ _ _ . BLACK)))
+dnl -----------           a x x b        y y c        z z d
+dnl -----------            (k,v)        (k,v)        (k,v)
 
               ))))))
 
@@ -224,21 +224,12 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
   (MAPRED QUOTE RED)		dnl --- A symbol denoting a red node
 
   dnl  -------------------------------------------------------------------------
-  dnl | Gets the color of the specified map node (see
-  dnl | http://en.wikipedia.org/wiki/Red-black_tree)
-  dnl | M = the map node
-  dnl | RETURNS the color associated with the node
-  dnl  -------------------------------------------------------------------------
-  (MAPCOLOR LAMBDA (M)
-    (FIRST M))
-
-  dnl  -------------------------------------------------------------------------
   dnl | Gets the left child of the specified map node
   dnl | M = the map node
   dnl | RETURNS the left child of the node
   dnl  -------------------------------------------------------------------------
   (MAPLEFT LAMBDA (M)
-    (SECOND M))
+    (FIRST M))
 
   dnl  -------------------------------------------------------------------------
   dnl | Gets the key stored at the given map node
@@ -246,7 +237,7 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
   dnl | RETURNS the key stored at the map node
   dnl  -------------------------------------------------------------------------
   (MAPKEY LAMBDA (M)
-    (THIRD M))
+    (SECOND M))
 
   dnl  -------------------------------------------------------------------------
   dnl | Gets the value stored at the given map node
@@ -254,7 +245,7 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
   dnl | RETURNS the value stored at the map node
   dnl  -------------------------------------------------------------------------
   (MAPVALUE LAMBDA (M)
-    (FOURTH M))
+    (THIRD M))
 
   dnl  -------------------------------------------------------------------------
   dnl | Gets the right child of the specified map node
@@ -262,7 +253,16 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
   dnl | RETURNS the right child of the node
   dnl  -------------------------------------------------------------------------
   (MAPRIGHT LAMBDA (M)
-    (FIFTH M))
+    (FOURTH M))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the color of the specified map node (see
+  dnl | http://en.wikipedia.org/wiki/Red-black_tree)
+  dnl | M = the map node
+  dnl | RETURNS the color associated with the node
+  dnl  -------------------------------------------------------------------------
+  (MAPCOLOR LAMBDA (M)
+    (CDR (CDR (CDR (CDR M)))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Creates a new map node
@@ -273,7 +273,7 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
   dnl | R = the right child of the new node
   dnl  -------------------------------------------------------------------------
   (MAPCONS LAMBDA (K V C L R)
-    (CONS5 C L K V R))
+    (CONS L (CONS K (CONS V (CONS R C)))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Creates a new node identical to the specified node except with a
@@ -296,7 +296,7 @@ dnl -----------                          (k,v)  (k,v)  (k,v)
     (LET
       (IF (EQ C COLOR)
           M
-          (CONS C (CDR M)))
+          (MAPCONS (MAPKEY M) (MAPVALUE M) C (MAPLEFT M) (MAPRIGHT M)))
       (COLOR MAPCOLOR M)))
 
 ')dnl
