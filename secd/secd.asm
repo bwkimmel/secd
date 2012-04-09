@@ -403,8 +403,11 @@ _init_free_list:
 	mov		eax, dword [ebp + 8]		; EAX = # of used cells
 	lea		edi, [values + eax * 4]		; EDI = address of first free cell
 
-	mov		ecx, 65535
+	mov		ecx, 65536
 	sub		ecx, eax					; # Free cells = 65536 - # Used cells
+
+	mov		dword [free], ecx
+	dec		ecx
 
 	cld
 .init:
@@ -420,31 +423,25 @@ _init_free_list:
 _compact:
 	enter	0, 0
 
-	call	_gc
+	call	_trace
 
 	mov		esi, dword 65536
-	sub		esi, dword [free]
-	mov		edi, dword 0
-
-	mov		ecx, 65536
+	mov		edi, dword -1
 
 .loop_pack:
 .scanl:
 	inc		edi
-	test	byte [flags + edi - 1], SECD_MARKED
-	loopnz	.scanl
-
-	jcxz	.endloop_pack
+	cmp		esi, edi
+	jle		.endloop_pack
+	test	byte [flags + edi], SECD_MARKED
+	jnz		.scanl
 
 .scanr:
-	inc		esi
-	test	byte [flags + esi - 1], SECD_MARKED
-	loopz	.scanr
-
-	jcxz	.endloop_pack
-
 	dec		esi
-	dec		edi
+	cmp		esi, edi
+	jle		.endloop_pack
+	test	byte [flags + esi], SECD_MARKED
+	jz		.scanr
 
 	mov		al, SECD_TYPEMASK
 	and		al, byte [flags + esi]
@@ -456,68 +453,60 @@ _compact:
 
 	mov		[values + esi * 4], edi		; Store forwarding pointer
 
-	jcxz	.endloop_pack
-
-	inc		esi
-	inc		edi
-
 	jmp		.loop_pack
 .endloop_pack:
 
-	mov		ecx, 65536
-	sub		ecx, [free]
-	cmp		ecx, 0
-	je		.endloop_forward
-
-	mov		ebx, ecx
-
 .loop_forward:
-	mov		al, SECD_TYPEMASK
-	and		al, byte [flags + (ecx - 1)]
-	cmp		al, SECD_CONS
-	jne		.endif
+	dec		esi
+	js		.endloop_forward
 
-		mov		eax, dword [values + (ecx - 1) * 4]
+	mov		al, SECD_TYPEMASK
+	and		al, byte [flags + esi]
+	cmp		al, SECD_CONS
+	jne		.loop_forward
+
+		mov		eax, dword [values + esi * 4]
 		mov		edx, eax
 		and		eax, 0xffff
 		shr		edx, 16
 
-		cmp		eax, ebx
+		cmp		eax, edi
 		cmovae	eax, [values + eax * 4]
 
-		cmp		edx, ebx
+		cmp		edx, edi
 		cmovae	edx, [values + edx * 4]
 
 		shl		edx, 16
 		or		eax, edx
 
-		mov		dword [values + (ecx - 1) * 4], eax
+		mov		dword [values + esi * 4], eax
 
 .endif:
-	loop	.loop_forward
+	jmp		.loop_forward
+
 .endloop_forward:
 
 	mov		eax, [Sreg]
-	cmp		eax, ebx
+	cmp		eax, edi
 	cmovae	eax, [values + eax * 4]
 	mov		[Sreg], eax
 
 	mov		eax, [E]
-	cmp		eax, ebx
+	cmp		eax, edi
 	cmovae	eax, [values + eax * 4]
 	mov		[E], eax
 
 	mov		eax, [Creg]
-	cmp		eax, ebx
+	cmp		eax, edi
 	cmovae  eax, [values + eax * 4]
 	mov		[Creg], eax
 
 	mov		eax, [D]
-	cmp		eax, ebx
+	cmp		eax, edi
 	cmovae	eax, [values + eax * 4]
 	mov		[D], eax
 
-	push	ebx
+	push	edi
 	call	_init_free_list
 	add		esp, 4
 
@@ -697,7 +686,7 @@ _exec:
 	mov		eax, dword free
 	mov		[eax], dword 0
 
-	call	_dump
+;	call	_dump
 	;
 	; ---> to top of instruction cycle ...
 
@@ -1249,10 +1238,10 @@ _instr_LEQ:
 ; ------------------------------------------------------------------------------
 _instr_STOP:
 	car		S, S
-;	call	_dump
-;	saveregs
-;	call	_flush
-;	loadregs
+	call	_dump
+	saveregs
+	call	_flush
+	loadregs
 	mov		eax, S
 ;	car		eax, S
 	pop		edi
