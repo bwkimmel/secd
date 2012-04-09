@@ -1,0 +1,12 @@
+Offset		Length		Description
+ 0			4			Magic number 0x44434553 ("SECD")
+ 4			4			Number of entries (n)
+ 8			2			S register
+10			2			E register
+12			2			C register
+14			2			D register
+16			4*n			Cells
+16+4*n		n			Flags
+
+Total file length		16+5*n
+

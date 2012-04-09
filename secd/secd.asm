@@ -91,6 +91,18 @@ _check_cell_ref:
 	pop		S
 %endmacro
 
+%macro saveregs 0
+	mov		[Sreg], S
+	mov		[Creg], C
+	mov		[ffreg], ff
+%endmacro
+
+%macro loadregs 0
+	mov		S, [Sreg]
+	mov		C, [Creg]
+	mov		ff, [ffreg]
+%endmacro
+
 ; ------------------------------------------------------------------------------
 ; Extracts the first element of a cons cell
 ; USAGE: car <dest>, <src>
@@ -253,6 +265,8 @@ _check_cell_ref:
 ; Builtin strings
 ;
 segment .data
+magic		db		"SECD"
+magic_len	equ		$ - magic
 tstr		db		"T"
 tstr_len	equ		$ - tstr
 fstr		db		"F"
@@ -271,6 +285,8 @@ err_cdr		db		"Attempt to CDR an atom", 10
 err_cdr_len	equ		$ - err_cdr
 err_oob		db		"Index out of bounds", 10
 err_oob_len	equ		$ - err_oob
+err_bm		db		"Invalid SECD image", 10
+err_bm_len	equ		$ - err_bm
 
 %ifdef DEBUG
 err_ff		db		"Free cells in use", 10
@@ -313,9 +329,9 @@ E			resd	1		; (E)nvironment register
 D			resd	1		; (D)ump register
 true		resd	1		; true register
 false		resd	1		; false register
-Sreg		resd	1
-Creg		resd	1
-ffreg		resd	1
+Sreg		resd	1		; Storage for (S)tack register
+Creg		resd	1		; Storage for (C)ode register
+ffreg		resd	1		; Storage for head of free list (ff) register
 
 
 ; ==============================================================================
@@ -331,6 +347,221 @@ segment .text
 ; ==============================================================================
 ; Exported functions
 ;
+_load:
+	enter	4, 0
+
+	lea		edi, [ebp - 4]
+	sys.read stdin, esi, 4				; Read magic number to local var.
+	mov		eax, [ebp - 4]
+	cmp		eax, dword [magic]			; If first four bytes != "SECD"...
+	jne		.badmagic					; Print error and exit
+
+	sys.read stdin, ffreg, 4			; Read number of cells (this will also
+										; be the index of the first free cell).
+
+	mov		dword [Sreg], 0
+	sys.read stdin, Sreg, 2				; Read stack register
+
+	mov		dword [E], 0
+	sys.read stdin, E, 2				; Read environment register
+
+	mov		dword [Creg], 0
+	sys.read stdin, Creg, 2				; Read code register
+
+	mov		dword [D], 0
+	sys.read stdin, D, 2				; Read dump register
+
+	mov		ecx, dword [ffreg]
+	shl		ecx, 2						; Size = 4 * number of cells
+	sys.read stdin, values, ecx			; Read cell data
+
+	mov		ecx, dword [ffreg]
+	sys.read stdin, flags, ecx			; Read flag data
+
+	push	dword [ffreg]
+	call	_init_free_list				; Initialize the free list
+	add		esp, 4
+
+	loadregs							; Load SECD reserved registers
+
+	leave
+	ret
+
+.badmagic:								; Invalid SECD image
+	call	_flush
+	sys.write stderr, err_bm, err_bm_len
+	sys.exit 1
+.halt:
+	jmp		.halt
+
+
+; Initialize the remainder of the cells into a free list.  Each cell contains
+; the index of the next cell.
+_init_free_list:
+	enter	0, 0
+
+	mov		eax, dword [ebp + 8]		; EAX = # of used cells
+	lea		edi, [values + eax * 4]		; EDI = address of first free cell
+
+	mov		ecx, 65535
+	sub		ecx, eax					; # Free cells = 65536 - # Used cells
+
+	cld
+.init:
+		inc		eax
+		stosd							; values[index] = 1 + index
+		loop	.init
+	mov		[edi], dword 0				; values[65535] = NIL
+
+	leave
+	ret
+
+
+_compact:
+	enter	0, 0
+
+	call	_gc
+
+	mov		esi, dword 65536
+	sub		esi, dword [free]
+	mov		edi, dword 0
+
+	mov		ecx, 65536
+
+.loop_pack:
+.scanl:
+	inc		edi
+	test	byte [flags + edi - 1], SECD_MARKED
+	loopnz	.scanl
+
+	jcxz	.endloop_pack
+
+.scanr:
+	inc		esi
+	test	byte [flags + esi - 1], SECD_MARKED
+	loopz	.scanr
+
+	jcxz	.endloop_pack
+
+	dec		esi
+	dec		edi
+
+	mov		al, SECD_TYPEMASK
+	and		al, byte [flags + esi]
+	mov		byte [flags + edi], al
+	mov		byte [flags + esi], 0
+
+	mov		eax, [values + esi * 4]
+	mov		[values + edi * 4], eax		; Copy values[EDI] <-- values[ESI]
+
+	mov		[values + esi * 4], edi		; Store forwarding pointer
+
+	jcxz	.endloop_pack
+
+	inc		esi
+	inc		edi
+
+	jmp		.loop_pack
+.endloop_pack:
+
+	mov		ecx, 65536
+	sub		ecx, [free]
+	cmp		ecx, 0
+	je		.endloop_forward
+
+	mov		ebx, ecx
+
+.loop_forward:
+	mov		al, SECD_TYPEMASK
+	and		al, byte [flags + (ecx - 1)]
+	cmp		al, SECD_CONS
+	jne		.endif
+
+		mov		eax, dword [values + (ecx - 1) * 4]
+		mov		edx, eax
+		and		eax, 0xffff
+		shr		edx, 16
+
+		cmp		eax, ebx
+		cmovae	eax, [values + eax * 4]
+
+		cmp		edx, ebx
+		cmovae	edx, [values + edx * 4]
+
+		shl		edx, 16
+		or		eax, edx
+
+		mov		dword [values + (ecx - 1) * 4], eax
+
+.endif:
+	loop	.loop_forward
+.endloop_forward:
+
+	mov		eax, [Sreg]
+	cmp		eax, ebx
+	cmovae	eax, [values + eax * 4]
+	mov		[Sreg], eax
+
+	mov		eax, [E]
+	cmp		eax, ebx
+	cmovae	eax, [values + eax * 4]
+	mov		[E], eax
+
+	mov		eax, [Creg]
+	cmp		eax, ebx
+	cmovae  eax, [values + eax * 4]
+	mov		[Creg], eax
+
+	mov		eax, [D]
+	cmp		eax, ebx
+	cmovae	eax, [values + eax * 4]
+	mov		[D], eax
+
+	push	ebx
+	call	_init_free_list
+	add		esp, 4
+
+	leave
+	ret
+
+
+_dump:
+	enter	4, 0
+
+	saveregs
+
+	call	_compact
+
+	sys.write stdout, magic, magic_len
+
+	lea		edi, [ebp - 4]
+
+	mov		ecx, 65536
+	sub		ecx, dword [free]
+	mov		[edi], ecx
+	sys.write stdout, edi, 4
+
+	sys.write stdout, Sreg, 2
+	sys.write stdout, E, 2
+	sys.write stdout, Creg, 2
+	sys.write stdout, D, 2
+
+	mov		ecx, 65536
+	sub		ecx, dword [free]
+	shl		ecx, 2
+	sys.write stdout, values, ecx
+
+	mov		ecx, 65536
+	sub		ecx, dword [free]
+	sys.write stdout, flags, ecx
+
+	loadregs
+
+	mov		byte [flags], SECD_SYMBOL
+
+	leave
+	ret
+
 
 ; ------------------------------------------------------------------------------
 ; Prints the current state of the machine for diagnostic purposes
@@ -465,8 +696,11 @@ _exec:
 	cons	S, 0
 	mov		eax, dword free
 	mov		[eax], dword 0
+
+	call	_dump
 	;
 	; ---> to top of instruction cycle ...
+
 	
 
 ; ==============================================================================
@@ -1014,7 +1248,13 @@ _instr_LEQ:
 ; TRANSITION:  s e (STOP) d  -->  <undefined>
 ; ------------------------------------------------------------------------------
 _instr_STOP:
-	car		eax, S
+	car		S, S
+;	call	_dump
+;	saveregs
+;	call	_flush
+;	loadregs
+	mov		eax, S
+;	car		eax, S
 	pop		edi
 	pop		esi
 	pop		ebx
