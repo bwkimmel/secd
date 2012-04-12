@@ -1547,8 +1547,7 @@ _mark:
 			push	edx
 			call	_mark
 			pop		eax
-			call	_mark
-			jmp		.endif
+			jmp		_mark
 	.else:
 		test	dl, SECD_HEAP				; if cell is a heap reference...
 		jz		.endif
