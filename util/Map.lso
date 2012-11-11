@@ -219,9 +219,9 @@ dnl -----------            (k,v)        (k,v)        (k,v)
   dnl | Private functions
   dnl  =========================================================================
   
-  (MAPEMPTY QUOTE NIL)		dnl --- The empty map
-  (MAPBLACK QUOTE BLACK)	dnl --- A symbol denoting a black node
-  (MAPRED QUOTE RED)		dnl --- A symbol denoting a red node
+  (MAPEMPTY QUOTE NIL)      dnl --- The empty map
+  (MAPBLACK QUOTE BLACK)    dnl --- A symbol denoting a black node
+  (MAPRED QUOTE RED)        dnl --- A symbol denoting a red node
 
   dnl  -------------------------------------------------------------------------
   dnl | Gets the left child of the specified map node

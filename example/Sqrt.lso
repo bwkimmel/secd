@@ -10,6 +10,6 @@ include(Map.lso)
 
   (BUILDSQRTMAPCC LAMBDA (N CC)
     (IF (LEQ N 0)
-	    CC
-		(BUILDSQRTMAPCC (SUB N 1) (MAPPUT CC (MUL N N) N)))))
-	    
+        CC
+        (BUILDSQRTMAPCC (SUB N 1) (MAPPUT CC (MUL N N) N)))))
+        

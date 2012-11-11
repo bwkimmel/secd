@@ -9,16 +9,16 @@
 ; ------------------------------------------------------------------------------
 ; Special file descriptors
 ;
-%define stdin		0
-%define stdout		1
-%define stderr		2
+%define stdin       0
+%define stdout      1
+%define stderr      2
 
 ; ------------------------------------------------------------------------------
 ; System call numbers
 ;
-%define SYS_exit	1
-%define SYS_read	3
-%define SYS_write	4
+%define SYS_exit    1
+%define SYS_read    3
+%define SYS_write   4
 
 ; ==============================================================================
 ; System call macros
@@ -30,8 +30,8 @@
 ; <call#> = the number identifying the system call to issue
 ; ------------------------------------------------------------------------------
 %macro system 1
-	mov		eax, %1
-	call	__kernel__
+    mov     eax, %1
+    call    __kernel__
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -42,10 +42,10 @@
 ; <len> = the length of the buffer
 ; ------------------------------------------------------------------------------
 %macro sys.read 3
-	mov		edx, %3
-	mov		ecx, %2
-	mov		ebx, %1
-	system	SYS_read	
+    mov     edx, %3
+    mov     ecx, %2
+    mov     ebx, %1
+    system  SYS_read    
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -56,10 +56,10 @@
 ; <len> = the number of bytes to write
 ; ------------------------------------------------------------------------------
 %macro sys.write 3
-	mov		edx, %3
-	mov		ecx, %2
-	mov		ebx, %1
-	system	SYS_write
+    mov     edx, %3
+    mov     ecx, %2
+    mov     ebx, %1
+    system  SYS_write
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -68,8 +68,8 @@
 ; <errno> = the exit code
 ; ------------------------------------------------------------------------------
 %macro sys.exit 1
-	mov		ebx, %1
-	system	SYS_exit
+    mov     ebx, %1
+    system  SYS_exit
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -78,6 +78,6 @@
 section .text
 align 4
 __kernel__:
-	int		0x80
-	ret
+    int     0x80
+    ret
 

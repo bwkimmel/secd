@@ -9,16 +9,16 @@
 ; ------------------------------------------------------------------------------
 ; Special file descriptors
 ;
-%define stdin		0
-%define stdout		1
-%define stderr		2
+%define stdin       0
+%define stdout      1
+%define stderr      2
 
 ; ------------------------------------------------------------------------------
 ; System call numbers
 ;
-%define SYS_exit	1
-%define SYS_read	3
-%define SYS_write	4
+%define SYS_exit    1
+%define SYS_read    3
+%define SYS_write   4
 
 ; ==============================================================================
 ; System call macros
@@ -30,8 +30,8 @@
 ; <call#> = the number identifying the system call to issue
 ; ------------------------------------------------------------------------------
 %macro system 1
-	mov		eax, %1
-	call	__kernel__
+    mov     eax, %1
+    call    __kernel__
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -42,12 +42,12 @@
 ; <len> = the length of the buffer
 ; ------------------------------------------------------------------------------
 %macro sys.read 3
-	push	dword 0
-	push	dword %3
-	push	dword %2
-	push	dword %1
-	system	SYS_read	
-	add		esp, 16
+    push    dword 0
+    push    dword %3
+    push    dword %2
+    push    dword %1
+    system  SYS_read    
+    add     esp, 16
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -58,11 +58,11 @@
 ; <len> = the number of bytes to write
 ; ------------------------------------------------------------------------------
 %macro sys.write 3
-	push	dword %3
-	push	dword %2
-	push	dword %1
-	system	SYS_write
-	add		esp, 12
+    push    dword %3
+    push    dword %2
+    push    dword %1
+    system  SYS_write
+    add     esp, 12
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -71,9 +71,9 @@
 ; <errno> = the exit code
 ; ------------------------------------------------------------------------------
 %macro sys.exit 1
-	push	dword %1
-	system	SYS_exit
-	add		esp, 4
+    push    dword %1
+    system  SYS_exit
+    add     esp, 4
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -82,6 +82,6 @@
 section .text
 align 4
 __kernel__:
-	int		0x80
-	ret
+    int     0x80
+    ret
 

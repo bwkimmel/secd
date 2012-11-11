@@ -2,11 +2,11 @@ dnl --- Simple Calculator
 (LETREC TEST
   (TEST LAMBDA (EXPR)
     (EVAL (CFGPARSE
-	  (MAPFROMLIST ExpressionCFG)
-	  (MAPFROMLIST ExpressionDFA)
-	  (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
-	  (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
-	  (FLATTEN EXPR))))
+      (MAPFROMLIST ExpressionCFG)
+      (MAPFROMLIST ExpressionDFA)
+      (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
+      (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
+      (FLATTEN EXPR))))
 
   dnl --- Flattens the list, turning the beginning and end of sub-lists
   dnl     into OPENP & CLOSEP tokens, respectively.
@@ -40,7 +40,7 @@ dnl --- Simple Calculator
     (LET (IF (EQ V (QUOTE F))
     (LET (IF (EQ V (QUOTE F))
     (LET (IF (EQ V (QUOTE F))
-	     (STOP (QUOTE UnexpectedError))
+         (STOP (QUOTE UnexpectedError))
     (EVAL (FIRST V))) (V PATTERN TREE (QUOTE ((*.*) _))))
     (LT  (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((C.*) _ < _))))
     (GT  (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((C.*) _ > _))))
@@ -54,7 +54,7 @@ dnl --- Simple Calculator
     (DIV (EVAL (FIRST V)) (EVAL (SECOND V)))) (V PATTERN TREE (QUOTE ((T.*) _ / _))))
     (EVAL (FIRST V))) (V PATTERN TREE (QUOTE ((F.*) * _ *))))
     (FIRST V)) (V PATTERN TREE (QUOTE ((F.*) _))))
-	)
+    )
 
   (ExpressionCFG QUOTE
 include(ExpressionCFG.lso)

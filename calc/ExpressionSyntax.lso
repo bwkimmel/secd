@@ -24,36 +24,36 @@ ifdef(`expression_syntax_lso_m4',,`define(`expression_syntax_lso_m4',1)dnl
   (START (S))
 
   (S
-    (C)		dnl --- Comparison
-	(E))	dnl --- Expression
+    (C)     dnl --- Comparison
+    (E))    dnl --- Expression
 
   dnl --- Comparisons ---
   (C
     (E < E)
-	(E > E)
-	(E <= E)
-	(E >= E)
-	(E == E)
-	(E != E))
+    (E > E)
+    (E <= E)
+    (E >= E)
+    (E == E)
+    (E != E))
 
   dnl --- Expression ---
   (E
     (E + T)
-	(E - T)
-	(T))
+    (E - T)
+    (T))
 
   dnl --- Term ---
   (T
     (T * F)
-	(T / F)
-	(F))
+    (T / F)
+    (F))
 
   dnl --- Factor ---
   (F
     ([ E ])
     ({ E })
-	(OPENP E CLOSEP)
-	(ID))
+    (OPENP E CLOSEP)
+    (ID))
 
   dnl --- Terminals ---
   (ID)

@@ -2,11 +2,11 @@ dnl --- Test expression parsing
 (LETREC TEST
   (TEST LAMBDA (EXPR)
     (CFGPARSE
-	  (MAPFROMLIST ExpressionCFG)
-	  (MAPFROMLIST ExpressionDFA)
-	  (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
-	  (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
-	  (FLATTEN EXPR)))
+      (MAPFROMLIST ExpressionCFG)
+      (MAPFROMLIST ExpressionDFA)
+      (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
+      (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
+      (FLATTEN EXPR)))
 
   dnl --- Flattens the list, turning the beginning and end of sub-lists
   dnl     into OPENP & CLOSEP tokens, respectively.

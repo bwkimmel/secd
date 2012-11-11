@@ -463,27 +463,27 @@ include(Util.lso)
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
   (LEXNUMBERPREFIXITEM LAMBDA (C BASE EXACT CC)
-    (IF (ISB C)				dnl --- #b = binary
+    (IF (ISB C)             dnl --- #b = binary
         (IF (ISNIL BASE)
             (LEXNUMBERPREFIX (GET) 2 EXACT CC)
             (YIELDERROR CC))
-    (IF (ISO C)				dnl --- #o = octal
+    (IF (ISO C)             dnl --- #o = octal
         (IF (ISNIL BASE)
             (LEXNUMBERPREFIX (GET) 8 EXACT CC)
             (YIELDERROR CC))
-    (IF (ISD C)				dnl --- #d = decimal
+    (IF (ISD C)             dnl --- #d = decimal
         (IF (ISNIL BASE)
             (LEXNUMBERPREFIX (GET) 10 EXACT CC)
             (YIELDERROR CC))
-    (IF (ISX C)				dnl --- #x = hexadecimal
+    (IF (ISX C)             dnl --- #x = hexadecimal
         (IF (ISNIL BASE)
             (LEXNUMBERPREFIX (GET) 16 EXACT CC)
             (YIELDERROR CC))
-    (IF (ISI C)				dnl --- #i = inexact
+    (IF (ISI C)             dnl --- #i = inexact
         (IF (ISNIL EXACT)
             (LEXNUMBERPREFIX (GET) BASE (QUOTE F) CC)
             (YIELDERROR CC))
-    (IF (ISE C)				dnl --- #e = exact
+    (IF (ISE C)             dnl --- #e = exact
         (IF (ISNIL EXACT)
             (LEXNUMBERPREFIX (GET) BASE (QUOTE T) CC)
             (YIELDERROR CC))
@@ -497,9 +497,9 @@ include(Util.lso)
   (LEXCHARACTER LAMBDA (C CC)
     (IF (LEQ C 0)
         (YIELDERROR CC)
-    (IF (ISN C)			dnl --- could be #\newline
+    (IF (ISN C)         dnl --- could be #\newline
         (LEXCHARACTERSTARTSWITHN (GET) CC)
-    (IF (ISS C)			dnl --- could be #\space
+    (IF (ISS C)         dnl --- could be #\space
         (LEXCHARACTERSTARTSWITHS (GET) CC)
         (YIELDC (CONS (QUOTE CHAR) (CONS C (QUOTE NIL))) (GET) CC)))))
 
@@ -559,11 +559,11 @@ include(Util.lso)
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
   (LEXSTRINGELEM LAMBDA (C S CC)
-    (IF (LEQ C 0)			dnl --- EOF in middle of string literal
+    (IF (LEQ C 0)           dnl --- EOF in middle of string literal
         (YIELDERROR CC)
-    (IF (ISDQUOTE C)		dnl --- end of string literal
+    (IF (ISDQUOTE C)        dnl --- end of string literal
         (YIELD (CONS (QUOTE STRING) (REVERSE S)) CC)
-    (IF (ISBACKSLASH C)		dnl --- escape character
+    (IF (ISBACKSLASH C)     dnl --- escape character
         (LEXSTRINGESC (GET) S CC)
         (LEXSTRINGELEM (GET) (CONS C S) CC)))))
 

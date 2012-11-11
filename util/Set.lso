@@ -34,8 +34,8 @@ include(Map.lso)
   dnl  -------------------------------------------------------------------------
   (SETPUTALL LAMBDA (S L)
     (IF (ISNIL L)
-	    S
-		(SETPUTALL (SETPUT S (CAR L)) (CDR L))))
+        S
+        (SETPUTALL (SETPUT S (CAR L)) (CDR L))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Removes the speicifed item from the set
@@ -88,8 +88,8 @@ include(Map.lso)
   dnl  -------------------------------------------------------------------------
   (SETINTERSECT LAMBDA (A B)
     (SETFROMLIST
-	  (FILTER
-	    (LAMBDA (E) (SETCONTAINS B E))
-		(SETTOLIST A))))
+      (FILTER
+        (LAMBDA (E) (SETCONTAINS B E))
+        (SETTOLIST A))))
 
 ')dnl
