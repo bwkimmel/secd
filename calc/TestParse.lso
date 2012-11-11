@@ -12,13 +12,17 @@ dnl --- Test expression parsing
   dnl     into OPENP & CLOSEP tokens, respectively.
   (FLATTEN LAMBDA (L)
     (LETREC
-	  (REVERSE (FLATTENCC L (QUOTE NIL)))
-	  (FLATTENCC LAMBDA (L CC)
-	    (IF (ISNIL L)
-		    CC
-		(IF (ATOM (CAR L))
-		    (FLATTENCC (CDR L) (CONS (CAR L) CC))
-		    (FLATTENCC (CDR L) (CONS (QUOTE OPENP) (APPEND (CAR L) (CONS (QUOTE CLOSEP) CC)))))))))
+      (FLATTENCC L (QUOTE NIL))
+      (FLATTENCC LAMBDA (L CC)
+        (IF (ISNIL L)
+            (REVERSE CC)
+        (IF (ATOM (CAR L))
+            (FLATTENCC (CDR L) (CONS (CAR L) CC))
+            (FLATTENCC
+              (APPEND
+                (CONS (QUOTE OPENP) (CAR L))
+                (CONS (QUOTE CLOSEP) (CDR L)))
+              CC))))))
 
   (ExpressionCFG QUOTE
 include(ExpressionCFG.lso)
