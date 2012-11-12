@@ -19,6 +19,14 @@
 %define SYS_exit    1
 %define SYS_read    3
 %define SYS_write   4
+%define SYS_open    5
+%define SYS_close   6
+
+%define O_CREAT     0q00000100
+%define O_TRUNC     0q00001000
+%define O_RDONLY    0x00000000
+%define O_WRONLY    0x00000001
+%define O_RDWR      0x00000002
 
 ; ==============================================================================
 ; System call macros
@@ -60,6 +68,30 @@
     mov     ecx, %2
     mov     ebx, %1
     system  SYS_write
+%endmacro
+
+; ------------------------------------------------------------------------------
+; Opens a file
+; USAGE:  sys.open <filename>, <flags>, <mode>
+; <filename> = the name of the file to open
+; <flags>    = the file creation flags
+; <mode>     = the file access mode
+; ------------------------------------------------------------------------------
+%macro sys.open 3
+    mov     edx, %3
+    mov     ecx, %2
+    mov     ebx, %1
+    system  SYS_open
+%endmacro
+
+; ------------------------------------------------------------------------------
+; Closes a file
+; USAGE:  sys.close <fd>
+; <fd>  = the file descriptor to close
+; ------------------------------------------------------------------------------
+%macro sys.close 1
+    mov     ebx, %1
+    system  SYS_close
 %endmacro
 
 ; ------------------------------------------------------------------------------

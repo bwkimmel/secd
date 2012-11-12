@@ -13,6 +13,11 @@
 
 
 ; ==============================================================================
+; Constants
+;
+%define MIN_FREE        5       ; Minimum number of free cells at top of cycle
+
+; ==============================================================================
 ; Flags
 ;
 %define SECD_MARKED     0x80    ; GC-bit for cell array
@@ -166,22 +171,10 @@ _check_cell_ref:
 ; <flags> = the flags indicating the type of the new cell
 ; ------------------------------------------------------------------------------
 %macro alloc 3
-    cmp     ff, 0                       ; check if we have free cells available
-    jne     %%nogc
-    jmp     _gc.out_of_space
-    call    _gc
-%%nogc:
-    dec     dword [free]
+    mov     dword [values + ff * 4], %2
     mov     byte [flags + ff], %3       ; set flags for new cell
-%ifidni %1,%2                           ; special handling if <dest> == <value>
-    xchg    %1, ff
-    xchg    ff, [dword values + %1 * 4]
-    and     ff, 0xffff
-%else                                   ; <dest> != <value>
     mov     %1, ff
-    cdr     ff, ff
-    mov     [dword values + %1 * 4], %2
-%endif
+    inc     ff
 %endmacro
 
 ; ------------------------------------------------------------------------------
@@ -253,6 +246,8 @@ _check_cell_ref:
 ; Builtin strings
 ;
 segment .data
+magic       db      "SECD", 0, 0
+magic_len   equ     $ - magic
 tstr        db      "T"
 tstr_len    equ     $ - tstr
 fstr        db      "F"
@@ -283,8 +278,11 @@ sep         db      10, "-----------------", 10
 sep_len     equ     $ - sep
 maj_sep     db      10, "==============================================", 10
 maj_sep_len equ     $ - maj_sep
-free        dd      0
 gcheap      db      0
+
+dump_file   db      "dump.bin", 0
+err_dmp     db      "Can't open dump file", 10
+err_dmp_len equ     $ - err_dmp
 
 
 ; ==============================================================================
@@ -331,6 +329,51 @@ segment .text
 ; ==============================================================================
 ; Exported functions
 ;
+
+_dumpimage:
+    call    _gc
+
+    push    eax         ; Save current SECD-machine state
+    push    ecx
+    push    edx
+    push    S
+    push    C
+
+    mov     [Sreg], dword S
+    mov     [Creg], dword C
+    mov     [ffreg], dword ff
+    sys.open dump_file, O_CREAT|O_TRUNC|O_WRONLY, 0
+    cmp     eax, 0
+    jge     .endif
+  
+        call    _flush
+        sys.write stderr, err_dmp, err_dmp_len
+        sys.exit 1
+.stop:
+        jmp     .stop
+     
+.endif:
+    push    eax
+    sys.write [esp], magic, magic_len
+    sys.write [esp], Sreg, 2
+    sys.write [esp], E, 2
+    sys.write [esp], Creg, 2
+    sys.write [esp], D, 2
+    sys.write [esp], ffreg, 2
+
+    mov     eax, dword [ffreg]
+    shl     eax, 2
+    sys.write [esp], values, eax
+    sys.write [esp], flags, dword [ffreg]
+    sys.close [esp]
+    add     esp, 4
+
+    pop     C           ; Restore SECD-machine state
+    pop     S
+    pop     edx
+    pop     ecx
+    pop     eax
+    ret
 
 ; ------------------------------------------------------------------------------
 ; Prints the current state of the machine for diagnostic purposes
@@ -417,16 +460,6 @@ _iscons:
 
 _init:
     enter   0, 0
-    ; Initialize free list
-    mov     eax, 1
-    lea     edi, [dword values + 4]
-    mov     ecx, 65535
-    cld
-.init:
-        inc     eax
-        stosd
-        loop    .init
-    mov     [edi], dword 0
     mov     ff, 1
     push    dword tstr_len
     push    dword tstr
@@ -463,24 +496,23 @@ _exec:
     mov     [E], dword 0
     mov     [D], dword 0
     cons    S, 0
-    mov     eax, dword free
-    mov     [eax], dword 0
     ;
     ; ---> to top of instruction cycle ...
+
+    call    _dumpimage
     
 
 ; ==============================================================================
 ; Top of SECD Instruction Cycle
 ;
 _cycle:
-    mov     eax, dword free             ; call GC if we have < 10 free cells
-    cmp     [eax], dword 10
-    jg      .nogc
-    cmp     [eax], dword 0
-    jl      _memerror
-    push    eax
+    cmp     ff, 0x10000 - MIN_FREE
+    jbe     .nogc
+    cmp     ff, 0x10000
+    ja      _memerror
     call    _gc
-    pop     eax
+    cmp     ff, 0x10000 - MIN_FREE
+    ja      _out_of_space
 .nogc:
     check_cell_ref dword S              ; Check that all registers are valid
     check_cell_ref dword [E]            ; cell references
@@ -506,6 +538,13 @@ _memerror:
     sys.exit 1
 .stop:
     jmp     .stop
+
+_out_of_space:
+    call    _flush
+    sys.write stderr, err_hf, err_hf_len
+    sys.exit 1
+.halt:
+    jmp     .halt
 
 
 ; ==============================================================================
@@ -1014,7 +1053,9 @@ _instr_LEQ:
 ; TRANSITION:  s e (STOP) d  -->  <undefined>
 ; ------------------------------------------------------------------------------
 _instr_STOP:
-    car     eax, S
+    car     S, S
+    call    _dumpimage
+    mov     eax, S
     pop     edi
     pop     esi
     pop     ebx
@@ -1458,12 +1499,12 @@ _index_out_of_bounds:
 ; ==============================================================================
 ; Garbage Collection
 ;
-; We use a mark-and-sweep garbage collector to find unreferenced cells.  We
+; We use a compacting garbage collector to find unreferenced cells.  We
 ; begin by marking the cells referenced by the registers of the machine: S, E,
 ; C, D, true, and false.  Whenever we mark a cons cell, we recursively mark that
 ; cell's car and cdr (if they are not already marked).  After this phase is
-; complete, we iterate over all cells and push the unmarked cells onto the free
-; list.
+; complete, we iterate over all cells and relocate the marked (i.e. in use)
+; cells to a contiguous block at the beginning of the cell array.
 ; 
 
 ; ------------------------------------------------------------------------------
@@ -1505,12 +1546,11 @@ _trace:
 %ifdef DEBUG
     mov     eax, ff
 .loop_checkff:
-        cmp     eax, 0                              ; while (eax != 0)
-        je      .done
+        cmp     eax, 0xffff
+        jg      .done                               ; while (eax <= 0xffff)
         test    byte [flags + eax], SECD_MARKED     ;   if cell marked...
         jnz     .error                              ;     break to error
-        mov     eax, dword [values + 4 * eax]       ;   advance to next cell
-        and     eax, 0xffff
+        inc     eax                                 ;   advance to next cell
         jmp     .loop_checkff                       ; end while
 .error:
     call    _flush                                  ; found in-use cell in free
@@ -1584,51 +1624,135 @@ _mark:
     ret
 
 ; ------------------------------------------------------------------------------
-; Finds unused cells and adds them to the free list.
+; Relocates used cells to form a contiguous block
 ;
-_gc:
-    call    _trace
+; Algorithm:
+;   left = -1
+;   right = NUM_CELLS
+;
+;   repeat {
+;     increment left until cell[left] is free
+;     decrement right until cell[right] is used
+;     if (right <= left) break;
+;
+;     // relocate the cell and leave a breadcrumb to find it later
+;     cell[left] <-- cell[right]
+;     cell[right] <-- left    // relocation pointer
+;   }
+;
+;   // at this point, 'right' points to the last used cell, and 'left' points
+;   // to the first free cell
+;   while (right >= 0) {      // loop through all the used cells
+;
+;     // follow breadcrumbs to fix cons cells whose car or cdr has been
+;     // relocated
+;     if cell[right] is a cons cell {
+;       update car(cell[right]) if car(cell[left]) >= left
+;       update cdr(cell[right]) if cdr(cell[left]) >= left
+;     }
+;
+;     decrement right
+;   }
+;   
+_compact:
+    mov     [Sreg], S
+    mov     [Creg], C
 
-    push    eax
+    push    eax         ; Save current SECD-machine state
     push    ecx
     push    edx
-    push    S
-    push    C
 
-    mov     ff, 0
-    mov     edx, 0
-    mov     ecx, 65535
-.loop_scan:
-        mov     al, byte [flags + ecx]
-        test    al, SECD_MARKED
-        jnz     .endif
-            mov     dword [values + ecx * 4], ff
-            mov     byte [flags + ecx], byte SECD_CONS
-            mov     ff, ecx     
-            inc     edx
-    .endif:
-        dec     ecx
-        jnz     .loop_scan
+    mov     edi, -1                             ; left
+    mov     esi, 0x10000                        ; right
+.loop_find_free:
+        inc     edi
+        test    byte [flags + edi], SECD_MARKED ; is cell[left] free?
+        jnz     .loop_find_free
+.loop_find_used:
+        dec     esi
+        test    byte [flags + esi], SECD_MARKED ; is cell[right] used?
+        jz      .loop_find_used
+    cmp     esi, edi                            ; right <= left?
+    jle     .loop_rewrite
+        mov     eax, dword [values + esi * 4]   ; value[left] <-- value[right]
+        mov     dword [values + edi * 4], eax
+        mov     dword [values + esi * 4], edi   ; value[right] <-- left
+        mov     al, byte [flags + esi]          ; flags[left] <-- flags[right]
+        mov     byte [flags + edi], al
+        mov     byte [flags + esi], 0           ; mark right cell as free
+        jmp     .loop_find_free
+.loop_rewrite:
+        test    byte [flags + esi], SECD_ATOM   ; if cell[right] a cons cell:
+        jnz     .endif_cons
+            mov     eax, dword [values + esi * 4]
+            mov     edx, eax                    ; split cell into car/cdr
+            shr     eax, 16
+            and     edx, 0xffff
 
-    mov     dword [free], edx
+            cmp     eax, edi                    ; if car >= left:
+            jb      .endif_relocate_car
+                mov     eax, dword [values + eax * 4] ; follow breadcrumb
+        .endif_relocate_car:
+            cmp     edx, edi                    ; if cdr >= left:
+            jb      .endif_relocate_cdr
+                mov     edx, dword [values + edx * 4] ; follow breadcrumb
+        .endif_relocate_cdr:
 
-    cmp     ff, 0
-    je      .out_of_space
+            shl     eax, 16                     ; update cell
+            or      eax, edx
+            mov     dword [values + esi * 4], eax
+            
+    .endif_cons:
+        dec     esi
+        jns     .loop_rewrite
 
-    pop     C
-    pop     S
+    ; Follow breadcrumbs for SECD-machine registers
+    mov     eax, dword [Sreg]
+    cmp     eax, edi
+    jb      .endif_relocate_s
+        mov     eax, dword [values + eax * 4]
+        mov     dword [Sreg], eax
+.endif_relocate_s:
+    mov     eax, dword [E]
+    cmp     eax, edi
+    jb      .endif_relocate_e
+        mov     eax, dword [values + eax * 4]
+        mov     dword [E], eax
+.endif_relocate_e:
+    mov     eax, dword [Creg]
+    cmp     eax, edi
+    jb      .endif_relocate_c
+        mov     eax, dword [values + eax * 4]
+        mov     dword [Creg], eax
+.endif_relocate_c:
+    mov     eax, dword [D]
+    cmp     eax, edi
+    jb      .endif_relocate_d
+        mov     eax, dword [values + eax * 4]
+        mov     dword [D], eax
+.endif_relocate_d:
+
+    ; Restore state
     pop     edx
     pop     ecx
     pop     eax
 
-    ret
+    mov     S, [Sreg]
+    mov     C, [Creg]
 
-.out_of_space:
-    call    _flush
-    sys.write stderr, err_hf, err_hf_len
-    sys.exit 1
-.halt:
-    jmp     .halt   
+%ifnidni ff,edi
+    mov     ff, edi     ; ff <-- start of free cells
+%endif
+    ret
+        
+
+; ------------------------------------------------------------------------------
+; Finds unused cells and adds them to the free list.
+;
+_gc:
+    call    _trace
+    call    _compact
+    ret
 
 ; ------------------------------------------------------------------------------
 ; Garbage collection for heap (vectors and binary blobs)              UNFINISHED
