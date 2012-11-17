@@ -16,6 +16,8 @@
 ; Constants
 ;
 %define MIN_FREE        5       ; Minimum number of free cells at top of cycle
+%define DEDUP_THRESHOLD 1000    ; Attempt dedup if GC yields fewer than this
+                                ;   many free cells.
 
 ; ==============================================================================
 ; Flags
@@ -301,6 +303,7 @@ err_dmp_len equ     $ - err_dmp
 ;
 segment .bss
 values      resd    65536   ; Storage for cons cells and ivalues
+values2     resd    65536
 flags       resb    65536   ; Storage for isatom and isnumber bits
 
 
@@ -315,6 +318,7 @@ Sreg        resd    1
 Creg        resd    1
 ffreg       resd    1
 
+mark        resd    1
 
 ; ==============================================================================
 ; SECD-machine code
@@ -342,7 +346,7 @@ _dumpimage:
     mov     [Sreg], dword S
     mov     [Creg], dword C
     mov     [ffreg], dword ff
-    sys.open dump_file, O_CREAT|O_TRUNC|O_WRONLY, 0
+    sys.open dump_file, O_CREAT|O_TRUNC|O_WRONLY, 0q644
     cmp     eax, 0
     jge     .endif
   
@@ -480,6 +484,10 @@ _init:
     mov     byte [flags], SECD_SYMBOL
     mov     dword [values], eax
     mov     [ffreg], ff
+
+;    call    _test_dedup
+;    sys.exit 1
+
     leave
     ret
 
@@ -499,7 +507,11 @@ _exec:
     ;
     ; ---> to top of instruction cycle ...
 
+;    call    _test_dedup
+
     call    _dumpimage
+    ;call    _dumpstate
+;    sys.exit 1
     
 
 ; ==============================================================================
@@ -1054,7 +1066,7 @@ _instr_LEQ:
 ; ------------------------------------------------------------------------------
 _instr_STOP:
     car     S, S
-    call    _dumpimage
+;    call    _dumpimage
     mov     eax, S
     pop     edi
     pop     esi
@@ -1623,6 +1635,638 @@ _mark:
 .endif:
     ret
 
+
+; ------------------------------------------------------------------------------
+; Generic sort (quicksort)
+; 
+; Requires:
+;   ESI - start index (inclusive) of range to sort
+;   EDI - end index (inclusive) of range to sort
+;   EBX - address of compare function
+;   ECX - address of swap function
+;
+; Destroys: EAX, EDX, ESI
+
+; Compare function must have the following characteristics:
+;   Requires:
+;     ESI - index of left side of comparison
+;     EDI - index of right side of comparison
+;   Ensures:
+;     ZF  - indicates whether left side = right side
+;     SF  - indicates whether left side < right side
+;   Preserves: ESI, EDI, EBX, ECX
+;   Destroys: EAX, EDX
+;   
+; Swap function must have the following characteristics:
+;   Requires:
+;     ESI - index of first element
+;     EDI - index of second element
+;   Preserves: ESI, EDI, EBX, ECX
+;   Destroys: EAX, EDX
+;
+
+_test_sort:
+    mov     [values + 0 * 4], dword 3
+    mov     [values + 1 * 4], dword 7
+    mov     [values + 2 * 4], dword 8
+    mov     [values + 3 * 4], dword 5
+    mov     [values + 4 * 4], dword 2
+    mov     [values + 5 * 4], dword 1
+    mov     [values + 6 * 4], dword 9
+    mov     [values + 7 * 4], dword 5
+    mov     [values + 8 * 4], dword 4
+    mov     esi, 0
+    mov     edi, 9
+    mov     ebx, .test_compare
+    mov     ecx, .test_swap
+    call    _sort
+.done_test_sort:
+    ret
+.test_compare:
+    mov     eax, [values + esi * 4]
+    mov     edx, [values + edi * 4]
+    cmp     eax, edx
+    ret
+.test_swap:
+    mov     eax, [values + esi * 4]
+    mov     edx, [values + edi * 4]
+    mov     [values + esi * 4], edx
+    mov     [values + edi * 4], eax
+    ret
+
+_sort:
+    push    esi
+    call    .sort
+    pop     esi
+    ret
+
+.sort:
+    ; Make sure we have something to sort
+    cmp     esi, edi
+    mov     eax, edi
+    sub     eax, esi
+    cmp     eax, 1
+    jg      .continue
+        ret
+.continue:
+
+    push    edi
+    push    esi
+
+    ; EAX = (ESI + EDI) / 2
+    mov     eax, edi
+    sub     eax, esi
+    shr     eax, 1
+    add     eax, esi
+
+    dec     esi
+
+.loop_pivot:
+
+        xchg    eax, edi
+    .loop_scan_a:
+            cmp     esi, edi
+            jge     .done_loop_scan_a
+            inc     esi
+            pusha
+            call    ebx   ; TODO: Preserve destroyed registers
+            popa
+            jle     .loop_scan_a
+    .done_loop_scan_a:
+    
+        xchg    eax, esi
+    .loop_scan_b:
+            cmp     esi, edi
+            jle     .done_loop_scan_b
+            dec     esi
+            pusha
+            call    ebx   ; TODO: Preserve destroyed registers
+            popa
+            jge     .loop_scan_b
+    .done_loop_scan_b:
+
+        xchg    eax, edi
+        xchg    esi, edi
+        cmp     esi, edi
+        jae     .done_pivot
+
+            cmp     eax, esi
+            cmove   eax, edi
+            je      .endif
+                cmp     eax, edi
+                cmove   eax, esi
+        .endif:
+
+            pusha
+            call    ecx   ; TODO: Preserve destroyed registers
+            popa
+            jmp     .loop_pivot
+
+.done_pivot:
+;    pop     esi
+    xchg    esi, [esp]
+;    inc     edi
+    call    .sort
+
+    pop     esi
+    pop     edi
+    jmp     .sort   ; tail recursion
+
+
+_compare_atom:
+    mov     edx, [values2 + esi * 4]
+    and     edx, 0xffff
+    mov     al, [flags + edx]
+
+    mov     edx, [values2 + edi * 4]
+    and     edx, 0xffff
+    mov     ah, [flags + edx]
+
+    mov     dx, ax
+    and     al, SECD_ATOM
+    and     ah, SECD_ATOM
+
+    ; If one is an atom and the other isn't, the atom is lesser
+    cmp     ah, al
+    jne     .done     
+
+    ; If both are cons cells, we consider them equal
+    cmp     al, 0
+    je      .done
+
+    ; If both are atoms, next compare their types
+    and     dl, SECD_TYPEMASK
+    and     dh, SECD_TYPEMASK
+    cmp     dh, dl
+    jne     .done
+
+    ; If both are the same type, compare their values
+    mov     eax, [values2 + esi * 4]
+    and     eax, 0xffff
+    mov     eax, [values + eax * 4]
+
+    mov     edx, [values2 + edi * 4]
+    and     edx, 0xffff
+    mov     edx, [values + edx * 4]
+
+    cmp     eax, edx
+    jne     .done
+
+    ; If both have the same value, compare their original locations.  This
+    ; ensures that the first occurrance of a given atom is the one that is
+    ; kept.  This is important because the NIL symbol must occupy cell zero.
+    mov     eax, [values2 + esi * 4]
+    and     eax, 0xffff
+    mov     edx, [values2 + edi * 4]
+    and     edx, 0xffff
+    cmp     eax, edx
+
+.done:
+    ret
+
+_compare_cons:
+    push    ebx
+    push    ecx
+
+    sub     esp, 4
+
+    mov     ebx, [mark]
+    mov     ecx, 0
+
+    mov     eax, [values2 + esi * 4]
+    and     eax, 0xffff
+    mov     eax, [values + eax * 4]
+    mov     edx, eax
+    shr     edx, 16
+    and     eax, 0xffff
+    mov     eax, [values2 + eax * 4]
+    shr     eax, 16
+    cmp     eax, ebx
+    jae     .done_check_a
+    mov     edx, [values2 + edx * 4]
+    shr     edx, 16
+    cmp     edx, ebx
+    jae     .done_check_a
+        mov     cl, 1
+        shl     edx, 16
+        or      eax, edx
+        mov     [esp], eax
+.done_check_a:
+
+    mov     eax, [values2 + edi * 4]
+    and     eax, 0xffff
+    mov     eax, [values + eax * 4]
+    mov     edx, eax
+    shr     edx, 16
+    and     eax, 0xffff
+    mov     eax, [values2 + eax * 4]
+    shr     eax, 16
+    cmp     eax, ebx
+    jae     .done_check_b
+    mov     edx, [values2 + edx * 4]
+    shr     edx, 16
+    cmp     edx, ebx
+    jae     .done_check_b
+        mov     ch, 1
+        shl     edx, 16
+        or      eax, edx
+.done_check_b:
+
+    cmp     ch, cl
+    jne     .done
+
+    cmp     cl, 0
+    je      .done
+
+    mov     edx, [esp]
+    cmp     eax, edx
+
+.done:
+    pop     eax   ; Can't do "add esp, 4" because that would affect the flags
+    pop     ecx
+    pop     ebx
+    ret
+    
+
+
+    
+; ------------------------------------------------------------------------------
+; Collapse duplicate cells
+; ========================
+; 
+; Allocated cells in the SECD machine are immutable.  Therefore, it is valid
+; to restructure the cell graph so that:
+;
+;   - no two cells contain the same atomic value, and furthermore that
+;   - whenever two cons cells, say A and B, are such that the subgraph reachable
+;     from A is identical to the subgraph reachable from B (in structure and in
+;     the atomic values reachable from A or B), that A and B are in fact the
+;     same cell.
+;
+; This can lead to a significant reduction in cell usage, as a typical running
+; SECD machine will have many cells containing common values (e.g., small
+; numbers, common symbols, common code fragments, etc.).
+;
+; This algorithm is much more expensive than the basic garbage collection, so we
+; only do this as a last resort when the basic garbage collection fails to yield
+; sufficient space.
+;
+;
+; Working Array
+; -------------
+;
+; To accomplish this task, we must be able to rearrange cells in a potentially
+; very full cell array.  We will need a second working area for this task.  In
+; this working area, we store the permutation that transforms the original
+; arrangement of the cells into the new arrangement.  Each DWORD value in the
+; working array contains:
+;
+;   [31.....FWD....16|15.....REF.....0]
+;
+;     FWD = The index into the cell array of the location where the cell that
+;           was originally here has moved.
+;     REF = The index into the original cell array of the cell that should be
+;           moved to this location.
+;
+; We sort, swap, and collapse cells by rearranging cells in this working array,
+; and only at the end do we update the actual cell array.
+;
+;
+; Algorithm
+; ---------
+;
+; We determine if two cells contain identical values simply by looking at the
+; type and value stored in the cell array.  For atomic values, this is
+; sufficient.  However, two cons cells may be identical but not share the same
+; numerical values if their CARs and CDRs have not been collapsed.
+;
+; Example:
+; 
+;   Index:   0     1   2   3              4
+;   Value: [ NIL | A | A | CAR=1, CDR=0 | CAR=2, CDR=0 ]
+;
+;   In this example, cells 3 and 4 are identical, but because cells 1 and 2
+;   have not yet been collapsed to a single cell, a comparison of the numerical
+;   values stored in 3 and 4 is insufficient to detect that they are identical.
+;
+; We therefore collapse the cell array in phases:
+;
+;   - Phase 0: Find and collapse the atoms.
+;   - Phase 1: Find and collapse the 'Level 1' cons cells (those whose CAR and
+;              CDR are both atoms).
+;   - Phase 2: Find the collapse the 'Level 2' cons cells (those whose CAR and
+;              CDR are both atomic or 'Level 1' cons).
+;   ...
+;   - Phase N: Find and collapse the 'Level N' cons cells (those whose CAR and
+;              CDR are both atomic or 'Level K' cons with K < N).
+;
+; Each phase proceeds by:
+;
+;   - Partitioning the remaining cells (those on the right side of a 'mark'
+;     value, those cells to the left 'mark' have already been collapsed) so that
+;     atomic (Phase 0) or 'Level N' (Phase N, N > 0) cells are on the left,
+;     sorted by their numerical value, and all other cells (Level K cells,
+;     K > N) are on the right.
+;   - Collapse the cells in the partition on the left.
+;   - Update the 'mark' to point at the start of the partition on the right.
+;
+; Each phase must result in no more collapsed cells than the prior phase, since
+; we cannot have a common 'Level N' graph without also having a common
+; 'Level N-1' graph.  Therefore, if a phase fails to find any cons cells to be
+; collapsed, the algorithm terminates.  The algorithm also terminates if the
+; 'mark' reaches the end of the cell array.
+;
+;
+; Requires:
+; EDI - number of occupied cells
+;
+_test_dedup:
+
+    ; Load an image of the S-expression "( ( 3 2 1 . 0 ) ( 4 2 1 . 0 ) 1 2 . 0 )
+
+    mov     [Sreg], dword 3
+    mov     [E], dword 3
+    mov     [Creg], dword 3
+    mov     [D], dword 3
+
+    mov     [values +  0 * 4], dword 0x000a0009
+    mov     [values +  1 * 4], dword 2
+    mov     [values +  2 * 4], dword 0x00010010
+    mov     [values +  3 * 4], dword 0x00000005 ; <--- Root
+    mov     [values +  4 * 4], dword 0x00140002
+    mov     [values +  5 * 4], dword 0x0004000b
+    mov     [values +  6 * 4], dword 0x00130012
+    mov     [values +  7 * 4], dword 0x0011000d
+    mov     [values +  8 * 4], dword 2
+    mov     [values +  9 * 4], dword 0x00080007
+    mov     [values + 10 * 4], dword 3
+    mov     [values + 11 * 4], dword 0x000c0006
+    mov     [values + 12 * 4], dword 1
+    mov     [values + 13 * 4], dword 0
+    mov     [values + 14 * 4], dword 0
+    mov     [values + 15 * 4], dword 1
+    mov     [values + 16 * 4], dword 0x000f000e
+    mov     [values + 17 * 4], dword 1
+    mov     [values + 18 * 4], dword 0
+    mov     [values + 19 * 4], dword 2
+    mov     [values + 20 * 4], dword 4
+
+    mov     al, SECD_NUMBER | SECD_ATOM | SECD_MARKED
+    mov     ah, SECD_MARKED
+    mov     [flags +  0], ah
+    mov     [flags +  1], al
+    mov     [flags +  2], ah
+    mov     [flags +  3], ah
+    mov     [flags +  4], ah
+    mov     [flags +  5], ah
+    mov     [flags +  6], ah
+    mov     [flags +  7], ah
+    mov     [flags +  8], al
+    mov     [flags +  9], ah
+    mov     [flags + 10], al
+    mov     [flags + 11], ah
+    mov     [flags + 12], al
+    mov     [flags + 13], al
+    mov     [flags + 14], al
+    mov     [flags + 15], al
+    mov     [flags + 16], ah
+    mov     [flags + 17], al
+    mov     [flags + 18], al
+    mov     [flags + 19], al
+    mov     [flags + 20], al
+
+    push    dword 3
+    call    _putexp
+    add     esp, 4
+    call    _flush
+
+    mov     edi, 21
+    call    _dedup
+
+    push    dword 3
+    call    _putexp
+    add     esp, 4
+    call    _flush
+
+    ret
+
+_dedup:
+
+    mov     [Sreg], S
+    mov     [Creg], C
+
+    ; Initialize sort map
+    mov     esi, edi
+    mov     eax, edi
+    shl     eax, 16
+    or      eax, edi
+.loop_init:
+        mov     [values2 + esi * 4], eax
+        sub     eax, 0x00010001
+        dec     esi
+        jns     .loop_init
+
+    mov     esi, 0
+    mov     ebx, _compare_atom
+    mov     ecx, .swap
+    call    _sort
+
+    ; Scan for first cons cell, collapsing equivalent atoms as we go
+.loop_find_cons:
+        mov     ecx, [values2 + esi * 4]
+        and     ecx, 0xffff
+        mov     al, [flags + ecx]
+        test    al, SECD_ATOM
+        jz      .done_loop_find_cons
+
+        mov     eax, [values + ecx * 4]
+
+        cmp     esi, 0
+        je      .else_not_collapse
+
+        cmp     eax, edx
+        jne     .else_not_collapse
+            mov     eax, [values2 + ecx * 4]
+            and     eax, 0xffff
+            or      eax, ebx
+            mov     [values2 + ecx * 4], eax
+            jmp     .endif_collapse
+    .else_not_collapse:
+            mov     ebx, esi
+            shl     ebx, 16
+            mov     edx, eax
+    .endif_collapse:
+
+        inc     esi
+        jmp     .loop_find_cons
+.done_loop_find_cons:
+
+        sub     esp, 4
+        push    edi
+
+.loop_phase:
+        mov     ebx, _compare_cons
+        mov     ecx, .swap
+        mov     [mark], esi
+        mov     edi, [esp]
+        call    _sort
+
+        ; Scan for next level cons cell, collapsing equivalent cons cells as we
+        ; go
+        mov     [esp + 4], dword 0
+        mov     ecx, esi
+        shl     ecx, 16
+        dec     esi
+    .loop_mark:
+            inc     esi
+            mov     eax, [values2 + esi * 4]
+            and     eax, 0xffff
+            mov     al, [flags + eax]
+            test    al, SECD_ATOM
+            jnz     _memerror
+            cmp     esi, [esp]
+            jae     .done_loop_phase
+            mov     edi, [values2 + esi * 4]
+            and     edi, 0xffff
+            mov     eax, [values + edi * 4]
+            mov     edx, eax
+            shr     edx, 16
+            and     eax, 0xffff
+            mov     eax, [values2 + eax * 4]
+            shr     eax, 16
+            mov     edx, [values2 + edx * 4]
+            shr     edx, 16
+            cmp     eax, [mark]
+            jae     .endloop_phase
+            cmp     edx, [mark]
+            jae     .endloop_phase
+
+            shl     edx, 16
+            or      eax, edx
+
+            cmp     esi, [mark]
+            je      .else_not_collapse_cons
+           
+            cmp     eax, ebx
+            jne     .else_not_collapse_cons
+
+                mov     [esp + 4], dword 1
+
+                mov     eax, [values2 + edi * 4]
+                and     eax, 0xffff
+                or      eax, ecx
+                mov     [values2 + edi * 4], eax
+
+                jmp     .loop_mark
+
+        .else_not_collapse_cons:
+                mov     ebx, eax
+                mov     ecx, esi
+                shl     ecx, 16
+
+                mov     edx, eax
+                shr     edx, 16
+                and     eax, 0xffff
+                mov     eax, [values2 + eax * 4]
+                and     eax, 0xffff
+                mov     edx, [values2 + edx * 4]
+                shl     edx, 16
+                or      eax, edx
+                mov     [values + edi * 4], eax
+                jmp     .loop_mark
+
+    .endloop_phase:
+
+            test    [esp + 4], dword 1
+            jnz     .loop_phase
+
+.done_loop_phase:
+    pop     edi
+    add     esp, 4
+
+    ; Update SECD-machine registers
+    mov     eax, [Sreg]
+    mov     eax, [values2 + eax * 4]
+    shr     eax, 16
+    mov     eax, [values2 + eax * 4]
+    and     eax, 0xffff
+    mov     [Sreg], eax
+
+    mov     eax, [E]
+    mov     eax, [values2 + eax * 4]
+    shr     eax, 16
+    mov     eax, [values2 + eax * 4]
+    and     eax, 0xffff
+    mov     [E], eax
+
+    mov     eax, [Creg]
+    mov     eax, [values2 + eax * 4]
+    shr     eax, 16
+    mov     eax, [values2 + eax * 4]
+    and     eax, 0xffff
+    mov     [Creg], eax
+
+    mov     eax, [D]
+    mov     eax, [values2 + eax * 4]
+    shr     eax, 16
+    mov     eax, [values2 + eax * 4]
+    and     eax, 0xffff
+    mov     [D], eax
+
+    mov     eax, [true]
+    mov     eax, [values2 + eax * 4]
+    shr     eax, 16
+    mov     eax, [values2 + eax * 4]
+    and     eax, 0xffff
+    mov     [true], eax
+
+    mov     eax, [false]
+    mov     eax, [values2 + eax * 4]
+    shr     eax, 16
+    mov     eax, [values2 + eax * 4]
+    and     eax, 0xffff
+    mov     [false], eax
+
+    mov     S, [Sreg]
+    mov     C, [Creg]
+
+    ret
+        
+
+.swap:
+
+    ; Update forwarding pointers
+    mov     edx, [values2 + esi * 4]
+    and     edx, 0xffff
+    mov     eax, [values2 + edx * 4]
+    and     eax, 0xffff
+    shl     eax, 16
+    or      eax, edi
+    ror     eax, 16
+    mov     [values2 + edx * 4], eax
+
+    mov     edx, [values2 + edi * 4]
+    and     edx, 0xffff
+    mov     eax, [values2 + edx * 4]
+    and     eax, 0xffff
+    shl     eax, 16
+    or      eax, esi
+    ror     eax, 16
+    mov     [values2 + edx * 4], eax
+
+    ; Exchange reference pointers
+    mov     eax, [values2 + esi * 4]
+    mov     edx, [values2 + edi * 4]
+    xchg    ax, dx
+    mov     [values2 + esi * 4], eax
+    mov     [values2 + edi * 4], edx
+
+    ret
+
+    
+    
+
+
 ; ------------------------------------------------------------------------------
 ; Relocates used cells to form a contiguous block
 ;
@@ -1752,6 +2396,19 @@ _compact:
 _gc:
     call    _trace
     call    _compact
+
+    cmp     ff, 0x10000 - DEDUP_THRESHOLD
+    jle     .endif_dedup
+
+%ifnidni ff,edi
+        mov     edi, ff
+%endif
+
+        call    _dedup
+        call    _trace
+        call    _compact
+.endif_dedup:
+
     ret
 
 ; ------------------------------------------------------------------------------
