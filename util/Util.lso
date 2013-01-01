@@ -405,6 +405,21 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
         (OR (EQ C (CAR L)) (CONTAINS C (CDR L)))))
 
   dnl  -------------------------------------------------------------------------
+  dnl | Determines if a list is a prefix of another
+  dnl | P = the list to match
+  dnl | L = the list to test
+  dnl | RETURNS a value indicating if P is a prefix of L
+  dnl  -------------------------------------------------------------------------
+  (STARTSWITH LAMBDA (P L)
+    (IF (ISNIL P)
+        (QUOTE T)
+    (IF (ISNIL L)
+        (QUOTE F)
+    (IF (EQ (CAR P) (CAR L))
+        (STARTSWITH (CDR P) (CDR L))
+        (QUOTE F)))))
+
+  dnl  -------------------------------------------------------------------------
   dnl | Prints a string (represented as a list of ASCII values) to stdout
   dnl | S = the string to print.
   dnl | RETURNS NIL
