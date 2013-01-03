@@ -17,15 +17,30 @@ include(Parser.lso)
             (PARSE_DELIM { (PARSE_REC EXPR) })
             (PARSE_DELIM [ (PARSE_REC EXPR) ]))))
 
+        (EXPR$ LAMBDA NIL (PARSE_CONS_L (EXPR) $))
         (NESTED LAMBDA (IN CC)
           (IF (ATOM (CAR IN))
               (QUOTE (EXPECTED NESTED EXPRESSION))
-              ((START) (APPEND (CAR IN) (QUOTE ($))) (LAMBDA (R OUT) (CC R (CDR IN))))))
+              ((EXPR$) (APPEND (CAR IN) (QUOTE ($))) (LAMBDA (R OUT) (CC R (CDR IN))))))
 
         (FACTOR LAMBDA NIL (PARSE_OR NUM (SUBEXPR)))
         (TERM LAMBDA NIL (PARSE_CHAIN_L1 (FACTOR) (PARSE_OR * /)))
         (EXPR LAMBDA NIL (PARSE_CHAIN_L1 (TERM) (PARSE_OR + -)))
-        (START LAMBDA NIL (PARSE_CONS_L (EXPR) $))
+
+        (COMP_OP LAMBDA NIL (PARSE_ANY
+          (QUOTE (EXPECTED COMPARE OPERATOR))
+          (LIST < > <= >= = !=)))
+
+        (COMP LAMBDA NIL
+          (PARSE_MAP
+            (PARSE_SEQ (LIST (EXPR) (COMP_OP) (EXPR)))
+            (LAMBDA (X) (LET
+              (OP L R)
+              (L FIRST X)
+              (OP SECOND X)
+              (R THIRD X)))))
+
+        (START LAMBDA NIL (PARSE_CONS_L (PARSE_OR (COMP) (EXPR)) $))
 
       )
 
@@ -34,6 +49,12 @@ include(Parser.lso)
       (- PARSE_TO (PARSE_TOKEN (QUOTE -)) (LAMBDA (A B) (SUB A B)))
       (* PARSE_TO (PARSE_TOKEN (QUOTE *)) (LAMBDA (A B) (MUL A B)))
       (/ PARSE_TO (PARSE_TOKEN (QUOTE /)) (LAMBDA (A B) (DIV A B)))
+      (< PARSE_TO (PARSE_TOKEN (QUOTE <)) (LAMBDA (A B) (LT A B)))
+      (> PARSE_TO (PARSE_TOKEN (QUOTE >)) (LAMBDA (A B) (GT A B)))
+      (<= PARSE_TO (PARSE_TOKEN (QUOTE <=)) (LAMBDA (A B) (LEQ A B)))
+      (>= PARSE_TO (PARSE_TOKEN (QUOTE >=)) (LAMBDA (A B) (GEQ A B)))
+      (!= PARSE_TO (PARSE_TOKEN (QUOTE !=)) (LAMBDA (A B) (NEQ A B)))
+      (= PARSE_TO (PARSE_TOKEN (QUOTE =)) (LAMBDA (A B) (EQ A B)))
       ([ PARSE_TOKEN (QUOTE [))
       (] PARSE_TOKEN (QUOTE ]))
       ({ PARSE_TOKEN (QUOTE {))
