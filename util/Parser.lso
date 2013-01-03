@@ -1,0 +1,269 @@
+dnl  ===========================================================================
+dnl | Parser combinators
+dnl | ------------------
+dnl |
+dnl | This parser combinator implementation is based on the Scala parser
+dnl | combinators:
+dnl |
+dnl |  http://www.scala-lang.org/api/current/scala/util/parsing/combinator/Parsers.html
+dnl |  http://www.scala-lang.org/api/current/scala/util/parsing/combinator/Parsers$Parser.html
+dnl |
+dnl | Implementation is discussed in:
+dnl |
+dnl |  Chapter 33, "Combinator Parsing", in
+dnl |  M. Odersky, L. Spoon, B. Venners, "Programming in Scala, Second Edition",
+dnl |  2010, Artima Press, Walnut Creek, CA
+dnl |  
+dnl  ===========================================================================
+ifdef(`parser_lso_m4',,`define(`parser_lso_m4',1)dnl
+
+include(Pattern.lso)
+include(Util.lso)
+  
+  dnl  =========================================================================
+  dnl | A "parser" is a function:
+  dnl |
+  dnl |  (LAMBDA (IN CC) ...)
+  dnl |
+  dnl | where:
+  dnl |
+  dnl |  IN = a stream of input tokens
+  dnl |  CC = a continuation function (LAMBDA (RESULT IN) ...) to be called on
+  dnl |       successful matching with the results of the parsing and the
+  dnl |       remainder of the input
+  dnl |
+  dnl |  RETURNS (CC <result> IN) if parsing succeeds,
+  dnl |          (<msg> . IN) if parsing fails
+  dnl  =========================================================================
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that always succeeds
+  dnl | X = the result for the parser
+  dnl  -------------------------------------------------------------------------
+  (PARSE_SUCC LAMBDA (X)
+    (LAMBDA (IN CC) (CC X IN)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that always fails
+  dnl | MSG = The failure message
+  dnl  -------------------------------------------------------------------------
+  (PARSE_FAIL LAMBDA (MSG)
+    (LAMBDA (IN CC) (CONS MSG IN)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser from a lazily evaluated underlying parser.  This allows
+  dnl | recursive parsers to be defined.  (PARSE_REC P) matches the same input
+  dnl | as P and returns the same results and failure messages as P.
+  dnl | P = a function taking no parameters (LAMBDA NIL ...) that returns a
+  dnl |     parser
+  dnl  -------------------------------------------------------------------------
+  (PARSE_REC LAMBDA (P)
+    (LAMBDA (IN CC) ((P) IN CC)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that matches input that satisfies a predicate
+  dnl | KIND = the element kind, used for error messages
+  dnl | P = the predicate that determines which elements to match
+  dnl  -------------------------------------------------------------------------
+  (PARSE_ELEM LAMBDA (KIND P)
+    (LAMBDA (IN CC)
+      (IF (P (CAR IN))
+          (CC (CAR IN) (CDR IN))
+          (LIST (QUOTE EXPECTED) KIND))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that matches the specified token only
+  dnl | TOKEN = the token to match
+  dnl  -------------------------------------------------------------------------
+  (PARSE_TOKEN LAMBDA (TOKEN)
+    (PARSE_ELEM TOKEN (LAMBDA (X) (EQ X TOKEN))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser that transforms the result from another parser.
+  dnl | (PARSE_MAP P F) succeeds only if P succeeds.  The result of the parser
+  dnl | is (F X), where X is the result from P.
+  dnl | P = the underlying parser
+  dnl | F = the transformation to apply to the result
+  dnl  -------------------------------------------------------------------------
+  (PARSE_MAP LAMBDA (P F)
+    (LAMBDA (IN CC)
+      (P IN (LAMBDA (PR OUT) (CC (F PR) OUT)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser that returns a constant value if the provided underlying parser
+  dnl | succeeds.  (PARSE_TO P RESULT) succeeds only if P succeeds.  The result
+  dnl | of the parser is RESULT.
+  dnl | P = the underlying parser
+  dnl | RESULT = the result of the parser if P succeeds
+  dnl  -------------------------------------------------------------------------
+  (PARSE_TO LAMBDA (P RESULT)
+    (PARSE_MAP P (LAMBDA (X) RESULT)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser combinator for sequential composition.  (PARSE_CONS P Q)
+  dnl | succeeds only if P succeeds and Q succeeds on the input left over by P.
+  dnl | P = the left parser
+  dnl | Q = the right parser
+  dnl  -------------------------------------------------------------------------
+  (PARSE_CONS LAMBDA (P Q)
+    (LAMBDA (IN CC)
+      (P IN (LAMBDA (PR QIN) (Q QIN
+        (LAMBDA (QR OUT)
+          (CC (CONS PR QR) OUT)))))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser combinator for sequential composition which keeps only the left
+  dnl | result.  (PARSE_CONS_L P Q) succeeds only if P succeeds and Q succeeds
+  dnl | on the input left over by P.
+  dnl | P = the left parser
+  dnl | Q = the right parser
+  dnl  -------------------------------------------------------------------------
+  (PARSE_CONS_L LAMBDA (P Q)
+    (PARSE_MAP (PARSE_CONS P Q) (LAMBDA (X) (CAR X))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser combinator for sequential composition which keeps only the
+  dnl | right result.  (PARSE_CONS_R P Q) succeeds only if P succeeds and Q
+  dnl | succeeds on the input left over by P.
+  dnl | P = the left parser
+  dnl | Q = the right parser
+  dnl  -------------------------------------------------------------------------
+  (PARSE_CONS_R LAMBDA (P Q)
+    (LAMBDA (IN CC) (P IN (LAMBDA (PR POUT) (Q POUT CC)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser combinator for sequential composition which keeps only the
+  dnl | middle result.  (PARSE_DELIM OPEN P CLOSE) succeeds only if OPEN
+  dnl | succeeds, then P succeeds on the input left over by OPEN, then CLOSE
+  dnl | succeeds on the input left over by OPEN and P.  On success, the result
+  dnl | is the result from P.  On failure, the result is the failure message
+  dnl | from CLOSE.
+  dnl | OPEN = the parser for the opening delimiter
+  dnl | P = the parser for the body of the delimited input
+  dnl | CLOSE = the parser for the closing delimiter
+  dnl  -------------------------------------------------------------------------
+  (PARSE_DELIM LAMBDA (OPEN P CLOSE)
+    (PARSE_CONS_R OPEN (PARSE_CONS_L P CLOSE)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser combinator for alternative composition.  (PARSE_OR P Q)
+  dnl | succeeds if either P or Q succeeds.  The result is that of P if P
+  dnl | succeeds, or of Q if P fails and Q succeeds.  If P and Q both fail, the
+  dnl | failure message from Q is returned.
+  dnl | P = the parser for the first alternative
+  dnl | Q = the parser for the second alternative
+  dnl  -------------------------------------------------------------------------
+  (PARSE_OR LAMBDA (P Q)
+    (LAMBDA (IN CC)
+      (LET
+        (IF (ISNIL (PATTERN PR (QUOTE (_PARSE_OR_FIRST . *))))
+            (CDR PR)
+            (Q IN CC))
+        (PR P IN (LAMBDA (R OUT) (CONS (QUOTE _PARSE_OR_FIRST) (CC R OUT)))))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser combinator for sequential composition.
+  dnl | (PARSE_SEQ (LIST P1 ... Pn)) succeeds if P1 succeeds and if Pj succeeds,
+  dnl | for all 1 < j <= n, on the input left over from P1 ... P(j-1).  The
+  dnl | result is (LIST R1 ... Rn), where Rj is the result from Pj.
+  dnl | PS = the list of parsers to combine sequentially
+  dnl  -------------------------------------------------------------------------
+  (PARSE_SEQ LAMBDA (PS)
+    (IF (ISNIL PS)
+        (PARSE_SUCC (QUOTE NIL))
+        (PARSE_CONS (CAR PS) (PARSE_SEQ (CDR PS)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | A parser combinator for alternative composition.
+  dnl | (PARSE_SEQ (LIST P1 ... Pn)) succeeds if Pj succeeds for any
+  dnl | 1 <= j <= n.  The result is the result of Pk, where Pk has succeeded,
+  dnl | and Pi has failed for 1 <= i < k.  If all alternatives fail, the
+  dnl | provided failure message is returned.
+  dnl | MSG = the failure message
+  dnl | PS = the list of parsers for the alternatives
+  dnl  -------------------------------------------------------------------------
+  (PARSE_ANY LAMBDA (MSG PS)
+    (IF (ISNIL PS)
+        (PARSE_FAIL MSG)
+        (PARSE_OR (CAR PS) (PARSE_ANY MSG (CDR PS)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that optionally parses whatever P parses.
+  dnl | (PARSE_OPT P) always succeeds.  If P succeeds, the result is the list
+  dnl | containing the result from P.  If P fails, the result is the empty list.
+  dnl | P = the underlying parser
+  dnl  -------------------------------------------------------------------------
+  (PARSE_OPT LAMBDA (P)
+    (PARSE_OR
+      (PARSE_MAP P (LAMBDA (X) (CONS X (QUOTE NIL))))
+      (PARSE_SUCC (QUOTE NIL))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that repeatedly parses whatever P parses.
+  dnl | (PARSE_REP P) always succeeds.  The result is the list containing the
+  dnl | results from P ending when P fails.
+  dnl | P = the underlying parser
+  dnl  -------------------------------------------------------------------------
+  (PARSE_REP LAMBDA (P)
+    (PARSE_OR
+      (PARSE_CONS P (PARSE_REC (LAMBDA NIL (PARSE_REP P))))
+      (PARSE_SUCC (QUOTE NIL))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that repeatedly parses whatever P parses.  P must
+  dnl | succeed at least once.  The result is the list containing the results
+  dnl | from P ending when P fails.
+  dnl | P = the underlying parser
+  dnl  -------------------------------------------------------------------------
+  (PARSE_REP1 LAMBDA (P)
+    (PARSE_CONS P (PARSE_REP P)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that repeatedly parses what P parses interleaved with
+  dnl | SEP.  P must succeed at least once.  The result is the list containing
+  dnl | the results from P, ending when either P or SEP fails.
+  dnl | P = the parser to match the list elements
+  dnl | SEP = the parser to match the list element separator
+  dnl  -------------------------------------------------------------------------
+  (PARSE_REP1SEP LAMBDA (P SEP)
+    (PARSE_CONS P (PARSE_REP (PARSE_CONS_R SEP P))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that repeatedly parses what P parses interleaved with
+  dnl | SEP.  (PARSE_REPSEP P SEP) always succeeds.  The result is the list
+  dnl | containing the results from P, ending when either P or SEP fails.
+  dnl | P = the parser to match the list elements
+  dnl | SEP = the parser to match the list element separator
+  dnl  -------------------------------------------------------------------------
+  (PARSE_REPSEP LAMBDA (P SEP)
+    (PARSE_OR
+      (PARSE_REP1SEP P SEP)
+      (PARSE_SUCC (QUOTE NIL))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a parser that repeatedly parses what P parses interleaved with
+  dnl | OPER.  P must succeed at least once.  OPER must return a function having
+  dnl | two parameters.  The result is the results from P, ending when either P
+  dnl | or OPER fails, reduced from left to right using the results from OPER.
+  dnl | P = the parser to match the list elements, and returning operands to the
+  dnl |     binary operator returned by OPER
+  dnl | OPER = the parser to match the list element separator, and returning a
+  dnl |        binary function (LAMBDA (X Y) ...) to apply to the operands
+  dnl |        returned by P.
+  dnl  -------------------------------------------------------------------------
+  (PARSE_CHAIN_L1 LAMBDA (P OPER)
+    (LETREC
+      (PARSE_MAP
+        (PARSE_CONS P (PARSE_REP (PARSE_CONS OPER P)))
+        COMBINE)
+      (COMBINE LAMBDA (L)
+        (IF (ISNIL (CDR L))
+            (CAR L)
+            (LET
+              (COMBINE (CONS (OP A B) REST))
+              (A CAR L)
+              (OP CAR (CAR (CDR L)))
+              (B CDR (CAR (CDR L)))
+              (REST CDR (CDR L)))))))
+
+')dnl
