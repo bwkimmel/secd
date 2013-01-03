@@ -11,4 +11,6 @@ This directory contains some sample LispKit Lisp programs.
   - Sqrt: Simple square-root calculator.  This program tests the MAP data
           type.  It creates a map from <n²> → <n> for <n> from 1 to 1000, and
 		  looks up the input argument in this map.
+  - calc: A simple calculator that uses parser combinators instead of the
+          CFG shift/reduce parser-generator.
 

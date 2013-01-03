@@ -1,0 +1,36 @@
+(LETREC TEST
+
+include(Util.lso)
+include(Parser.lso)
+
+  (TEST LAMBDA (E)
+
+    (LETREC
+      (LETREC
+
+        ((START) (APPEND E (QUOTE ($))) (LAMBDA (R OUT) R))
+
+        (SUBEXPR LAMBDA NIL (PARSE_OR
+          (PARSE_DELIM { (PARSE_REC EXPR) })
+          (PARSE_DELIM [ (PARSE_REC EXPR) ])))
+
+        (FACTOR LAMBDA NIL (PARSE_OR NUM (SUBEXPR)))
+        (TERM LAMBDA NIL (PARSE_CHAIN_L1 (FACTOR) (PARSE_OR * /)))
+        (EXPR LAMBDA NIL (PARSE_CHAIN_L1 (TERM) (PARSE_OR + -)))
+        (START LAMBDA NIL (PARSE_CONS_L (EXPR) $))
+
+      )
+
+      ($ PARSE_TOKEN (QUOTE $))
+      (+ PARSE_TO (PARSE_TOKEN (QUOTE +)) (LAMBDA (A B) (ADD A B)))
+      (- PARSE_TO (PARSE_TOKEN (QUOTE -)) (LAMBDA (A B) (SUB A B)))
+      (* PARSE_TO (PARSE_TOKEN (QUOTE *)) (LAMBDA (A B) (MUL A B)))
+      (/ PARSE_TO (PARSE_TOKEN (QUOTE /)) (LAMBDA (A B) (DIV A B)))
+      ([ PARSE_TOKEN (QUOTE [))
+      (] PARSE_TOKEN (QUOTE ]))
+      ({ PARSE_TOKEN (QUOTE {))
+      (} PARSE_TOKEN (QUOTE }))
+      (NUM PARSE_ELEM (QUOTE NUMBER) (LAMBDA (X) (NUMBER X))))
+
+    ))
+
