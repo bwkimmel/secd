@@ -10,9 +10,17 @@ include(Parser.lso)
 
         ((START) (APPEND E (QUOTE ($))) (LAMBDA (R OUT) R))
 
-        (SUBEXPR LAMBDA NIL (PARSE_OR
-          (PARSE_DELIM { (PARSE_REC EXPR) })
-          (PARSE_DELIM [ (PARSE_REC EXPR) ])))
+        (SUBEXPR LAMBDA NIL (PARSE_ANY
+          (QUOTE (EXPECTED SUBEXPRESSION))
+          (LIST
+            NESTED
+            (PARSE_DELIM { (PARSE_REC EXPR) })
+            (PARSE_DELIM [ (PARSE_REC EXPR) ]))))
+
+        (NESTED LAMBDA (IN CC)
+          (IF (ATOM (CAR IN))
+              (QUOTE (EXPECTED NESTED EXPRESSION))
+              ((START) (APPEND (CAR IN) (QUOTE ($))) (LAMBDA (R OUT) (CC R (CDR IN))))))
 
         (FACTOR LAMBDA NIL (PARSE_OR NUM (SUBEXPR)))
         (TERM LAMBDA NIL (PARSE_CHAIN_L1 (FACTOR) (PARSE_OR * /)))
