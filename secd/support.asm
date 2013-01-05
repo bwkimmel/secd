@@ -27,6 +27,8 @@ close_paren db      ")"
 dot         db      "."
 ellipsis    db      "..."               ; Used when printing a recursive expr.
 ellips_len  equ     $ - ellipsis
+recipe      db      "?"                 ; Used when printing a recipe
+recipe_len  equ     $ - recipe
 
 section .bss
 inbuf       resb    INBUF_SIZE          ; read buffer
@@ -147,6 +149,8 @@ _putexp:
     mov     [visited + ebx], byte 1     ; Mark visited while printing
     mov     eax, ebx
     call    _flags                      ; Branch depending on type of expression
+    test    eax, SECD_RECIPE
+    jnz     .putrecipe
     test    eax, SECD_ATOM
     jz      .putcons
     and     eax, SECD_TYPEMASK
@@ -178,6 +182,12 @@ _putexp:
     call    _puttoken                   ; Print the name of the symbol
     add     esp, 8
     jmp     .done
+.putrecipe:
+    push    dword recipe_len
+    push    dword recipe
+    call    _puttoken
+    add     esp, 8
+    jmp     .done
 .putcons:                               ; Expression is a cons cell
     push    dword 1
     push    dword open_paren
@@ -193,7 +203,7 @@ _putexp:
         call    _cdr
         mov     ebx, eax
         call    _flags
-        and     eax, SECD_TYPEMASK
+        and     eax, SECD_TYPEMASK | SECD_RECIPE
         cmp     eax, SECD_CONS
         je      .consloop   
     cmp     eax, SECD_SYMBOL            ; If the last CDR is not NIL, then print

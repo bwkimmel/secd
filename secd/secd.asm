@@ -22,7 +22,6 @@
 ; ==============================================================================
 ; Flags
 ;
-%define SECD_RECIPE     0x08    ; Indicates that the cell contains a recipe
 %define SECD_MARKED     0x80    ; GC-bit for cell array
 %define HEAP_MARK       0x01    ; GC-bit for heap items
 %define HEAP_FORWARD    0x02    ; Indicates that heap item has been moved
