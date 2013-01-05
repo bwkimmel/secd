@@ -70,6 +70,8 @@ dnl
                 (COMP (CAR (CDR E)) N (CONS (QUOTE 22) C))
            (IF (EQ (CAR E) (QUOTE NUMBER))
                 (COMP (CAR (CDR E)) N (CONS (QUOTE 23) C))
+           (IF (EQ (CAR E) (QUOTE RECIPE))
+                (COMP (CAR (CDR E)) N (CONS (QUOTE 52) C))
            (IF (EQ (CAR E) (QUOTE STOP))
                 (COMP (CAR (CDR E)) N (CONS (QUOTE 21) C))
            (IF (EQ (CAR E) (QUOTE GET))
@@ -141,7 +143,7 @@ dnl
         (COMPLIS (CDR E) N (COMP (CAR E) N
           (IF (EQ (CAR C) (QUOTE 5))
                (CONS (QUOTE 26) (CDR C))
-               (CONS (QUOTE 4) C)))))))))))))))))))))))))))))))))))))))))))))))
+               (CONS (QUOTE 4) C))))))))))))))))))))))))))))))))))))))))))))))))
         (COMPLIS LAMBDA (E N C)
            (IF (EQ E (QUOTE NIL)) (CONS (QUOTE 2) (CONS (QUOTE NIL) C))
                 (COMPLIS (CDR E) N (COMP (CAR E) N (CONS (QUOTE 13) C)))))
