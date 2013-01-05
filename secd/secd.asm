@@ -602,6 +602,7 @@ _out_of_space:
 ;   LDE  - Load expression
 ;   AP0  - Apply parameterless function
 ;   UPD  - Return and update
+;   RCP  - Apply isrecipe predicate to top stack item
 ;
 ; The following are not yet fully implemented:
 ;   CVEC - Create vector
@@ -631,7 +632,7 @@ _instr \
         _instr_CBIN, _instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, \
         _instr_BS16, _instr_BR16, _instr_BS32, _instr_BR32, _instr_XXX , \
         _instr_XXX , _instr_XXX , _instr_XXX , _instr_XXX , _instr_XXX , \
-        _instr_XXX , _instr_XXX , _instr_LDE , _instr_AP0 , _instr_UPD
+        _instr_XXX , _instr_RCP , _instr_LDE , _instr_AP0 , _instr_UPD
 
 numinstr    equ     ($ - _instr) >> 2
     
@@ -1512,6 +1513,23 @@ _instr_BS32:
 ; ------------------------------------------------------------------------------
 _instr_BR32:
     jmp     _illegal
+
+; ------------------------------------------------------------------------------
+; RCP - Apply isrecipe predicate to top stack item
+;
+; TRANSITION:  (x.s) e (RCP.c) d  -->  (t.s) e c d
+;              where t = T if x is a recipe, and t = F if x is not a recipe
+; ------------------------------------------------------------------------------
+_instr_RCP:
+    carcdr  eax, S      ; EAX <-- car(S), S' <-- cdr(S)
+    mov     dl, byte [flags + eax]
+                        ; DL <-- flags for EAX = car(S)
+    test    dl, SECD_RECIPE
+    cmovnz  eax, [true]     ; IF (isrecipe) THEN EAX <-- true
+    cmovz   eax, [false]    ; IF (!isrecipe) THEN EAX <-- false
+    cons    eax, S
+    mov     S, eax      ; S' <-- cons(true/false, cdr(S))
+    jmp     _cycle
 
 ; ------------------------------------------------------------------------------
 ; LDE - Load expression
