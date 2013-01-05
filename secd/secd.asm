@@ -22,6 +22,7 @@
 ; ==============================================================================
 ; Flags
 ;
+%define SECD_RECIPE     0x08    ; Indicates that the cell contains a recipe
 %define SECD_MARKED     0x80    ; GC-bit for cell array
 %define HEAP_MARK       0x01    ; GC-bit for heap items
 %define HEAP_FORWARD    0x02    ; Indicates that heap item has been moved
@@ -599,6 +600,9 @@ _out_of_space:
 ;   MULX - Extended multiply (returns a pair representing 64-bit result)
 ;   PEXP - Print expression on top of stack to stdout
 ;   POP  - Pop an item off of the stack
+;   LDE  - Load expression
+;   AP0  - Apply parameterless function
+;   UPD  - Return and update
 ;
 ; The following are not yet fully implemented:
 ;   CVEC - Create vector
@@ -626,7 +630,9 @@ _instr \
         _instr_APR , _instr_TSEL, _instr_MULX, _instr_PEXP, _instr_POP, \
         _instr_CVEC, _instr_VSET, _instr_VREF, _instr_VLEN, _instr_VCPY, \
         _instr_CBIN, _instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, \
-        _instr_BS16, _instr_BR16, _instr_BS32, _instr_BR32
+        _instr_BS16, _instr_BR16, _instr_BS32, _instr_BR32, _instr_XXX , \
+        _instr_XXX , _instr_XXX , _instr_XXX , _instr_XXX , _instr_XXX , \
+        _instr_XXX , _instr_XXX , _instr_LDE , _instr_AP0 , _instr_UPD
 
 numinstr    equ     ($ - _instr) >> 2
     
@@ -1507,6 +1513,70 @@ _instr_BS32:
 ; ------------------------------------------------------------------------------
 _instr_BR32:
     jmp     _illegal
+
+; ------------------------------------------------------------------------------
+; LDE - Load expression
+;
+; TRANSITION:  s e (LDE c.c') d  -->  ((recipe:(c.e)).s) e c' d
+; ------------------------------------------------------------------------------
+_instr_LDE:
+    carcdr  eax, C
+    cons    eax, [E]
+    or      [flags + eax], byte SECD_RECIPE
+    cons    eax, S
+    mov     S, eax
+    jmp     _cycle
+
+; ------------------------------------------------------------------------------
+; AP0 - Apply parameterless function
+;
+; TRANSITION:  (x.s) e (AP0.c) d  -->  (x.s) e c d
+;              ((recipe:(c.e)).s) e' (AP0.c') d  -->
+;                NIL e c (((recipe:(c.e)).s) e' c'.d)
+; ------------------------------------------------------------------------------
+_instr_AP0:
+    car     edx, S      ; EDX=(recipe:(c.e))
+    test    [flags + edx], byte SECD_RECIPE
+    jz      _cycle
+                        ; S=((recipe:(c.e)).s) E=e' C=c' D=d
+    cons    C, [D]      ; C=(c'.d)
+    mov     eax, [E]    ; EAX=e'
+    cons    eax, C      ; EAX=(e' c'.d)
+    carcdr  C, edx      ; C=c EDX=e
+    cons    S, eax      ; S=(((recipe:(c.e)).s) e' c'.d)
+    mov     [D], S      ; D=(((recipe:(c.e)).s) e' c'.d)
+    mov     [E], edx    ; E=e
+    mov     S, 0        ; S=nil
+    jmp     _cycle
+
+; ------------------------------------------------------------------------------
+; UPD - Return and update
+;
+; TRANSITION:  (x) e (UPD) (((recipe:(c.e)).s) e' c'.d)  -->  (x.s) e' c' d
+;                AND  (recipe:(c.e))  -->  x
+; ------------------------------------------------------------------------------
+_instr_UPD:
+                        ; S=(x) E=e C=() D=(((recipe:(c.e)).s) e' c'.d)
+    mov     edx, [D]    ; EDX=(((recipe:(c.e)).s) e' c'.d)
+    carcdr  eax, edx    ; EAX=((recipe:(c.e)).s) EDX=(e' c'.d)
+    carcdr  ecx, eax    ; ECX=(recipe:(c.e)) EAX=s
+    car     S, S        ; S=x
+
+    ; Update (recipe:(c.e)) <-- x
+    push    eax
+    mov     eax, dword [values + 4 * S]
+    mov     dword [values + 4 * ecx], eax
+    mov     al, byte [flags + S]
+    mov     byte [flags + ecx], al
+    pop     eax
+
+    cons    S, eax      ; S=(x.s)
+    carcdr  eax, edx    ; EAX=e' EDX=(c'.d)
+    mov     [E], eax    ; E=e'
+    carcdr  C, edx      ; C=c' EDX=d
+    mov     [D], edx    ; D=d
+    jmp     _cycle
+
 
 _index_out_of_bounds:
     call    _flush
