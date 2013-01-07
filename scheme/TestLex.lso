@@ -7,7 +7,7 @@ dnl ---------------------------------------------------------------------------
 
 (LETREC COMPILE
   (COMPILE LAMBDA NIL
-    (LEX PRINTTOKENS))
+    (PRINTTOKENS (LEX (STDIN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Processes tokens provided by the lexer by printing them to stdout and
@@ -15,10 +15,12 @@ dnl ---------------------------------------------------------------------------
   dnl | X = the token
   dnl | REENTRY = the continuation for the lexer
   dnl  -------------------------------------------------------------------------
-  (PRINTTOKENS LAMBDA (X REENTRY)
-    (IF (ISNIL (PRINT X))
-        (QUOTE NIL)
-        (REENTRY PRINTTOKENS)))
+  (PRINTTOKENS LAMBDA (TOKENS)
+    (IF (SISNIL TOKENS)
+        (QUOTE __EOF__)
+        (BEGIN
+          (PRINT (CAR TOKENS))
+          (PRINTTOKENS (CDR TOKENS)))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Prints a token to stdout
@@ -44,5 +46,7 @@ dnl ---------------------------------------------------------------------------
         (PUTEXP X)))))                      dnl --- Everything else
 
 include(Util.lso)
+include(Stream.lso)
+include(StdIn.lso)
 include(LexScheme.lso)
 )

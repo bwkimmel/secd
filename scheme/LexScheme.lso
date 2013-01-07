@@ -6,6 +6,7 @@ dnl  ===========================================================================
 ifdef(`lex_scheme_lso_m4',,`define(`lex_scheme_lso_m4',1)dnl
 
 include(Util.lso)
+include(Stream.lso)
 
   dnl  -------------------------------------------------------------------------
   dnl | Entry point for lexical analyser
@@ -18,79 +19,48 @@ include(Util.lso)
   dnl |      input, rather than having the lexical analyser return a list of all
   dnl |      the tokens in the input.
   dnl  -------------------------------------------------------------------------
-  (LEX LAMBDA (CC)
-    (LEXINITIAL (SCAN) CC))
+  (LEX LAMBDA (IN) (LET
+    (LEXINITIAL IN*)
+    (IN* SAPPEND IN (FOREVER -1))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses the next character the input and branches accordingly.
   dnl | C = the next character
   dnl | CC = a continuation function as described in the LEX function
   dnl  -------------------------------------------------------------------------
-  (LEXINITIAL LAMBDA (C CC)
+  (LEXINITIAL LAMBDA (IN) (LET
     (IF (LEQ C 0)
-        (YIELDEOF CC)
+        (QUOTE NIL)
     (IF (ISOPENPAREN C)
-        (YIELD (QUOTE (OPENP)) CC)
+        (CONS (QUOTE (OPENP)) (LEXINITIAL (CDR IN)))
     (IF (ISCLOSEPAREN C)
-        (YIELD (QUOTE (CLOSEP)) CC)
+        (CONS (QUOTE (CLOSEP)) (LEXINITIAL (CDR IN)))
     (IF (ISINITIAL C)
-        (LEXIDENT C CC)
+        (LEXIDENT IN)
     (IF (ISDOT C)
-        (LEXSTARTSWITHDOT (GET) CC)
+        (LEXSTARTSWITHDOT (CDR IN))
     (IF (ISPOUND C)
-        (LEXSTARTSWITHPOUND (GET) CC)
+        (LEXSTARTSWITHPOUND (CDR IN))
     (IF (ISDQUOTE C)
-        (LEXSTRING (GET) CC)
+        (LEXSTRING (CDR IN))
     (IF (ISQUOTE C)
-        (YIELD (QUOTE (QUOTE)) CC)
+        (CONS (QUOTE (QUOTE)) (LEXINITIAL (CDR IN)))
     (IF (ISBACKQUOTE C)
-        (YIELD (QUOTE (BACKQUOTE)) CC)
+        (CONS (QUOTE (BACKQUOTE)) (LEXINITIAL (CDR IN)))
     (IF (ISCOMMA C)
-        (LEXSTARTSWITHCOMMA (GET) CC)
+        (LEXSTARTSWITHCOMMA (CDR IN))
     (IF (ISSEMI C)
-        (LEXINITIAL (BEGIN (SKIPCOMMENT) (SCAN)) CC)
+        (LEXINITIAL (DROPCOMMENT IN))
     (IF (ISWHITESPACE C)
-        (LEXINITIAL (SCAN) CC)
+        (LEXINITIAL (DROPWHITESPACE IN))
     (IF (ISDIGIT C)
-        (LEXCOMPLEX C 10 (QUOTE NIL) DIGITVALUEDEC CC)
+        (LEXCOMPLEX IN 10 (QUOTE NIL) DIGITVALUEDEC)
     (IF (ISPLUS C)
-        (LEXSTARTSWITHSIGN (GET) 43 CC)
+        (LEXSTARTSWITHSIGN (CDR IN) 43)
     (IF (ISMINUS C)
-        (LEXSTARTSWITHSIGN (GET) 45 CC)
-        (YIELDERROR CC)))))))))))))))))
-
-  dnl  -------------------------------------------------------------------------
-  dnl | Passes a token to the provided continuation function
-  dnl | TOKEN = the token to pass
-  dnl | CC = the continuation function
-  dnl  -------------------------------------------------------------------------
-  (YIELD LAMBDA (TOKEN CC)
-    (CC TOKEN (LAMBDA (CC) (LEXINITIAL (SCAN) CC))))
-
-  dnl  -------------------------------------------------------------------------
-  dnl | Passes a token to the provided continuation function, ensuring that an
-  dnl | already-read character will be processed upon re-entry.
-  dnl | TOKEN = the token to pass
-  dnl | C = the character to be processed upon re-entry to the lexer
-  dnl | CC = the continuation function
-  dnl  -------------------------------------------------------------------------
-  (YIELDC LAMBDA (TOKEN C CC)
-    (CC TOKEN (LAMBDA (CC) (LEXENDTOKEN C CC))))
-
-  dnl  -------------------------------------------------------------------------
-  dnl | Signals to the continuation function that the end of the input has been
-  dnl | reached.
-  dnl | CC = the continuation function
-  dnl  -------------------------------------------------------------------------
-  (YIELDEOF LAMBDA (CC)
-    (CC (QUOTE NIL) (LAMBDA (CC) (YIELDEOF CC))))
-
-  dnl  -------------------------------------------------------------------------
-  dnl | Passes an ERROR token to the continuation function, indicating that a
-  dnl | token could not be parsed.
-  dnl  -------------------------------------------------------------------------
-  (YIELDERROR LAMBDA (CC)
-    (CC (QUOTE (ERROR)) (LAMBDA (CC) (YIELDEOF CC))))
+        (LEXSTARTSWITHSIGN (CDR IN) 45)
+        (QUOTE ((ERROR))))))))))))))))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a symbol that starts with a "+" or a "-"
@@ -99,18 +69,20 @@ include(Util.lso)
   dnl |         token (such as a number).
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXSTARTSWITHSIGN LAMBDA (C SIGN CC)
+  (LEXSTARTSWITHSIGN LAMBDA (IN SIGN) (LET
     (IF (OR (ISDELIM C) (ISWHITESPACE C))
-        (YIELDC (CONS2 (QUOTE VARIABLE) SIGN) C CC)
-        (LEXCOMPLEX4 C 10 (QUOTE NIL) DIGITVALUEDEC CC)))
+        (CONS (LIST (QUOTE VARIABLE) SIGN) (DELAY (LEXINITIAL IN)))
+        (LEXCOMPLEX4 IN 10 (QUOTE NIL) DIGITVALUEDEC))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses an identifier
   dnl | C = the first character
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXIDENT LAMBDA (C CC)
-    (CONTINUELEXIDENT (GET) (CONS C (QUOTE NIL)) CC))
+  (LEXIDENT LAMBDA (IN) (LET
+    (CONTINUELEXIDENT (CDR IN) (LIST C))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses the remainder of an identifier (after the first character)
@@ -118,16 +90,17 @@ include(Util.lso)
   dnl | I = a list of the characters in the identifier so far, in reverse
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (CONTINUELEXIDENT LAMBDA (C I CC)
+  (CONTINUELEXIDENT LAMBDA (IN I) (LET
     (IF (ISSUBSEQUENT C)
-        (CONTINUELEXIDENT (GET) (CONS C I) CC)
+        (CONTINUELEXIDENT (CDR IN) (CONS C I))
         (LET
           (LET
             (IF (ISNIL KEYWORD)
-                (YIELDC (CONS (QUOTE VARIABLE) NAME) C CC)
-                (YIELDC (CONS KEYWORD (QUOTE NIL)) C CC))
+                (CONS (CONS (QUOTE VARIABLE) NAME) (DELAY (LEXINITIAL IN)))
+                (CONS (LIST KEYWORD) (DELAY (LEXINITIAL IN))))
             (KEYWORD GETKEYWORD NAME))
-          (NAME REVERSE I))))
+          (NAME REVERSE I)))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a token that starts with a dot.  It could be an ellipsis, a
@@ -135,12 +108,13 @@ include(Util.lso)
   dnl | C = the next (second) character
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXSTARTSWITHDOT LAMBDA (C CC)
+  (LEXSTARTSWITHDOT LAMBDA (IN) (LET
     (IF (ISDOT C)
-        (LEXELLIPSIS (GET) CC)
+        (LEXELLIPSIS (CDR IN))
     (IF (ISDIGIT C)
-        (LEXREAL7 C 10 (QUOTE NIL) DIGITVALUEDEC 43 LEXCOMPLEX1 CC)
-        (YIELDC (QUOTE (DOT)) C CC))))
+        (LEXREAL7 IN 10 (QUOTE NIL) DIGITVALUEDEC 43 LEXCOMPLEX1)
+        (CONS (QUOTE (DOT)) (DELAY (LEXINITIAL IN)))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a token that starts with a comma.  It could be ",@" or just a
@@ -148,10 +122,11 @@ include(Util.lso)
   dnl | C = the next (second) character
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXSTARTSWITHCOMMA LAMBDA (C CC)
+  (LEXSTARTSWITHCOMMA LAMBDA (IN) (LET
     (IF (ISATSIGN C)
-        (YIELD (QUOTE (COMMAAT)) CC)
-        (CC (QUOTE (COMMA)) (LAMBDA (CC) (LEXINITIAL C CC)))))
+        (CONS (QUOTE (COMMAAT)) (DELAY (LEXINITIAL (CDR IN))))
+        (CONS (QUOTE (COMMA)) (DELAY (LEXINITIAL IN))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses an ellipsis token.
@@ -159,10 +134,11 @@ include(Util.lso)
   dnl |     ellipsis.  If not, then yield an error.
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXELLIPSIS LAMBDA (C CC)
+  (LEXELLIPSIS LAMBDA (IN) (LET
     (IF (ISDOT C)
-        (CC (QUOTE (IDENT ELLIPSIS)) (LAMBDA (CC) (LEXENDTOKEN (GET) CC)))
-        (YIELDERROR CC)))
+        (CONS (QUOTE (IDENT ELLIPSIS)) (DELAY (LEXENDTOKEN (CDR IN))))
+        (QUOTE ((ERROR))))
+    (C CAR (FORCE* IN))))
   
   dnl  -------------------------------------------------------------------------
   dnl | Analyses the end of a token -- either skipping whitespace or passing
@@ -170,14 +146,15 @@ include(Util.lso)
   dnl | C = the next character
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXENDTOKEN LAMBDA (C CC)
+  (LEXENDTOKEN LAMBDA (IN) (LET
     (IF (LEQ C 0)
-        (YIELDEOF CC)
+        (QUOTE NIL)
     (IF (ISWHITESPACE C)
-        (LEXINITIAL (SCAN) CC)
+        (LEXINITIAL (DROPWHITESPACE IN))
     (IF (ISDELIM C)
-        (LEXINITIAL C CC)
-        (YIELDERROR CC)))))
+        (LEXINITIAL IN)
+        (QUOTE ((ERROR))))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a token that starts with a pound sign (#).  It could be a
@@ -186,18 +163,19 @@ include(Util.lso)
   dnl | C = the next character
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXSTARTSWITHPOUND LAMBDA (C CC)
+  (LEXSTARTSWITHPOUND LAMBDA (IN) (LET
     (IF (IST C)
-        (CC (QUOTE (BOOL T)) (LAMBDA (CC) (LEXENDTOKEN (GET) CC)))
+        (CONS (QUOTE (BOOL T)) (LEXENDTOKEN (CDR IN)))
     (IF (ISF C)
-        (CC (QUOTE (BOOL F)) (LAMBDA (CC) (LEXENDTOKEN (GET) CC)))
+        (CONS (QUOTE (BOOL F)) (LEXENDTOKEN (CDR IN)))
     (IF (ISOPENPAREN C)
-        (YIELD (QUOTE (OPENVEC)) CC)
+        (CONS (QUOTE (OPENVEC)) (DELAY (LEXINITIAL (CDR IN))))
     (IF (ISBACKSLASH C)
-        (LEXCHARACTER (GET) CC)
+        (LEXCHARACTER (CDR IN))
     (IF (ISNUMBERPREFIX C)
-        (LEXNUMBERPREFIXITEM C (QUOTE NIL) (QUOTE NIL) CC)
-        (YIELDERROR CC)))))))
+        (LEXNUMBERPREFIXITEM IN (QUOTE NIL) (QUOTE NIL))
+        (QUOTE ((ERROR))))))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses subsequent number prefix items (after the first one).
@@ -206,10 +184,11 @@ include(Util.lso)
   dnl | EXACT = a value indicating if the number being parsed is exact
   dnl | CC = the coninuation function
   dnl  -------------------------------------------------------------------------
-  (LEXNUMBERPREFIX LAMBDA (C BASE EXACT CC)
+  (LEXNUMBERPREFIX LAMBDA (IN BASE EXACT) (LET
     (IF (ISPOUND C)
-        (LEXNUMBERPREFIXITEM (GET) BASE EXACT CC)
-        (LEXNUMBER C BASE EXACT CC)))
+        (LEXNUMBERPREFIXITEM (CDR IN) BASE EXACT)
+        (LEXNUMBER IN BASE EXACT))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a number
@@ -218,17 +197,18 @@ include(Util.lso)
   dnl | EXACT = a value that indicates whether the value is exact or inexact
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXNUMBER LAMBDA (C BASE EXACT CC)
+  (LEXNUMBER LAMBDA (IN BASE EXACT) (LET
     (LET
       (LET
-        (LEXCOMPLEX C BASE EXACT DIGITVALUE CC)
+        (LEXCOMPLEX IN BASE EXACT DIGITVALUE)
         (DIGITVALUE . (IF (EQ BASE 2) DIGITVALUEBIN
                       (IF (EQ BASE 8) DIGITVALUEOCT
                       (IF (EQ BASE 10) DIGITVALUEDEC
                       (IF (EQ BASE 16) DIGITVALUEHEX
                           (LAMBDA (C) (QUOTE -1))))))))
       (EXACT IF (ISNIL EXACT) (QUOTE T) EXACT)
-      (BASE IF (ISNIL BASE) 10 BASE)))
+      (BASE IF (ISNIL BASE) 10 BASE))
+    (C CAR (FORCE* IN))))
 
   dnl  =========================================================================
   dnl | The following functions analyse a number token from the input, which has
@@ -283,176 +263,195 @@ include(Util.lso)
   dnl |   
   dnl  =========================================================================
 
-  (LEXCOMPLEX LAMBDA (C BASE EXACT DIGITVALUE CC)
+  (LEXCOMPLEX LAMBDA (IN BASE EXACT DIGITVALUE) (LET
     (IF (ISSIGN C)
-        (LEXCOMPLEX4 (GET) BASE EXACT DIGITVALUE CC)
-        (LEXUREAL C BASE EXACT DIGITVALUE LEXCOMPLEX1 CC)))
+        (LEXCOMPLEX4 (CDR IN) BASE EXACT DIGITVALUE)
+        (LEXUREAL IN BASE EXACT DIGITVALUE LEXCOMPLEX1))
+    (C CAR (FORCE* IN))))
 
-  (LEXCOMPLEX1 LAMBDA (C BASE EXACT DIGITVALUE CC)
+  (LEXCOMPLEX1 LAMBDA (IN BASE EXACT DIGITVALUE) (LET
     (IF (ISSIGN C)
-        (LEXCOMPLEX7 (GET) BASE EXACT DIGITVALUE CC)
+        (LEXCOMPLEX7 (CDR IN) BASE EXACT DIGITVALUE)
     (IF (ISATSIGN C)
-        (LEXCOMPLEX2 (GET) BASE EXACT DIGITVALUE CC)
-        (YIELDC (QUOTE (NUMBER)) C CC))))
+        (LEXCOMPLEX2 (CDR IN) BASE EXACT DIGITVALUE)
+        (CONS (QUOTE (NUMBER)) (DELAY (LEXINITIAL IN)))))
+    (C CAR (FORCE* IN))))
 
-  (LEXCOMPLEX2 LAMBDA (C BASE EXACT DIGITVALUE CC)
-    (LEXREAL C BASE EXACT DIGITVALUE (QUOTE NIL) LEXCOMPLEX3 CC))
+  (LEXCOMPLEX2 LAMBDA (IN BASE EXACT DIGITVALUE)
+    (LEXREAL IN BASE EXACT DIGITVALUE (QUOTE NIL) LEXCOMPLEX3))
 
-  (LEXCOMPLEX3 LAMBDA (C BASE EXACT DIGITVALUE CC)
-    (YIELDC (QUOTE (NUMBER)) C CC))
+  (LEXCOMPLEX3 LAMBDA (IN BASE EXACT DIGITVALUE)
+    (CONS (QUOTE (NUMBER)) (DELAY (LEXINITIAL IN))))
 
-  (LEXCOMPLEX4 LAMBDA (C BASE EXACT DIGITVALUE CC)
+  (LEXCOMPLEX4 LAMBDA (IN BASE EXACT DIGITVALUE) (LET
     (IF (ISIMAGUNIT C)
-        (LEXCOMPLEX5 (GET) BASE EXACT DIGITVALUE CC)
-        (LEXUREAL C BASE EXACT DIGITVALUE LEXCOMPLEX6 CC)))
+        (LEXCOMPLEX5 (CDR IN) BASE EXACT DIGITVALUE)
+        (LEXUREAL IN BASE EXACT DIGITVALUE LEXCOMPLEX6))
+    (C CAR (FORCE* IN))))
 
-  (LEXCOMPLEX5 LAMBDA (C BASE EXACT DIGITVALUE CC)
-    (YIELDC (QUOTE (NUMBER)) C CC))
+  (LEXCOMPLEX5 LAMBDA (IN BASE EXACT DIGITVALUE)
+    (CONS (QUOTE (NUMBER)) (DELAY (LEXINITIAL IN))))
 
-  (LEXCOMPLEX6 LAMBDA (C BASE EXACT DIGITVALUE CC)
+  (LEXCOMPLEX6 LAMBDA (IN BASE EXACT DIGITVALUE) (LET
     (IF (ISSIGN C)
-        (LEXCOMPLEX7 (GET) BASE EXACT DIGITVALUE CC)
+        (LEXCOMPLEX7 (CDR IN) BASE EXACT DIGITVALUE)
     (IF (ISATSIGN C)
-        (LEXCOMPLEX2 (GET) BASE EXACT DIGITVALUE CC)
+        (LEXCOMPLEX2 (CDR IN) BASE EXACT DIGITVALUE)
     (IF (ISIMAGUNIT C)
-        (LEXCOMPLEX5 (GET) BASE EXACT DIGITVALUE CC)
-        (YIELDC (QUOTE (NUMBER)) C CC)))))
+        (LEXCOMPLEX5 (CDR IN) BASE EXACT DIGITVALUE)
+        (CONS (QUOTE (NUMBER)) (DELAY (LEXINITIAL IN))))))
+    (C CAR (FORCE* IN))))
 
-  (LEXCOMPLEX7 LAMBDA (C BASE EXACT DIGITVALUE CC)
+  (LEXCOMPLEX7 LAMBDA (IN BASE EXACT DIGITVALUE) (LET
     (IF (ISIMAGUNIT C)
-        (LEXCOMPLEX5 (GET) BASE EXACT DIGITVALUE CC)
-        (LEXUREAL C BASE EXACT DIGITVALUE LEXCOMPLEX8 CC)))
+        (LEXCOMPLEX5 (CDR IN) BASE EXACT DIGITVALUE)
+        (LEXUREAL IN BASE EXACT DIGITVALUE LEXCOMPLEX8))
+    (C CAR (FORCE* IN))))
 
-  (LEXCOMPLEX8 LAMBDA (C BASE EXACT DIGITVALUE CC)
+  (LEXCOMPLEX8 LAMBDA (IN BASE EXACT DIGITVALUE) (LET
     (IF (ISIMAGUNIT C)
-        (LEXCOMPLEX5 (GET) BASE EXACT DIGITVALUE CC)
-        (YIELDERROR CC)))
+        (LEXCOMPLEX5 (CDR IN) BASE EXACT DIGITVALUE)
+        (QUOTE ((ERROR))))
+    (C CAR (FORCE* IN))))
 
-  (LEXUREAL LAMBDA (C BASE EXACT DIGITVALUE TERMINAL CC)
-    (LEXREAL C BASE EXACT DIGITVALUE 43 TERMINAL CC))
+  (LEXUREAL LAMBDA (IN BASE EXACT DIGITVALUE TERMINAL)
+    (LEXREAL IN BASE EXACT DIGITVALUE 43 TERMINAL))
 
-  (LEXREAL LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (IF (ISSIGN C)
         (IF (ISNIL SIGN)
-            (LEXREAL1 (GET) BASE EXACT DIGITVALUE C TERMINAL CC)
-            (YIELDERROR CC))
+            (LEXREAL1 (CDR IN) BASE EXACT DIGITVALUE C TERMINAL)
+            (QUOTE ((ERROR))))
     (IF (ISDOT C)
         (IF (EQ BASE 10)
-            (LEXREAL7 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-            (YIELDERROR CC))
+            (LEXREAL7 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+            (QUOTE ((ERROR))))
         (LET
           (IF (GEQ DIGIT 0)
-              (LEXREAL2 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-              (YIELDERROR CC))
-          (DIGIT DIGITVALUE C)))))
-
-  (LEXREAL1 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-    (IF (ISDOT C)
-        (IF (EQ BASE 10)
-            (LEXREAL7 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-            (YIELDERROR CC))
-        (LET
-          (IF (GEQ DIGIT 0)
-              (LEXREAL2 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-              (YIELDERROR CC))
+              (LEXREAL2 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+              (QUOTE ((ERROR))))
           (DIGIT DIGITVALUE C))))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL2 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL1 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (IF (ISDOT C)
         (IF (EQ BASE 10)
-            (LEXREAL8 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-            (YIELDERROR CC))
-    (IF (ISPOUND C)
-        (LEXREAL3 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-    (IF (ISEXPONENTMARKER C)
-        (LEXREAL10 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-    (IF (ISSLASH C)
-        (LEXREAL4 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+            (LEXREAL7 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+            (QUOTE ((ERROR))))
         (LET
           (IF (GEQ DIGIT 0)
-              (LEXREAL2 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-              (TERMINAL C BASE EXACT DIGITVALUE CC))
-          (DIGIT DIGITVALUE C)))))))
+              (LEXREAL2 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+              (QUOTE ((ERROR))))
+          (DIGIT DIGITVALUE C)))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL3 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL2 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (IF (ISDOT C)
         (IF (EQ BASE 10)
-            (LEXREAL9 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-            (YIELDERROR CC))
+            (LEXREAL8 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+            (QUOTE ((ERROR))))
     (IF (ISPOUND C)
-        (LEXREAL3 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+        (LEXREAL3 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+    (IF (ISEXPONENTMARKER C)
+        (LEXREAL10 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
     (IF (ISSLASH C)
-        (LEXREAL4 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-        (TERMINAL C BASE EXACT DIGITVALUE CC)))))
+        (LEXREAL4 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+        (LET
+          (IF (GEQ DIGIT 0)
+              (LEXREAL2 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+              (TERMINAL IN BASE EXACT DIGITVALUE))
+          (DIGIT DIGITVALUE C))))))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL4 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL3 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
+    (IF (ISDOT C)
+        (IF (EQ BASE 10)
+            (LEXREAL9 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+            (QUOTE ((ERROR))))
+    (IF (ISPOUND C)
+        (LEXREAL3 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+    (IF (ISSLASH C)
+        (LEXREAL4 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+        (TERMINAL IN BASE EXACT DIGITVALUE))))
+    (C CAR (FORCE* IN))))
+
+  (LEXREAL4 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (LET
       (IF (GEQ DIGIT 0)
-          (LEXREAL5 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-          (YIELDERROR CC))
-      (DIGIT DIGITVALUE C)))
+          (LEXREAL5 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+          (QUOTE ((ERROR))))
+      (DIGIT DIGITVALUE C))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL5 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL5 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (IF (ISPOUND C)
-        (LEXREAL6 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+        (LEXREAL6 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
         (LET
           (IF (GEQ DIGIT 0)
-              (LEXREAL5 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-              (TERMINAL C BASE EXACT DIGITVALUE CC))
-          (DIGIT DIGITVALUE C))))
+              (LEXREAL5 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+              (TERMINAL IN BASE EXACT DIGITVALUE))
+          (DIGIT DIGITVALUE C)))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL6 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL6 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (IF (ISPOUND C)
-        (LEXREAL6 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-        (TERMINAL C BASE EXACT DIGITVALUE CC)))
+        (LEXREAL6 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+        (TERMINAL IN BASE EXACT DIGITVALUE))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL7 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL7 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (LET
       (IF (GEQ DIGIT 0)
-          (LEXREAL8 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-          (YIELDERROR CC))
-      (DIGIT DIGITVALUE C)))
+          (LEXREAL8 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+          (QUOTE ((ERROR))))
+      (DIGIT DIGITVALUE C))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL8 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL8 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (IF (ISPOUND C)
-        (LEXREAL9 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+        (LEXREAL9 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
     (IF (ISEXPONENTMARKER C)
-        (LEXREAL10 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+        (LEXREAL10 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
         (LET
           (IF (GEQ DIGIT 0)
-              (LEXREAL8 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-              (TERMINAL C BASE EXACT DIGITVALUE CC))
-          (DIGIT DIGITVALUE C)))))
+              (LEXREAL8 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+              (TERMINAL IN BASE EXACT DIGITVALUE))
+          (DIGIT DIGITVALUE C))))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL9 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL9 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (IF (ISPOUND C)
-        (LEXREAL9 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+        (LEXREAL9 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
     (IF (ISEXPONENTMARKER C)
-        (LEXREAL10 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-        (TERMINAL C BASE EXACT DIGITVALUE CC))))
+        (LEXREAL10 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+        (TERMINAL IN BASE EXACT DIGITVALUE)))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL10 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL10 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (IF (ISSIGN C)
-        (LEXREAL11 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+        (LEXREAL11 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
         (LET
           (IF (GEQ DIGIT 0)
-              (LEXREAL12 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-              (YIELDERROR CC))
-          (DIGIT DIGITVALUE C))))
+              (LEXREAL12 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+              (QUOTE ((ERROR))))
+          (DIGIT DIGITVALUE C)))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL11 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL11 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (LET
       (IF (GEQ DIGIT 0)
-          (LEXREAL12 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-          (YIELDERROR CC))
-      (DIGIT DIGITVALUE C)))
+          (LEXREAL12 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+          (QUOTE ((ERROR))))
+      (DIGIT DIGITVALUE C))
+    (C CAR (FORCE* IN))))
 
-  (LEXREAL12 LAMBDA (C BASE EXACT DIGITVALUE SIGN TERMINAL CC)
+  (LEXREAL12 LAMBDA (IN BASE EXACT DIGITVALUE SIGN TERMINAL) (LET
     (LET
       (IF (GEQ DIGIT 0)
-          (LEXREAL12 (GET) BASE EXACT DIGITVALUE SIGN TERMINAL CC)
-          (TERMINAL C BASE EXACT DIGITVALUE CC))
-      (DIGIT DIGITVALUE C)))
+          (LEXREAL12 (CDR IN) BASE EXACT DIGITVALUE SIGN TERMINAL)
+          (TERMINAL IN BASE EXACT DIGITVALUE))
+      (DIGIT DIGITVALUE C))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a number prefix item (either an exactness prefix item or a base
@@ -462,46 +461,48 @@ include(Util.lso)
   dnl | EXACT = a value indicating if the number being analysed is exact
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXNUMBERPREFIXITEM LAMBDA (C BASE EXACT CC)
+  (LEXNUMBERPREFIXITEM LAMBDA (IN BASE EXACT) (LET
     (IF (ISB C)             dnl --- #b = binary
         (IF (ISNIL BASE)
-            (LEXNUMBERPREFIX (GET) 2 EXACT CC)
-            (YIELDERROR CC))
+            (LEXNUMBERPREFIX (CDR IN) 2 EXACT)
+            (QUOTE ((ERROR))))
     (IF (ISO C)             dnl --- #o = octal
         (IF (ISNIL BASE)
-            (LEXNUMBERPREFIX (GET) 8 EXACT CC)
-            (YIELDERROR CC))
+            (LEXNUMBERPREFIX (CDR IN) 8 EXACT)
+            (QUOTE ((ERROR))))
     (IF (ISD C)             dnl --- #d = decimal
         (IF (ISNIL BASE)
-            (LEXNUMBERPREFIX (GET) 10 EXACT CC)
-            (YIELDERROR CC))
+            (LEXNUMBERPREFIX (CDR IN) 10 EXACT)
+            (QUOTE ((ERROR))))
     (IF (ISX C)             dnl --- #x = hexadecimal
         (IF (ISNIL BASE)
-            (LEXNUMBERPREFIX (GET) 16 EXACT CC)
-            (YIELDERROR CC))
+            (LEXNUMBERPREFIX (CDR IN) 16 EXACT)
+            (QUOTE ((ERROR))))
     (IF (ISI C)             dnl --- #i = inexact
         (IF (ISNIL EXACT)
-            (LEXNUMBERPREFIX (GET) BASE (QUOTE F) CC)
-            (YIELDERROR CC))
+            (LEXNUMBERPREFIX (CDR IN) BASE (QUOTE F))
+            (QUOTE ((ERROR))))
     (IF (ISE C)             dnl --- #e = exact
         (IF (ISNIL EXACT)
-            (LEXNUMBERPREFIX (GET) BASE (QUOTE T) CC)
-            (YIELDERROR CC))
-        (YIELDERROR CC))))))))
+            (LEXNUMBERPREFIX (CDR IN) BASE (QUOTE T))
+            (QUOTE ((ERROR))))
+        (QUOTE ((ERROR)))))))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a character literal.  This assumes that "#\" has been read.
   dnl | C = the next character in the token (after "#\")
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXCHARACTER LAMBDA (C CC)
+  (LEXCHARACTER LAMBDA (IN) (LET
     (IF (LEQ C 0)
-        (YIELDERROR CC)
+        (QUOTE ((ERROR)))
     (IF (ISN C)         dnl --- could be #\newline
-        (LEXCHARACTERSTARTSWITHN (GET) CC)
+        (LEXCHARACTERSTARTSWITHN (CDR IN))
     (IF (ISS C)         dnl --- could be #\space
-        (LEXCHARACTERSTARTSWITHS (GET) CC)
-        (YIELDC (CONS (QUOTE CHAR) (CONS C (QUOTE NIL))) (GET) CC)))))
+        (LEXCHARACTERSTARTSWITHS (CDR IN))
+        (CONS (LIST (QUOTE CHAR) C) (DELAY (LEXINITIAL (CDR IN)))))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a character literal that starts with "#\n".  It could be
@@ -509,12 +510,13 @@ include(Util.lso)
   dnl | C = the next character in the token (after "#\n")
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXCHARACTERSTARTSWITHN LAMBDA (C CC)
+  (LEXCHARACTERSTARTSWITHN LAMBDA (IN) (LET
     (IF (ISE C)
-        (IF (EXPECT (QUOTE (119 108 105 110 101)))
-            (YIELDC (QUOTE (CHAR 10)) (GET) CC)
-            (YIELDERROR CC))
-        (YIELDC (QUOTE (CHAR 110)) C CC)))
+        (IF (SSTARTSWITH (QUOTE (119 108 105 110 101)) (CDR IN))
+            (CONS (QUOTE (CHAR 10)) (DELAY (LEXINITIAL (DROP 6 IN))))
+            (QUOTE ((ERROR))))
+        (CONS (QUOTE (CHAR 110)) (DELAY (LEXINITIAL IN))))
+    (C CAR (FORCE* IN))))
  
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a character literal that starts with "#\s".  It could be
@@ -522,34 +524,21 @@ include(Util.lso)
   dnl | C = the next character in the token (after "#\s")
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXCHARACTERSTARTSWITHS LAMBDA (C CC)
+  (LEXCHARACTERSTARTSWITHS LAMBDA (IN) (LET
     (IF (ISP C)
-        (IF (EXPECT (QUOTE (97 99 101)))
-            (YIELDC (QUOTE (CHAR 32)) (GET) CC)
-            (YIELDERROR CC))
-        (YIELDC (QUOTE (CHAR 115)) C CC)))
+        (IF (SSTARTSWITH (QUOTE (97 99 101)) (CDR IN))
+            (CONS (QUOTE (CHAR 32)) (DELAY (LEXINITIAL (DROP 4 IN))))
+            (QUOTE ((ERROR))))
+        (CONS (QUOTE (CHAR 115)) (DELAY (LEXINITIAL IN))))
+    (C CAR (FORCE* IN))))
 
-  dnl  -------------------------------------------------------------------------
-  dnl | Checks that the next characters in the input match those in the provided
-  dnl | list.
-  dnl | S = the list of characters to expect
-  dnl | RETURNS a value indicating whether the following characters in the input
-  dnl |         match those in S
-  dnl  -------------------------------------------------------------------------
-  (EXPECT LAMBDA (S)
-    (IF (ISNIL S)
-        (QUOTE T)
-        (IF (EQ (GET) (CAR S))
-            (EXPECT (CDR S))
-            (QUOTE F))))
-        
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a string literal
   dnl | C = the next character
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXSTRING LAMBDA (C CC)
-    (LEXSTRINGELEM C (QUOTE NIL) CC))
+  (LEXSTRING LAMBDA (IN)
+    (LEXSTRINGELEM IN (QUOTE NIL)))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses a string literal
@@ -558,14 +547,15 @@ include(Util.lso)
   dnl |     reverse)
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXSTRINGELEM LAMBDA (C S CC)
+  (LEXSTRINGELEM LAMBDA (IN S) (LET
     (IF (LEQ C 0)           dnl --- EOF in middle of string literal
-        (YIELDERROR CC)
+        (QUOTE ((ERROR)))
     (IF (ISDQUOTE C)        dnl --- end of string literal
-        (YIELD (CONS (QUOTE STRING) (REVERSE S)) CC)
+        (CONS (CONS (QUOTE STRING) (REVERSE S)) (DELAY (LEXINITIAL (CDR IN))))
     (IF (ISBACKSLASH C)     dnl --- escape character
-        (LEXSTRINGESC (GET) S CC)
-        (LEXSTRINGELEM (GET) (CONS C S) CC)))))
+        (LEXSTRINGESC (CDR IN) S)
+        (LEXSTRINGELEM (CDR IN) (CONS C S)))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Analyses an escape sequence in a string literal
@@ -574,34 +564,35 @@ include(Util.lso)
   dnl |     reverse)
   dnl | CC = the continuation function
   dnl  -------------------------------------------------------------------------
-  (LEXSTRINGESC LAMBDA (C S CC)
+  (LEXSTRINGESC LAMBDA (IN S) (LET
     (IF (LEQ C 0)
-        (YIELDERROR CC)
+        (QUOTE ((ERROR)))
     (IF (ISBACKSLASH C)
-        (LEXSTRINGELEM (GET) (CONS C S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS C S))
     (IF (ISDQUOTE C)
-        (LEXSTRINGELEM (GET) (CONS C S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS C S))
     (IF (EQ C 97)
-        (LEXSTRINGELEM (GET) (CONS 7 S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS 7 S))
     (IF (EQ C 98)
-        (LEXSTRINGELEM (GET) (CONS 8 S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS 8 S))
     (IF (EQ C 116)
-        (LEXSTRINGELEM (GET) (CONS 9 S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS 9 S))
     (IF (EQ C 110)
-        (LEXSTRINGELEM (GET) (CONS 10 S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS 10 S))
     (IF (EQ C 118)
-        (LEXSTRINGELEM (GET) (CONS 11 S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS 11 S))
     (IF (EQ C 102)
-        (LEXSTRINGELEM (GET) (CONS 12 S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS 12 S))
     (IF (EQ C 114)
-        (LEXSTRINGELEM (GET) (CONS 13 S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS 13 S))
     (IF (EQ C 101)
-        (LEXSTRINGELEM (GET) (CONS 27 S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS 27 S))
     (IF (ISQUOTE C)
-        (LEXSTRINGELEM (GET) (CONS C S) CC)
+        (LEXSTRINGELEM (CDR IN) (CONS C S))
     (IF (ISNEWLINE C)
-        (LEXSTRINGELEM (GET) S CC)
-        (YIELDERROR CC)))))))))))))))
+        (LEXSTRINGELEM (CDR IN) S)
+        (QUOTE ((ERROR))))))))))))))))
+    (C CAR (FORCE* IN))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Gets the token denoting the keyword corresponding to the provided list
@@ -757,21 +748,17 @@ include(Util.lso)
       (QUOTE (43 45 46))))
   (ISSUBSEQUENT LAMBDA (C)
     (OR (ISINITIAL C) (OR (ISDIGIT C) (ISSPECIALSUBSEQUENT C))))
-  (SKIPWS LAMBDA NIL 
-    (LET
-      (IF (ISWHITESPACE C) (SKIPWS) C)
-      (C GET)))
-  (SCAN LAMBDA NIL
-    (LET
-      (IF (ISWHITESPACE C)
-          (SCAN)
-          (IF (ISSEMI C)
-              (BEGIN (SKIPCOMMENT) (SCAN))
-              C))
-      (C GET)))
-  (SKIPCOMMENT LAMBDA NIL
-    (LET
-      (IF (ISNEWLINE C) (GET) (SKIPCOMMENT))
-      (C GET)))
+
+  (DROPWHITESPACE LAMBDA (IN) (LET
+    (IF (ISWHITESPACE C)
+        (DROPWHITESPACE (CDR IN))
+        IN)
+    (C CAR (FORCE* IN))))
+
+  (DROPCOMMENT LAMBDA (IN) (LET
+    (IF (ISNEWLINE C)
+        (CDR IN)
+        (DROPCOMMENT (CDR IN)))
+    (C CAR (FORCE* IN))))
 
 ')dnl
