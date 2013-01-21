@@ -611,6 +611,8 @@ _out_of_space:
 ;   AP0  - Apply parameterless function
 ;   UPD  - Return and update
 ;   RCP  - Apply isrecipe predicate to top stack item
+;   J    - Landin's J-operator (cons program closure)
+;   APJ  - Apply program closure
 ;
 ; The following are not yet fully implemented:
 ;   CVEC - Create vector
@@ -639,7 +641,7 @@ _instr \
         _instr_CVEC, _instr_VSET, _instr_VREF, _instr_VLEN, _instr_VCPY, \
         _instr_CBIN, _instr_BSET, _instr_BREF, _instr_BLEN, _instr_BCPY, \
         _instr_BS16, _instr_BR16, _instr_BS32, _instr_BR32, _instr_XXX , \
-        _instr_XXX , _instr_XXX , _instr_XXX , _instr_XXX , _instr_XXX , \
+        _instr_XXX , _instr_XXX , _instr_J   , _instr_APJ , _instr_XXX , \
         _instr_XXX , _instr_RCP , _instr_LDE , _instr_AP0 , _instr_UPD
 
 numinstr    equ     ($ - _instr) >> 2
@@ -1600,6 +1602,53 @@ _instr_UPD:
     mov     [E], eax    ; E=e'
     carcdr  C, edx      ; C=c' EDX=d
     mov     [D], edx    ; D=d
+    jmp     _cycle
+
+; ------------------------------------------------------------------------------
+; J - Landin J-operator (cons program closure)
+;
+; The transitions that implement the Landin J-operator are described in [1,2].
+; This implementation differs in two respects:
+;
+;  - A new opcode is used to represent the J-operator, rather than a special
+;    symbol to be used with the AP (apply) opcode.
+;  - A separate opcode (APJ) is required to apply the program closure, rather
+;    than requiring the AP (apply) opcode to distinguish between regular
+;    closures and program closures.
+;
+; [1] P.J. Landin. A generalization of jumps and labels. Report, UNIVAC
+;     Systems Programming Research, August 1965.
+;
+; [2] H. Thielecke. An introduction to Landin's "A generalization of jumps
+;     and labels", Higher-Order and Symbolic Computation 11(2):117-123, 1998
+;
+; TRANSITION:  (f.s) e (J.c) d  -->  ((f.d).s) e c d
+; ------------------------------------------------------------------------------
+_instr_J:
+    carcdr  eax, S      ; S=s, EAX=f
+    cons    eax, [D]    ; EAX=(f.d)
+    cons    eax, S      ; EAX=((f.d).s)
+    mov     S, eax      ; S=((f.d).s)
+    jmp     _cycle
+
+; ------------------------------------------------------------------------------
+; APJ - Apply program closure
+;
+; TRANSITION:  ((f s' e' c'.d') x.s) e (APJ.c) d  -->  (f x.s') e' (AP.c') d'
+; ------------------------------------------------------------------------------
+_instr_APJ:
+    carcdr  eax, S      ; EAX=(f s' e' c'.d'), S=(x.s)
+    car     edx, S      ; EDX=x, S=[free]
+    carcdr  S, eax      ; S=f, EAX=(s' e' c'.d')
+    carcdr  ecx, eax    ; ECX=s', EAX=(e' c'.d')
+    cons    edx, ecx    ; EDX=(x.s')
+    cons    S, edx      ; S=(f x.s')
+    carcdr  edx, eax    ; EDX=e', EAX=(c'.d')
+    mov     [E], edx    ; E=e'
+    carcdr  edx, eax    ; EDX=c', EAX=d'
+    number  C, 4        ; C=AP
+    cons    C, edx      ; C=(AP.c')
+    mov     [D], eax    ; D=d'
     jmp     _cycle
 
 
