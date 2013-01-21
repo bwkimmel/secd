@@ -1,0 +1,45 @@
+dnl  ===========================================================================
+dnl | Call With Current Continuation
+dnl | ------------------------------
+dnl |
+dnl | Implementation of Scheme's 'call-with-current-continuation' or 'call/cc'
+dnl | operator:
+dnl |
+dnl |  http://en.wikipedia.org/wiki/Call-with-current-continuation
+dnl |
+dnl | CALL/CC is implemented in terms of Landin's [1] 'J-operator' as described
+dnl | by Thielecke [2].  
+dnl |
+dnl | The implementation of the J-operator in this SECD-machine is slightly
+dnl | different from the traditional implementation.  The result of this
+dnl | J-operator is not a function, but a separate entity that requires INVOKEJ
+dnl | to be applied to it in order to apply the program closure.  To get the
+dnl | proper semantics for CALL/CC, we therefore wrap the invocation in a
+dnl | lambda expression so that the argument to CALL/CC receives a plain
+dnl | function.
+dnl |
+dnl |  [1] P.J. Landin.  A generalization of jumps and labels.  Report, UNIVAC
+dnl |      Systems Programming Research, August 1965.
+dnl |  [2] H. Thielecke.  An introduction to Landin's "A generalization of jumps
+dnl |      and labels".  Higher-order and Symbolic Computation / Lisp and
+dnl |      Symbolic Computation 11(2):117-123, 1998.
+dnl |  
+dnl  ===========================================================================
+ifdef(`callcc_lso_m4',,`define(`callcc_lso_m4',1)dnl
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Call-with-current-continuation
+  dnl | F = A function that takes one argument -- which is the current
+  dnl |     current continuation, also a function taking one argument.  When the
+  dnl |     continuation is invoked, CALL/CC will immediately return the value
+  dnl |     passed to the continuation.  If the continuation is never invoked,
+  dnl |     CALL/CC will return the result returned by F.
+  dnl | RETURN The argument passed to the continuation that was passed to F, or
+  dnl |        the result of F if the continuation is never invoked.
+  dnl  -------------------------------------------------------------------------
+  (CALL/CC LAMBDA (F)
+    (LET
+      (F (LAMBDA (X) ((INVOKEJ RETURN) X)))
+      (RETURN J (LAMBDA (X) X))))
+
+')dnl
