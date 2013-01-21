@@ -1,0 +1,171 @@
+dnl --- Utility functions ---
+ifdef(`stream_lso_m4',,`define(`stream_lso_m4',1)dnl
+
+  (FORCE* LAMBDA (S)
+    (IF (RECIPE S) (FORCE* (FORCE S)) S))
+
+  (FOREVER LAMBDA (X)
+    (LETREC
+      (FORCE (CDR S))
+      (S CONS X (DELAY S))))
+
+  (SFLATTEN LAMBDA (S)
+    (IF (SISNIL S)
+        (QUOTE NIL)
+        (SAPPEND (FORCE* (CAR S)) (DELAY (SFLATTEN (CDR S))))))
+
+  (SISNIL LAMBDA (S)
+    (EQ (FORCE* S) (QUOTE NIL)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Appends two streams
+  dnl | A = the first stream
+  dnl | B = the second stream
+  dnl | RETURNS a stream consisting of all of the elements of A, followed by all
+  dnl |         of the elements of B
+  dnl  -------------------------------------------------------------------------
+  (SAPPEND LAMBDA (A B)
+    (IF (SISNIL A)
+        (FORCE* B)
+        (CONS (FORCE* (CAR A)) (DELAY (SAPPEND (CDR A) B)))))
+
+  (STOLIST LAMBDA (S)
+    (IF (SISNIL S)
+        (QUOTE NIL)
+        (CONS (FORCE* (CAR S)) (STOLIST (CDR S)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Applies a function to all elements in a list
+  dnl | F = the function to apply
+  dnl | L = the list elements on which to apply F
+  dnl | RESULT the list ((F a0) (F a1) ... (F an)), where L = (a0 a1 ... an)
+  dnl  -------------------------------------------------------------------------
+  (SMAP LAMBDA (F S)
+    (IF (SISNIL S)
+        (QUOTE NIL)
+        (CONS (FORCE* (F (CAR S))) (DELAY (SMAP F (CDR S))))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Computes a list containing the elements of the specified list that
+  dnl | satisfy the provided predicate function
+  dnl | P = a function that takes one argument and returns a boolean value
+  dnl | L = the list to filter
+  dnl | RESULT the list containing the elements "x", for which (P x) is true.
+  dnl  -------------------------------------------------------------------------
+  (SFILTER LAMBDA (P S)
+    (IF (SISNIL S)
+        (QUOTE NIL)
+    (IF (P (CAR S))
+        (CONS (FORCE* (CAR S)) (DELAY (SFILTER P (CDR S))))
+        (SFILTER P (CDR S)))))
+
+  (SCAR LAMBDA (S) (CAR (FORCE* S)))
+  (SCDR LAMBDA (S) (CDR (FORCE* S)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the first item in the list
+  dnl | L = the list
+  dnl | RETURNS the first element of L
+  dnl  -------------------------------------------------------------------------
+  (SFIRST LAMBDA (S)
+    (SCAR S))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the second item in the list
+  dnl | L = the list
+  dnl | RETURNS the second element of L
+  dnl  -------------------------------------------------------------------------
+  (SSECOND LAMBDA (S)
+    (SCAR (SCDR S)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the third item in the list
+  dnl | L = the list
+  dnl | RETURNS the third element of L
+  dnl  -------------------------------------------------------------------------
+  (STHIRD LAMBDA (S)
+    (SCAR (SCDR (SCDR S))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the fourth item in the list
+  dnl | L = the list
+  dnl | RETURNS the fourth element of L
+  dnl  -------------------------------------------------------------------------
+  (SFOURTH LAMBDA (S)
+    (SCAR (SCDR (SCDR (SCDR S)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Gets the fifth item in the list
+  dnl | L = the list
+  dnl | RETURNS the fifth element of L
+  dnl  -------------------------------------------------------------------------
+  (SFIFTH LAMBDA (S)
+    (SCAR (SCDR (SCDR (SCDR (SCDR S))))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Inserts an item into a list
+  dnl | L = the list to insert into
+  dnl | N = the index at which to insert the new item
+  dnl | E = the element to insert
+  dnl | RETURNS the list L with E inserted into the Nth position
+  dnl  -------------------------------------------------------------------------
+  (SINSERT LAMBDA (S N E)
+    (IF (EQ N 0)
+        (CONS E S)
+    (IF (SISNIL S)
+        (QUOTE NIL)
+        (CONS (CAR S) (DELAY (SINSERT (CDR S) (SUB N 1) E))))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if a list contains a given number or symbol
+  dnl | C = the value to search for
+  dnl | L = the list to scan
+  dnl | RETURNS a value indicating if the list L contains C as an element
+  dnl  -------------------------------------------------------------------------
+  (SCONTAINS LAMBDA (C S)
+    (IF (SISNIL S)
+        (QUOTE F)
+        (OR (EQ C (CAR S)) (SCONTAINS C (CDR S)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Determines if a list is a prefix of another
+  dnl | P = the list to match
+  dnl | L = the list to test
+  dnl | RETURNS a value indicating if P is a prefix of L
+  dnl  -------------------------------------------------------------------------
+  (SSTARTSWITH LAMBDA (P S)
+    (IF (SISNIL P)
+        (QUOTE T)
+    (IF (SISNIL S)
+        (QUOTE F)
+    (IF (EQ (CAR P) (CAR S))
+        (SSTARTSWITH (CDR P) (CDR S))
+        (QUOTE F)))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Prints a string (represented as a list of ASCII values) to stdout
+  dnl | S = the string to print.
+  dnl | RETURNS NIL
+  dnl  -------------------------------------------------------------------------
+  (SPRINTSTR LAMBDA (S)
+    (IF (SISNIL S)
+        S
+        (BEGIN
+          (PUT (CAR S))
+          (SPRINTSTR (CDR S)))))
+
+  (SDROP LAMBDA (N S)
+    (IF (LEQ N 0)
+        S
+    (IF (SISNIL S)
+        (QUOTE NIL)
+        (SDROP (SUB N 1) (CDR S)))))
+
+  (STAKE LAMBDA (N S)
+    (IF (LEQ N 0)
+        (QUOTE NIL)
+    (IF (SISNIL S)
+        (QUOTE NIL)
+        (CONS (CAR S) (DELAY (STAKE (SUB N 1) (CDR S)))))))
+
+')dnl

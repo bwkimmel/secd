@@ -1,0 +1,14 @@
+dnl --- Standard input stream ---
+ifdef(`stdin_lso_m4',,`define(`stdin_lso_m4',1)dnl
+
+  (STDIN LAMBDA NIL
+    (LETREC
+      (DELAY (-))
+      (- LAMBDA NIL
+        (LET
+          (IF (LEQ X -1)
+              (QUOTE NIL)
+              (CONS X (DELAY (-))))
+          (X GET)))))
+
+')dnl
