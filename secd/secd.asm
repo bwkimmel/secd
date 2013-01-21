@@ -383,8 +383,14 @@ _dumpimage:
 ; Prints the current state of the machine for diagnostic purposes
 ;
 _dumpstate:
+    mov     [Sreg], S
+    mov     [Creg], C
+    mov     [ffreg], ff
+    pushsecd
+
     sys.write stdout, maj_sep, maj_sep_len
-    push    dword S
+
+    push    dword [Sreg]
     call    _putexp
     add     esp, 4
     call    _flush
@@ -396,10 +402,12 @@ _dumpstate:
     call    _flush
     sys.write stdout, sep, sep_len
     
-    push    C
+    push    dword [Creg]
     call    _putexp
     add     esp, 4
     call    _flush
+
+    popsecd
     ret
 
 _car:
