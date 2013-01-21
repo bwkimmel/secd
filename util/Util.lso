@@ -278,6 +278,19 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
                                        CC))))))
 
   dnl  -------------------------------------------------------------------------
+  dnl | Computes a list containing all but the first N elements of the given
+  dnl | list.
+  dnl | N = the number of elements to drop
+  dnl | L = the list to drop N elements from
+  dnl | RESULT a list containing all but the first N elements of L, or NIL if
+  dnl |        L contains N or fewer elements
+  dnl  -------------------------------------------------------------------------
+  (DROP LAMBDA (N L)
+    (IF (OR (EQ N 0) (ISNIL L))
+        L
+        (DROP (SUB N 1) (CDR L))))
+
+  dnl  -------------------------------------------------------------------------
   dnl | Evaluates to the first argument but prints the second
   dnl | VAL = the value of the expression
   dnl | MSG = the value to print
