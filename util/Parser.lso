@@ -19,6 +19,7 @@ ifdef(`parser_lso_m4',,`define(`parser_lso_m4',1)dnl
 
 include(Pattern.lso)
 include(Util.lso)
+include(CallCC.lso)
   
   dnl  =========================================================================
   dnl | A "parser" is a function:
@@ -154,12 +155,12 @@ include(Util.lso)
   dnl | Q = the parser for the second alternative
   dnl  -------------------------------------------------------------------------
   (PARSE_OR LAMBDA (P Q)
-    (LAMBDA (IN CC)
-      (LET
-        (IF (ISNIL (PATTERN PR (QUOTE (_PARSE_OR_FIRST . *))))
-            (CDR PR)
-            (Q IN CC))
-        (PR P IN (LAMBDA (R OUT) (CONS (QUOTE _PARSE_OR_FIRST) (CC R OUT)))))))
+    (LAMBDA (IN C)
+      (CALL/CC
+        (LAMBDA (CC)
+          (BEGIN
+            (P IN (LAMBDA (RESULT OUT) (CC (C RESULT OUT))))
+            (Q IN (LAMBDA (RESULT OUT) (C RESULT OUT))))))))
 
   dnl  -------------------------------------------------------------------------
   dnl | A parser combinator for sequential composition.
