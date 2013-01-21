@@ -1,0 +1,21 @@
+dnl  ===========================================================================
+dnl | Yin-Yang Puzzle
+dnl | ---------------
+dnl |
+dnl | Implementation of the Yin-Yang puzzle using CALL/CC.
+dnl |
+dnl |  http://en.wikipedia.org/wiki/Call-with-current-continuation
+dnl |
+dnl  ===========================================================================
+(LETREC YINYANG
+
+include(CallCC.lso)
+
+  (YINYANG LAMBDA NIL
+    (LET
+      (LET
+        (YIN YANG)
+        (YANG (LAMBDA (CC) (BEGIN (PUT 42) CC)) (CALL/CC (LAMBDA (C) C))))
+      (YIN (LAMBDA (CC) (BEGIN (PUT 64) CC)) (CALL/CC (LAMBDA (C) C)))))
+
+  )
