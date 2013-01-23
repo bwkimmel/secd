@@ -144,13 +144,17 @@ dnl
                 (BODY COMP (CAR (CDR E)) M (QUOTE (5))))
              (M CONS (VARS (CDR (CDR E))) N)
              (ARGS EXPRS (CDR (CDR E))))
-        (COMPLIS (CDR E) N (COMP (CAR E) N
+        (COMPARGS (CDR E) N (COMP (CAR E) N
           (IF (EQ (CAR C) (QUOTE 5))
                (CONS (QUOTE 26) (CDR C))
                (CONS (QUOTE 4) C))))))))))))))))))))))))))))))))))))))))))))))))))
         (COMPLIS LAMBDA (E N C)
            (IF (EQ E (QUOTE NIL)) (CONS (QUOTE 2) (CONS (QUOTE NIL) C))
                 (COMPLIS (CDR E) N (COMP (CAR E) N (CONS (QUOTE 13) C)))))
+        (COMPARGS LAMBDA (E N C)
+           (IF (EQ E (QUOTE NIL)) (CONS (QUOTE 2) (CONS (QUOTE NIL) C))
+           (IF (ATOM E) (CONS (QUOTE 1) (CONS (LOCATION E N) C))
+                (COMPARGS (CDR E) N (COMP (CAR E) N (CONS (QUOTE 13) C))))))
         (LOCATION LAMBDA (E N)
            (LETREC
                 (IF (MEMBER E (CAR N)) (CONS (QUOTE 0) (POSN E (CAR N)))
