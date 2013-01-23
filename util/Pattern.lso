@@ -99,4 +99,29 @@ include(Util.lso)
                   (PATTERNCC (CDR X) (CDR P) SUBRESULT))
               (SUBRESULT PATTERNCC (CAR X) (CAR P) CC))))))))))))))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Matches X against a list of patterns and evaluates the corresponding
+  dnl | function against the extracted elements.
+  dnl |
+  dnl | X = the object to match
+  dnl | CASES = A list of (PATTERN FUNCTION) pairs.  For the first PATTERN that
+  dnl |         matches X, the extracted elements (see the PATTERN function
+  dnl |         above) will be passed to the corresponding FUNCTION as
+  dnl |         arguments.
+  dnl | RETURNS the result of from the function corresponding to the first
+  dnl |         matching pattern in CASES applied to the extracted elements, or
+  dnl |         (QUOTE NOMATCH) if no pattern in CASES match X.
+  dnl  -------------------------------------------------------------------------
+  (MATCH LAMBDA (X CASES)
+    (IF (ISNIL CASES)
+        (QUOTE NOMATCH)
+        (LET
+          (LET
+            (IF (EQ ARGS (QUOTE F))
+                (MATCH X (CDR CASES))
+                (F . ARGS))
+            (ARGS PATTERN X P))
+          (P CAR (CAR CASES))
+          (F CAR (CDR (CAR CASES))))))
+
 ')dnl
