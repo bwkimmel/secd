@@ -104,21 +104,20 @@ include(Util.lso)
   dnl | function against the extracted elements.
   dnl |
   dnl | X = the object to match
-  dnl | CASES = A list of lists having one of the following forms:
-  dnl |           (PATTERN FUNCTION)
+  dnl | CASES = A list of lists having the following form:
   dnl |           (PATTERN PREDICATE FUNCTION)
   dnl |         where PATTERN is a pattern as described by the (PATTERN)
   dnl |         function above, and PREDICATE and FUNCTION are functions taking
   dnl |         a number of arguments equal to the number of elements extracted
   dnl |         by PATTERN.  If PATTERN matches X, the extracted elements will
   dnl |         be passed to PREDICATE (if present).  For the first entry in
-  dnl |         CASES for which PATTERN matches and either PREDICATE is not
-  dnl |         specified or PREDICATE evaluates to true, the extracted elements
-  dnl |         will be passed to the corresponding FUNCTION as its arguments.
+  dnl |         CASES for which PATTERN matches and PREDICATE evaluates to true,
+  dnl |         the extracted elements will be passed to the corresponding
+  dnl |         FUNCTION as its arguments.
   dnl | RETURNS the result of from the function corresponding to the first
-  dnl |         matching pattern in CASES for which PREDICATE (if specified)
-  dnl |         evaluates to true, applied to the extracted elements, or
-  dnl |         (QUOTE NOMATCH) if no pattern in CASES match X.
+  dnl |         matching pattern in CASES for which PREDICATE evaluates to true,
+  dnl |         applied to the extracted elements, or (QUOTE NOMATCH) if no
+  dnl |         pattern in CASES match X.
   dnl  -------------------------------------------------------------------------
   (MATCH LAMBDA (X CASES)
     (IF (ISNIL CASES)
@@ -128,19 +127,21 @@ include(Util.lso)
             (LET
               (IF (EQ ARGS (QUOTE F))
                   (MATCH X (CDR CASES))
-              (IF (ISNIL (CDR (CDR CASE)))
-                  (LET
-                    (F . ARGS)
-                    (F CAR (CDR CASE)))
                   (LET
                     (IF (P . ARGS)
                         (F . ARGS)
                         (MATCH X (CDR CASES)))
                     (P CAR (CDR CASE))
-                    (F CAR (CDR (CDR CASE))))))
-
+                    (F CAR (CDR (CDR CASE)))))
               (ARGS PATTERN X PAT))
             (PAT CAR CASE))
           (CASE CAR CASES))))
+
+  (CASE?* MACRO (ARGS PAT P F)
+    (LIST (QUOTE PAT) (LAMBDA ARGS P) (LAMBDA ARGS F)))
+  (CASE*? MACRO (ARGS PAT P F) (CASE?* ARGS PAT P F))
+  (CASE* MACRO (ARGS PAT F) (CASE*? ARGS PAT (QUOTE T) F))
+  (CASE? MACRO (PAT P F) (CASE?* (_1 _2 _3 _4 _5 _6 _7 _8 _9) PAT P F))
+  (CASE MACRO (PAT F) (CASE? PAT (QUOTE T) F))
           
 ')dnl
