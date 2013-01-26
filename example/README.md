@@ -13,4 +13,5 @@ This directory contains some sample LispKit Lisp programs.
 		  looks up the input argument in this map.
   - calc: A simple calculator that uses parser combinators instead of the
           CFG shift/reduce parser-generator.
+  - yinyang: An implementation of the [yin-yang puzzle](http://en.wikipedia.org/wiki/Call-with-current-continuation)
 
