@@ -27,6 +27,7 @@ The project is split up into the following components:
   - lispkit: The original and extended LispKit Lisp compilers.
   - util: A collection of useful LispKit Lisp functions.
   - example: Some example LispKit Lisp programs.
+  - meta: An SECD-machine implementation in (extended) LispKit Lisp.
   - calc: A simple calculator pogram
   - scheme: A Scheme compiler (incomplete -- see scheme/README.md for details).
 
