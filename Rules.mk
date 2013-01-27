@@ -4,11 +4,12 @@ SECDDIR			= $(TOPDIR)/secd
 LISPKITDIR	= $(TOPDIR)/lispkit
 SECD				= $(SECDDIR)/secd
 LISPKIT			= $(LISPKITDIR)/compiler.lob
+M4INCLUDE		= -I$(TOPDIR) -I$(TOPDIR)/util
 
 CLEANFILES	?=
 
 DEBUG=0
-M4=m4 -I$(TOPDIR) -I$(TOPDIR)/util
+M4=m4 $(M4INCLUDE) $(M4FLAGS)
 CC=gcc
 AS=nasm -g
 ARCH=elf32
