@@ -1,9 +1,9 @@
 
-TOPDIR		?= .
-SECDDIR		= $(TOPDIR)/secd
+TOPDIR			?= .
+SECDDIR			= $(TOPDIR)/secd
 LISPKITDIR	= $(TOPDIR)/lispkit
-SECD		= $(SECDDIR)/secd
-LISPKIT		= $(LISPKITDIR)/compiler.lob
+SECD				= $(SECDDIR)/secd
+LISPKIT			= $(LISPKITDIR)/compiler.lob
 
 CLEANFILES	?=
 
