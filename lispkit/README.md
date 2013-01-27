@@ -16,6 +16,7 @@ The extended version (`compiler.lso`) adds the following:
   - short-circuiting AND/OR
   - proper handling of tail recursion
   - removes requirement to QUOTE numbers
+  - support for lazy evaluation (DELAY/FORCE)
 
 Note that the extended version of the compiler must not use any of these
 extensions, as it must be compiled by the original compiler.
