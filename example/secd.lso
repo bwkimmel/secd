@@ -1,12 +1,43 @@
-dnl
+dnl  ===========================================================================
+dnl | SECD Machine
+dnl |
+dnl | An implementation of the SECD machine runs on an underlying SECD machine.
+dnl | This implementation does not yet support any of the extended opcodes that
+dnl | the underlying machine does.
+dnl |
+dnl  ===========================================================================
 (LETREC EXEC 
 
 include(Util.lso)
 include(Pattern.lso)
 include(CallCC.lso)
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Applies the next applicable transition to the SECD-machine state.
+  dnl |
+  dnl | STATE = A list of the form "(S E C D)" with the contents of the SECD
+  dnl |         machine registers
+  dnl | STOP = A continuation function to call if the machine halts.  The
+  dnl |        function must accept one argument, which is the result computed
+  dnl |        by the SECD-machine
+  dnl  -------------------------------------------------------------------------
   (STEP LAMBDA (STATE STOP) (LETREC
     (MATCH STATE (
+
+      dnl -- Each rule has one of the following forms:
+      dnl --   (RULE <operation> <args> <pattern> <debug-info>
+      dnl --     <s> <e> <c> <d>)
+      dnl --   (RULE* <operation> <args> <pattern> <debug-info>
+      dnl --     <result>)
+      dnl -- where:
+      dnl --   <operation>     = the symbolic name of the opcode
+      dnl --   <args>          = names to refer to the components extracted from
+      dnl --                     the state
+      dnl --   <pattern>       = the pattern to match against the current state
+      dnl --   <debug-info>    = what to print if __TRACE__ is enabled
+      dnl --   <s> <e> <c> <d> = what to transform each of the SECD-machine
+      dnl --                     registers into
+      dnl --   <result>        = the result of the transformation
 
       (RULE LD (S E I₁ I₂ C D) (_ _ (1 (#_ . #_) . _) _) (LIST (CONS I₁ I₂) (ENVSPEC E))
         (CONS (LOCATE I₁ I₂ E) S) E C D)
@@ -17,6 +48,11 @@ include(CallCC.lso)
       (RULE CONS (A B S E C D) ((_ _ . _) _ (13 . _) _) (CONS A B)
         (CONS (CONS A B) S) E C D)
 
+      dnl -- Short forms for binary operations:  (BINOP <opcode> <operation>) is
+      dnl -- equivalent to:
+      dnl --   (RULE <operation> (B A S E C D) ((_ _ . _) _ (<opcode> . _) _)
+      dnl --     <debug-info>
+      dnl --     (CONS (<operation> B A) S) E C D)
       (BINOP 14 EQ)
       (BINOP 15 ADD)
       (BINOP 16 SUB)
@@ -72,11 +108,13 @@ include(CallCC.lso)
       (RULE* ERROR (S E C) (_ _ _ *) (LIST S (ENVSPEC E) C)
         (STOP (LIST (QUOTE ERROR) S (ENVSPEC E) C)))))
         
+    dnl -- Helper functions
     (LOCATE LAMBDA (I₁ I₂ E)
       (ELEM I₂ (FORCE (ELEM I₁ E))))
     (ELEM LAMBDA (N L)
       (IF (EQ N 0) (CAR L) (ELEM (SUB N 1) (CDR L))))
 
+    dnl -- Helper macros
     (BINOP MACRO (INSTR OP)
       (RULE OP (A B S E C D) ((_ _ . _) _ (INSTR . _) _) (LIST B A (OP B A))
         (CONS (OP B A) S) E C D))
@@ -117,9 +155,26 @@ ifdef(`__TRACE__',
 
     ))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Applies SECD-machine transitions repeatedly until the machine halts
+  dnl |
+  dnl | STATE = The initial SECD-machine state.  A list of the form "(S E C D)"
+  dnl |         with the contents of the SECD machine registers
+  dnl | STOP = A continuation function to call if the machine halts.  The
+  dnl |        function must accept one argument, which is the result computed
+  dnl |        by the SECD-machine
+  dnl  -------------------------------------------------------------------------
   (CYCLE LAMBDA (STATE STOP)
     (CYCLE (STEP STATE STOP)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Executes the SECD-machine with the provided code and arguments.
+  dnl |
+  dnl | C = The contents of the code (C) register
+  dnl | S = The contents of the stack (S) register.  The list on the top of the
+  dnl |     stack register will be passed as the arguments to the function
+  dnl |     loaded by the code register.
+  dnl  -------------------------------------------------------------------------
   (EXEC LAMBDA (C S)
     (CALL/CC
       (LAMBDA (STOP)
