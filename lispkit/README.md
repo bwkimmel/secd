@@ -17,9 +17,43 @@ The extended version (`compiler.lso`) adds the following:
   - proper handling of tail recursion
   - removes requirement to QUOTE numbers
   - support for lazy evaluation (DELAY/FORCE)
+  - support for MACROs (see below)
 
 Note that the extended version of the compiler must not use any of these
 extensions, as it must be compiled by the original compiler.
+
+
+
+Macros
+------
+
+In the definitions for a `(LET ...)` or `(LETREC ...)` block, one can
+include MACRO definitions.  They have the same syntax as LAMBDA
+definitions except with the keyword MACRO in place of LAMBDA.
+Macro definitions do not get compiled.
+References to macros are processed at *compile* time, rather than at
+run-time:  The macro call is replaced with the body from the macro
+definition, with its arguments substituted with the provided
+S-expressions.
+
+Example:
+
+    (LET
+      (F (TEST (1 2 3) 4 5))
+      (TEST MACRO (X Y Z)
+        (LIST (QUOTE X) (CONS Y Z))))
+
+While compiling the above, `(TEST (1 2 3) 4 5)` would be replaced by
+`(LIST (QUOTE (1 2 3)) (CONS 4 5))`.  Compilation would then continue
+as if the code had been written as:
+
+    (LET
+      (F (LIST (QUOTE (1 2 3)) (CONS 4 5))))
+
+Note that, if TEST had been a LAMBDA definition, `(TEST (1 2 3) 4 5)`
+would be illegal, since `(1 2 3)` would be interpreted as a call to the
+function `1`.  Because it is a MACRO, however, `(QUOTE (1 2 3))` is
+substituted for `(1 2 3)` *before* proceeding with compilation.
 
 
 
