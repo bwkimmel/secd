@@ -1,0 +1,181 @@
+dnl  ===========================================================================
+dnl | SECD Machine
+dnl |
+dnl | An implementation of the SECD machine runs on an underlying SECD machine.
+dnl | This implementation does not yet support any of the extended opcodes that
+dnl | the underlying machine does.
+dnl |
+dnl  ===========================================================================
+(LETREC EXEC 
+
+include(Util.lso)
+include(Pattern.lso)
+include(CallCC.lso)
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Applies the next applicable transition to the SECD-machine state.
+  dnl |
+  dnl | STATE = A list of the form "(S E C D)" with the contents of the SECD
+  dnl |         machine registers
+  dnl | STOP = A continuation function to call if the machine halts.  The
+  dnl |        function must accept one argument, which is the result computed
+  dnl |        by the SECD-machine
+  dnl  -------------------------------------------------------------------------
+  (STEP LAMBDA (STATE STOP) (LETREC
+    (MATCH STATE (
+
+      dnl -- Each rule has one of the following forms:
+      dnl --   (RULE <operation> <args> <pattern> <debug-info>
+      dnl --     <s> <e> <c> <d>)
+      dnl --   (RULE* <operation> <args> <pattern> <debug-info>
+      dnl --     <result>)
+      dnl -- where:
+      dnl --   <operation>     = the symbolic name of the opcode
+      dnl --   <args>          = names to refer to the components extracted from
+      dnl --                     the state
+      dnl --   <pattern>       = the pattern to match against the current state
+      dnl --   <debug-info>    = what to print if __TRACE__ is enabled
+      dnl --   <s> <e> <c> <d> = what to transform each of the SECD-machine
+      dnl --                     registers into
+      dnl --   <result>        = the result of the transformation
+
+      (RULE LD (S E I₁ I₂ C D) (_ _ (1 (#_ . #_) . _) _) (LIST (CONS I₁ I₂) (ENVSPEC E))
+        (CONS (LOCATE I₁ I₂ E) S) E C D)
+
+      (RULE LDC (S E X C D) (_ _ (2 _ . _) _) X
+        (CONS X S) E C D)
+
+      (RULE CONS (A B S E C D) ((_ _ . _) _ (13 . _) _) (CONS A B)
+        (CONS (CONS A B) S) E C D)
+
+      dnl -- Short forms for binary operations:  (BINOP <opcode> <operation>) is
+      dnl -- equivalent to:
+      dnl --   (RULE <operation> (B A S E C D) ((_ _ . _) _ (<opcode> . _) _)
+      dnl --     <debug-info>
+      dnl --     (CONS (<operation> B A) S) E C D)
+      (BINOP 14 EQ)
+      (BINOP 15 ADD)
+      (BINOP 16 SUB)
+      (BINOP 17 MUL)
+      (BINOP 18 DIV)
+      (BINOP 19 REM)
+      (BINOP 20 LEQ)
+
+      (RULE CAR (A S E C D) (((_ . *) . _) _ (10 . _) _) A
+        (CONS A S) E C D)
+
+      (RULE CDR (B S E C D) (((* . _) . _) _ (11 . _) _) B
+        (CONS B S) E C D)
+
+      (RULE ATOM (A S E C D) ((_ . _) _ (12 . _) _) (LIST A (ATOM A))
+        (CONS (ATOM A) S) E C D)
+
+      (RULE SEL (S E Cf C D) ((F . _) _ (8 * _ . _) _) (QUOTE F)
+        S E Cf (CONS C D))
+
+      (RULE SEL (S E Cf C D) ((NIL . _) _ (8 * _ . _) _) (QUOTE F)
+        S E Cf (CONS C D))
+
+      (RULE SEL (S E Ct C D) ((* . _) _ (8 _ * . _) _) (QUOTE T)
+        S E Ct (CONS C D))
+
+      (RULE JOIN (S E C D) (_ _ (9) (_ . _)) (QUOTE NIL)
+        S E C D)
+
+      (RULE LDF (S E C' C D) (_ _ (3 _ . _) _) (LIST C' (ENVSPEC E))
+        (CONS (CONS C' E) S) E C D)
+
+      (RULE AP (C' E' V S E C D) (((_ . _) _ . _) _ (4 . _) _) (LIST C' (ENVSPEC (CONS V E')))
+        (QUOTE NIL) (CONS V E') C' (CONS S (CONS E (CONS C D))))
+
+      (RULE RTN (X S E C D) ((_) * (5) (_ _ _ . _)) (LIST X (ENVSPEC E))
+        (CONS X S) E C D)
+
+      (RULE* STOP (X) ((_ . *) * (21) *) X
+        (STOP X))
+
+      (RULE* DUM (S E C D) (_ _ (6 . _) _) (ENVSPEC E)
+        (LETREC
+          (MATCH V (
+            (CASE* (STATE) (* _ . 1) STATE)
+            (CASE * (LIST S (CONS Ω E) C (CONS V D)))))
+          (V CALL/CC (LAMBDA (F) F))
+          (Ω DELAY (CAR V))))
+
+      (RULE* RAP (C' E' V S E C F D) (((_ . _) _ . _) (* . _) (7 . _) (_ . _)) (ENVSPEC E')
+        (F (CONS V (CONS (LIST (QUOTE NIL) E' C' (CONS S (CONS E (CONS C D)))) 1))))
+
+      (RULE* ERROR (S E C) (_ _ _ *) (LIST S (ENVSPEC E) C)
+        (STOP (LIST (QUOTE ERROR) S (ENVSPEC E) C)))))
+        
+    dnl -- Helper functions
+    (LOCATE LAMBDA (I₁ I₂ E)
+      (ELEM I₂ (FORCE (ELEM I₁ E))))
+    (ELEM LAMBDA (N L)
+      (IF (EQ N 0) (CAR L) (ELEM (SUB N 1) (CDR L))))
+
+    dnl -- Helper macros
+    (BINOP MACRO (INSTR OP)
+      (RULE OP (A B S E C D) ((_ _ . _) _ (INSTR . _) _) (LIST B A (OP B A))
+        (CONS (OP B A) S) E C D))
+
+    (RULE MACRO (OP PARAMS PATTERN INFO S E C D)
+      (RULE* OP PARAMS PATTERN INFO (LIST S E C D)))
+
+    (RULE* MACRO (OP PARAMS PATTERN INFO RESULT)
+      (CASE* PARAMS PATTERN
+        (TRACE* OP INFO
+          RESULT)))
+
+ifdef(`__TRACE__',
+
+    (TRACE MACRO (OP X)
+      (BEGIN (PUTEXP (QUOTE OP)) (LET
+        (BEGIN (PUTEXP (QUOTE OK)) (PUT 10) Y) (Y . X))))
+
+    (TRACE* MACRO (OP T X)
+      (BEGIN (PUTEXP (LIST (QUOTE OP) T)) (LET
+        (BEGIN (PUTEXP (QUOTE OK)) (PUT 10) Y) (Y . X))))
+
+    (ENVSPEC LAMBDA (E)
+      (CONS (QUOTE ENV) (ENVSPECREC E)))
+
+    (ENVSPECREC LAMBDA (E)
+      (MATCH E (
+        (CASE NIL (QUOTE NIL))
+        (CASE? (_ . _) (RECIPE _1) (CONS (QUOTE ?) (ENVSPECREC _2)))
+        (CASE (_ . _) (CONS (LENGTH _1) (ENVSPECREC _2))))))
+
+,dnl !__TRACE__
+
+    (TRACE MACRO (OP X) X)
+    (TRACE* MACRO (OP T X) X)
+
+)dnl
+
+    ))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Applies SECD-machine transitions repeatedly until the machine halts
+  dnl |
+  dnl | STATE = The initial SECD-machine state.  A list of the form "(S E C D)"
+  dnl |         with the contents of the SECD machine registers
+  dnl | STOP = A continuation function to call if the machine halts.  The
+  dnl |        function must accept one argument, which is the result computed
+  dnl |        by the SECD-machine
+  dnl  -------------------------------------------------------------------------
+  (CYCLE LAMBDA (STATE STOP)
+    (CYCLE (STEP STATE STOP)))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Executes the SECD-machine with the provided code and arguments.
+  dnl |
+  dnl | C = The contents of the code (C) register
+  dnl | S = The contents of the stack (S) register.  The list on the top of the
+  dnl |     stack register will be passed as the arguments to the function
+  dnl |     loaded by the code register.
+  dnl  -------------------------------------------------------------------------
+  (EXEC LAMBDA (C S)
+    (CALL/CC
+      (LAMBDA (STOP)
+        (CYCLE (LIST S (QUOTE NIL) C (QUOTE NIL)) STOP)))))
