@@ -6,7 +6,7 @@ include(Pattern.lso)
 include(CallCC.lso)
 
   (STEP LAMBDA (STATE STOP) (LETREC
-    (MATCH STATE (LIST
+    (MATCH STATE (
 
       (RULE LD (S E I₁ I₂ C D) (_ _ (1 (#_ . #_) . _) _) (LIST (CONS I₁ I₂) (ENVSPEC E))
         (CONS (LOCATE I₁ I₂ E) S) E C D)
@@ -60,7 +60,7 @@ include(CallCC.lso)
 
       (RULE* DUM (S E C D) (_ _ (6 . _) _) (ENVSPEC E)
         (LETREC
-          (MATCH V (LIST
+          (MATCH V (
             (CASE* (STATE) (* _ . 1) STATE)
             (CASE * (LIST S (CONS Ω E) C (CONS V D)))))
           (V CALL/CC (LAMBDA (F) F))
@@ -103,7 +103,7 @@ ifdef(`__TRACE__',
       (CONS (QUOTE ENV) (ENVSPECREC E)))
 
     (ENVSPECREC LAMBDA (E)
-      (MATCH E (LIST
+      (MATCH E (
         (CASE NIL (QUOTE NIL))
         (CASE? (_ . _) (RECIPE _1) (CONS (QUOTE ?) (ENVSPECREC _2)))
         (CASE (_ . _) (CONS (LENGTH _1) (ENVSPECREC _2))))))

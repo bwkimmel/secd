@@ -119,23 +119,26 @@ include(Util.lso)
   dnl |         applied to the extracted elements, or (QUOTE NOMATCH) if no
   dnl |         pattern in CASES match X.
   dnl  -------------------------------------------------------------------------
-  (MATCH LAMBDA (X CASES)
+  (_MATCH LAMBDA (X CASES)
     (IF (ISNIL CASES)
         (QUOTE NOMATCH)
         (LET
           (LET
             (LET
               (IF (EQ ARGS (QUOTE F))
-                  (MATCH X (CDR CASES))
+                  (_MATCH X (CDR CASES))
                   (LET
                     (IF (P . ARGS)
                         (F . ARGS)
-                        (MATCH X (CDR CASES)))
+                        (_MATCH X (CDR CASES)))
                     (P CAR (CDR CASE))
                     (F CAR (CDR (CDR CASE)))))
               (ARGS PATTERN X PAT))
             (PAT CAR CASE))
           (CASE CAR CASES))))
+
+  (MATCH MACRO (X CASES)
+    (_MATCH X (LIST . CASES)))
 
   (CASE?* MACRO (ARGS PAT P F)
     (LIST (QUOTE PAT) (LAMBDA ARGS P) (LAMBDA ARGS F)))

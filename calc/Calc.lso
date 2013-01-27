@@ -27,7 +27,7 @@ dnl --- Simple Calculator
   dnl --- Recursively descend into the parse tree using pattern matching,
   dnl     evaluating the expressions as we ascend.
   (EVAL LAMBDA (TREE) (LET
-    (MATCH TREE (LIST
+    (MATCH TREE (
       (CASE ((C.*) _ < _)     (BINOP LT))
       (CASE ((C.*) _ > _)     (BINOP GT))
       (CASE ((C.*) _ <= _)    (BINOP LEQ))
