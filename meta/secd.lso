@@ -82,11 +82,11 @@ include(CallCC.lso)
       (RULE JOIN (S E C D) (_ _ (9) (_ . _)) (QUOTE NIL)
         S E C D)
 
-      (RULE LDF (S E C' C D) (_ _ (3 _ . _) _) (LIST C' (ENVSPEC E))
-        (CONS (CONS C' E) S) E C D)
+      (RULE LDF (S E C′ C D) (_ _ (3 _ . _) _) (LIST C′ (ENVSPEC E))
+        (CONS (CONS C′ E) S) E C D)
 
-      (RULE AP (C' E' V S E C D) (((_ . _) _ . _) _ (4 . _) _) (LIST C' (ENVSPEC (CONS V E')))
-        (QUOTE NIL) (CONS V E') C' (CONS S (CONS E (CONS C D))))
+      (RULE AP (C′ E′ V S E C D) (((_ . _) _ . _) _ (4 . _) _) (LIST C′ (ENVSPEC (CONS V E′)))
+        (QUOTE NIL) (CONS V E′) C′ (CONS S (CONS E (CONS C D))))
 
       (RULE RTN (X S E C D) ((_) * (5) (_ _ _ . _)) (LIST X (ENVSPEC E))
         (CONS X S) E C D)
@@ -102,8 +102,8 @@ include(CallCC.lso)
           (V CALL/CC (LAMBDA (F) F))
           (Ω DELAY (CAR V))))
 
-      (RULE* RAP (C' E' V S E C F D) (((_ . _) _ . _) (* . _) (7 . _) (_ . _)) (ENVSPEC E')
-        (F (CONS V (CONS (LIST (QUOTE NIL) E' C' (CONS S (CONS E (CONS C D)))) 1))))
+      (RULE* RAP (C′ E′ V S E C F D) (((_ . _) _ . _) (* . _) (7 . _) (_ . _)) (ENVSPEC E′)
+        (F (CONS V (CONS (LIST (QUOTE NIL) E′ C′ (CONS S (CONS E (CONS C D)))) 1))))
 
       (RULE* ERROR (S E C) (_ _ _ *) (LIST S (ENVSPEC E) C)
         (STOP (LIST (QUOTE ERROR) S (ENVSPEC E) C)))))
