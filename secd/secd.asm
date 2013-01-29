@@ -1178,6 +1178,7 @@ _instr_PEXP:
     push    eax
     call    _putexp
     add     esp, 4
+    call    _flush
     popsecd
     jmp     _cycle
 
