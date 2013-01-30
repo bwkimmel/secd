@@ -2,6 +2,7 @@
 
 include(Util.lso)
 include(Parser.lso)
+include(Pattern.lso)
 
   (TEST LAMBDA (E)
 
@@ -34,11 +35,8 @@ include(Parser.lso)
         (COMP LAMBDA NIL
           (PARSE_MAP
             (PARSE_SEQ (LIST (EXPR) (COMP_OP) (EXPR)))
-            (LAMBDA (X) (LET
-              (OP L R)
-              (L FIRST X)
-              (OP SECOND X)
-              (R THIRD X)))))
+            (LAMBDA (X) (MATCH X (
+              (CASE* (L OP R) (_ _ _) (OP L R)))))))
 
         (START LAMBDA NIL (PARSE_CONS_L (PARSE_OR (COMP) (EXPR)) $))
 
