@@ -35,15 +35,15 @@ dnl  ---------------------------------------------------------------------------
 dnl | Helper Rules
 dnl  ---------------------------------------------------------------------------
 
-  (ZeroOrMoreIdentifier
+  (Identifier*
     NIL
-    (ZeroOrMoreIdentifier IDENT))
-  (ZeroOrMoreVariable
+    (Identifier* IDENT))
+  (Variable*
     NIL
-    (OneOrMoreVariable))
-  (OneOrMoreVariable
+    (Variable+))
+  (Variable+
     (VARIABLE)
-    (OneOrMoreVariable VARIABLE))
+    (Variable+ VARIABLE))
 
 
 
@@ -98,12 +98,12 @@ dnl  ---------------------------------------------------------------------------
   (Datum
     (SimpleDatum)
     (CompoundDatum))
-  (ZeroOrMoreDatum
+  (Datum*
     NIL
-    (OneOrMoreDatum))
-  (OneOrMoreDatum
+    (Datum+))
+  (Datum+
     (Datum)
-    (OneOrMoreDatum Datum))
+    (Datum+ Datum))
   (SimpleDatum
     (BOOL)
     (NUMBER)
@@ -116,8 +116,8 @@ dnl  ---------------------------------------------------------------------------
     (List)
     (Vector))
   (List
-    (OPENP ZeroOrMoreDatum CLOSEP)
-    (OPENP OneOrMoreDatum DOT Datum CLOSEP)
+    (OPENP Datum* CLOSEP)
+    (OPENP Datum+ DOT Datum CLOSEP)
     (Abbreviation))
   (Abbreviation
     (AbbrevPrefix Datum))
@@ -127,7 +127,7 @@ dnl  ---------------------------------------------------------------------------
     (COMMA)
     (COMMAAT))
   (Vector
-    (OPENVEC ZeroOrMoreDatum CLOSEP))
+    (OPENVEC Datum* CLOSEP))
 
 
 
@@ -157,37 +157,37 @@ dnl  ---------------------------------------------------------------------------
     (QUOTE Datum)
     (OPENP KEYWORDQUOTE Datum CLOSEP))
   (ProcedureCall
-    (OPENP Operator OneOrMoreOperand CLOSEP)
+    (OPENP Operator Operand+ CLOSEP)
     (OPENP Operator CLOSEP))
   (Operator
     (Expression))
   (Operand
     (Expression))
-  (ZeroOrMoreOperand
+  (Operand*
     NIL
-    (ZeroOrMoreOperand Operand))
-  (OneOrMoreOperand
+    (Operand* Operand))
+  (Operand+
     (Operand)
-    (OneOrMoreOperand Operand))
+    (Operand+ Operand))
   (LambdaExpression
     (OPENP LAMBDA Formals Body CLOSEP))
   (Formals
-    (OPENP ZeroOrMoreVariable CLOSEP)
+    (OPENP Variable* CLOSEP)
     (VARIABLE)
-    (OPENP OneOrMoreVariable DOT VARIABLE CLOSEP))
+    (OPENP Variable+ DOT VARIABLE CLOSEP))
   (Body
-    (ZeroOrMoreDefinition Sequence))
+    (Definition* Sequence))
   (Sequence
     (Expression)
-    (OneOrMoreCommand Expression))
+    (Command+ Expression))
   (Command
     (Expression))
-  (ZeroOrMoreCommand
+  (Command*
     NIL
-    (ZeroOrMoreCommand Command))
-  (OneOrMoreCommand
+    (Command* Command))
+  (Command+
     (Command)
-    (OneOrMoreCommand Command))
+    (Command+ Command))
   (Conditional
     (OPENP IF Test Consequent Alternate CLOSEP))
   (Test
@@ -200,36 +200,36 @@ dnl  ---------------------------------------------------------------------------
   (Assignment
     (OPENP SETBANG VARIABLE Expression CLOSEP))
   (DerivedExpression
-    (OPENP COND OneOrMoreCondClause CLOSEP)
-    (OPENP COND OneOrMoreCondClause OPENP ELSE Sequence CLOSEP CLOSEP)
+    (OPENP COND CondClause+ CLOSEP)
+    (OPENP COND CondClause+ OPENP ELSE Sequence CLOSEP CLOSEP)
     (OPENP COND OPENP ELSE Sequence CLOSEP CLOSEP)
-    (OPENP CASE Expression OneOrMoreCaseClause CLOSEP)
-    (OPENP CASE Expression OneOrMoreCaseClause OPENP ELSE Sequence CLOSEP CLOSEP)
+    (OPENP CASE Expression CaseClause+ CLOSEP)
+    (OPENP CASE Expression CaseClause+ OPENP ELSE Sequence CLOSEP CLOSEP)
     (OPENP CASE Expression OPENP ELSE Sequence CLOSEP CLOSEP)
-    (OPENP AND ZeroOrMoreTest CLOSEP)
-    (OPENP OR ZeroOrMoreTest CLOSEP)
-    (OPENP LET OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
-    (OPENP LET VARIABLE OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
-    (OPENP LETSTAR OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
-    (OPENP LETREC OPENP ZeroOrMoreBindingSpec CLOSEP Body CLOSEP)
+    (OPENP AND Test* CLOSEP)
+    (OPENP OR Test* CLOSEP)
+    (OPENP LET OPENP BindingSpec* CLOSEP Body CLOSEP)
+    (OPENP LET VARIABLE OPENP BindingSpec* CLOSEP Body CLOSEP)
+    (OPENP LETSTAR OPENP BindingSpec* CLOSEP Body CLOSEP)
+    (OPENP LETREC OPENP BindingSpec* CLOSEP Body CLOSEP)
     (OPENP BEGIN Sequence CLOSEP)
-    (OPENP DO OPENP ZeroOrMoreIterationSpec CLOSEP OPENP Test DoResult CLOSEP Sequence CLOSEP)
-    (OPENP DO OPENP ZeroOrMoreIterationSpec CLOSEP OPENP Test DoResult CLOSEP CLOSEP)
+    (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP Sequence CLOSEP)
+    (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP CLOSEP)
     (OPENP DELAY Expression CLOSEP))
   (CondClause
     (OPENP Test Sequence CLOSEP)
     (OPENP Test CLOSEP)
     (OPENP Test ARROW Recipient CLOSEP))
-  (ZeroOrMoreCondClause
+  (CondClause*
     NIL
-    (ZeroOrMoreCondClause CondClause))
-  (OneOrMoreCondClause
+    (CondClause* CondClause))
+  (CondClause+
     (CondClause)
-    (OneOrMoreCondClause CondClause))
+    (CondClause+ CondClause))
   (Recipient
     (Expression))
   (CaseClause
-    (OPENP OPENP ZeroOrMoreDatum CLOSEP Sequence CLOSEP))
+    (OPENP OPENP Datum* CLOSEP Sequence CLOSEP))
   (BindingSpec
     (OPENP VARIABLE Expression CLOSEP))
   (IterationSpec
@@ -243,12 +243,12 @@ dnl  ---------------------------------------------------------------------------
     (Sequence)
     NIL)
   (MacroUse
-    (OPENP Keyword ZeroOrMoreDatum CLOSEP))
+    (OPENP Keyword Datum* CLOSEP))
   (Keyword
     (IDENT))
   (MacroBlock
-    (OPENP LETSYNTAX OPENP ZeroOrMoreSyntaxSpec CLOSEP Body CLOSEP)
-    (OPENP LETRECSYNTAX OPENP ZeroOrMoreSyntaxSpec CLOSEP Body CLOSEP))
+    (OPENP LETSYNTAX OPENP SyntaxSpec* CLOSEP Body CLOSEP)
+    (OPENP LETRECSYNTAX OPENP SyntaxSpec* CLOSEP Body CLOSEP))
   (SyntaxSpec
     (OPENP Keyword TransformerSpec CLOSEP))
 
@@ -259,26 +259,26 @@ dnl | 7.1.5  Transformers
 dnl  ---------------------------------------------------------------------------
 
   (TransformerSpec
-    (OPENP SYNTAXRULES OPENP ZeroOrMoreIdentifier CLOSEP ZeroOrMoreSyntaxRule CLOSEP))
+    (OPENP SYNTAXRULES OPENP Identifier* CLOSEP SyntaxRule* CLOSEP))
   (SyntaxRule
     (OPENP Pattern Template CLOSEP))
-  (ZeroOrMoreSyntaxRule
+  (SyntaxRule*
     NIL
-    (ZeroOrMoreSyntaxRule SyntaxRule))
+    (SyntaxRule* SyntaxRule))
   (Pattern
     (PatternIdentifier)
-    (OPENP ZeroOrMorePattern CLOSEP)
-    (OPENP OneOrMorePattern DOT Pattern CLOSEP)
-    (OPENP OneOrMorePattern ELLIPSIS CLOSEP)
-    (OPENVEC ZeroOrMorePattern CLOSEP)
-    (OPENVEC OneOrMorePattern ELLIPSIS CLOSEP)
+    (OPENP Pattern* CLOSEP)
+    (OPENP Pattern+ DOT Pattern CLOSEP)
+    (OPENP Pattern+ ELLIPSIS CLOSEP)
+    (OPENVEC Pattern* CLOSEP)
+    (OPENVEC Pattern+ ELLIPSIS CLOSEP)
     (PatternDatum))
-  (ZeroOrMorePattern
+  (Pattern*
     NIL
-    (OneOrMorePattern))
-  (OneOrMorePattern
+    (Pattern+))
+  (Pattern+
     (Pattern)
-    (OneOrMorePattern Pattern))
+    (Pattern+ Pattern))
   (PatternDatum
     (STRING)
     (CHAR)
@@ -286,19 +286,19 @@ dnl  ---------------------------------------------------------------------------
     (NUMBER))
   (Template
     (PatternIdentifier)
-    (OPENP ZeroOrMoreTemplateElement CLOSEP)
-    (OPENP OneOrMoreTemplateElement DOT Template CLOSEP)
-    (OPENVEC ZeroOrMoreTemplateElement CLOSEP)
+    (OPENP TemplateElement* CLOSEP)
+    (OPENP TemplateElement+ DOT Template CLOSEP)
+    (OPENVEC TemplateElement* CLOSEP)
     (TemplateDatum))
   (TemplateElement
     (Template)
     (Template ELLIPSIS))
-  (ZeroOrMoreTemplateElement
+  (TemplateElement*
     NIL
-    (OneOrMoreTemplateElement))
-  (OneOrMoreTemplateElement
+    (TemplateElement+))
+  (TemplateElement+
     (TemplateElement)
-    (OneOrMoreTemplateElement TemplateElement))
+    (TemplateElement+ TemplateElement))
   (TemplateDatum
     (PatternDatum))
   (PatternIdentifier
@@ -310,12 +310,12 @@ dnl  ---------------------------------------------------------------------------
 dnl | 7.1.6  Programs and Definitions
 dnl  ---------------------------------------------------------------------------
 
-  (Program (ZeroOrMoreCommandOrDefinition))
+  (Program (CommandOrDefinition*))
   (CommandOrDefinition
     (Command)
     (Definition)
     (SyntaxDefinition))
-dnl    (OPENP BEGIN OneOrMoreCommandAndDefinition CLOSEP))
+dnl    (OPENP BEGIN CommandAndDefinition+ CLOSEP))
         dnl ^-- This production rule causes inherent ambiguities in the Scheme
         dnl     grammar, since (OPENP BEGIN Definition+ CLOSEP) and
         dnl     (OPENP BEGIN Command+ CLOSEP) are both accounted for by
@@ -325,45 +325,45 @@ dnl    (OPENP BEGIN OneOrMoreCommandAndDefinition CLOSEP))
         dnl     definitions or contain BOTH commands AND definitions.  Until we
         dnl     can implement a proper solution for this case, I am leaving this
         dnl     production rule out.
-  (ZeroOrMoreCommandOrDefinition
+  (CommandOrDefinition*
     NIL
-    (OneOrMoreCommandOrDefinition))
-  (OneOrMoreCommandOrDefinition 
+    (CommandOrDefinition+))
+  (CommandOrDefinition+ 
     (CommandOrDefinition)
-    (OneOrMoreCommandOrDefinition CommandOrDefinition))
+    (CommandOrDefinition+ CommandOrDefinition))
   (Definition
     (OPENP DEFINE VARIABLE Expression CLOSEP)
     (OPENP DEFINE OPENP DefFormals CLOSEP Body CLOSEP)
-    (OPENP BEGIN OneOrMoreDefinition CLOSEP))
-  (ZeroOrMoreDefinition
+    (OPENP BEGIN Definition+ CLOSEP))
+  (Definition*
     NIL
-    (ZeroOrMoreDefinition Definition))
-  (OneOrMoreDefinition
+    (Definition* Definition))
+  (Definition+
     (Definition)
-    (OneOrMoreDefinition Definition))
+    (Definition+ Definition))
   (DefFormals
-    (OneOrMoreVariable)
-    (OneOrMoreVariable DOT VARIABLE))
+    (Variable+)
+    (Variable+ DOT VARIABLE))
   (SyntaxDefinition
     (OPENP DEFINESYNTAX IDENT TransformerSpec CLOSEP))
-  (ZeroOrMoreCaseClause
+  (CaseClause*
     NIL
-    (OneOrMoreCaseClause))
-  (OneOrMoreCaseClause
+    (CaseClause+))
+  (CaseClause+
     (CaseClause)
-    (OneOrMoreCaseClause CaseClause))
-  (ZeroOrMoreBindingSpec
+    (CaseClause+ CaseClause))
+  (BindingSpec*
     NIL
-    (ZeroOrMoreBindingSpec BindingSpec))
-  (ZeroOrMoreIterationSpec
+    (BindingSpec* BindingSpec))
+  (IterationSpec*
     NIL
-    (ZeroOrMoreIterationSpec IterationSpec))
-  (ZeroOrMoreSyntaxSpec
+    (IterationSpec* IterationSpec))
+  (SyntaxSpec*
     NIL
-    (ZeroOrMoreSyntaxSpec SyntaxSpec))
-  (ZeroOrMoreTest
+    (SyntaxSpec* SyntaxSpec))
+  (Test*
     NIL
-    (ZeroOrMoreTest Test))
+    (Test* Test))
 dnl  ---------------------------------------------------------------------------
   ))
 
