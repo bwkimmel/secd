@@ -12,7 +12,7 @@ dnl ---------------------------------------------------------------------------
       (MAPFROMLIST SchemeDFA)
       (LAMBDA (TOKEN) (CAR TOKEN))                              dnl --- TYPE
       (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))   dnl --- ERROR
-      (LEX BUILDLIST)))
+      (STOLIST (LEX (STDIN)))))
 
   (SchemeCFG QUOTE
 include(SchemeCFG.lso)
@@ -22,16 +22,8 @@ include(SchemeCFG.lso)
 include(SchemeDFA.lso)
     )
 
-  dnl  -------------------------------------------------------------------------
-  dnl | Processes tokens provided by the lexer by building a list.
-  dnl | X = the token
-  dnl | REENTRY = the continuation for the lexer
-  dnl  -------------------------------------------------------------------------
-  (BUILDLIST LAMBDA (X REENTRY)
-    (IF (ISNIL X)
-        (QUOTE NIL)
-        (CONS X (REENTRY BUILDLIST))))
-
+include(StdIn.lso)
+include(Stream.lso)
 include(Util.lso)
 include(Cfg.lso)
 include(LexScheme.lso)
