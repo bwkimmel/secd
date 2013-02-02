@@ -40,6 +40,13 @@ dnl
                 (IF (EQ (CDR E) (QUOTE NIL))
                     (CONS (QUOTE 2) (CONS (QUOTE NIL) C))
                     (COMP (CONS (QUOTE LIST) (CDR (CDR E))) N (COMP (CAR (CDR E)) N (CONS (QUOTE 13) C))))
+           (IF (EQ (CAR E) (QUOTE APPLY))
+                (LET
+                  (COMP (CAR (CDR (CDR E))) N
+                    (COMP (CAR (CDR E)) N APC))
+                  (APC IF (EQ (CAR C) (QUOTE 5))
+                    (CONS (QUOTE 26) (CDR C))
+                    (CONS (QUOTE 4) C)))
            (IF (EQ (CAR E) (QUOTE NOP))
                 (COMP (CAR (CDR E)) N (CONS (QUOTE 0) C))
            (IF (EQ (CAR E) (QUOTE QUOTE))
@@ -149,21 +156,17 @@ dnl
              (DEF DEFS (CDR (CDR E))))
         (LET
           (IF (EQ MINDEX (QUOTE NIL))
-              (COMPARGS (CDR E) N (COMP (CAR E) N
+              (COMPLIS (CDR E) N (COMP (CAR E) N
                (IF (EQ (CAR C) (QUOTE 5))
                     (CONS (QUOTE 26) (CDR C))
                     (CONS (QUOTE 4) C))))
               (LET
                 (COMP (SUBST (CAR (CDR (CDR MEXPR))) (CAR (CDR MEXPR)) (CDR E)) N C)
                 (MEXPR ELEM (CDR MINDEX) (ELEM (CAR MINDEX) (GETMEXPRS N)))))
-          (MINDEX LOCATION (CAR E) (GETMVARS N)))))))))))))))))))))))))))))))))))))))))))))))))
+          (MINDEX LOCATION (CAR E) (GETMVARS N))))))))))))))))))))))))))))))))))))))))))))))))))
         (COMPLIS LAMBDA (E N C)
            (IF (EQ E (QUOTE NIL)) (CONS (QUOTE 2) (CONS (QUOTE NIL) C))
                 (COMPLIS (CDR E) N (COMP (CAR E) N (CONS (QUOTE 13) C)))))
-        (COMPARGS LAMBDA (E N C)
-           (IF (EQ E (QUOTE NIL)) (CONS (QUOTE 2) (CONS (QUOTE NIL) C))
-           (IF (ATOM E) (COMPLOC (LOCATION E (GETNAMES N)) C)
-                (COMPARGS (CDR E) N (COMP (CAR E) N (CONS (QUOTE 13) C))))))
         (COMPLOC LAMBDA (LOC C)
           (IF (ATOM (CDR LOC))
               (CONS (QUOTE 1) (CONS LOC C))
