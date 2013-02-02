@@ -141,7 +141,16 @@ include(Util.lso)
     (_MATCH X (LIST . CASES)))
 
   (CASE?* MACRO (ARGS PAT P F)
-    (LIST (QUOTE PAT) (LAMBDA ARGS P) (LAMBDA ARGS F)))
+    (LIST (QUOTE PAT)
+      (LAMBDA _0
+        (LET
+          (APPLY P* _0)
+          (P* LAMBDA ARGS P)))
+      (LAMBDA _0
+        (LET
+          (APPLY F* _0)
+          (F* LAMBDA ARGS F)))))
+
   (CASE*? MACRO (ARGS PAT P F) (CASE?* ARGS PAT P F))
   (CASE* MACRO (ARGS PAT F) (CASE*? ARGS PAT (QUOTE T) F))
   (CASE? MACRO (PAT P F) (CASE?* (_1 _2 _3 _4 _5 _6 _7 _8 _9) PAT P F))
