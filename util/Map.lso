@@ -113,64 +113,17 @@ include(Util.lso)
                             (MAPLEFT M)
                             (MAPPUTCC (MAPRIGHT M) K V)))))
               (CMP DEEPCMP K (MAPKEY M)))))
+      (REBUILD LAMBDA (A XK XV B YK YV C ZK ZV D)
+        (MAPCONS YK YV MAPRED
+          (MAPCONS XK XV MAPBLACK A B)
+          (MAPCONS ZK ZV MAPBLACK C D)))
       (BALANCE LAMBDA (M)
-        (LETREC
-          (IF (EQ MATCH (QUOTE F))
-              M
-              (LETREC
-                (MAPCONS YK YV MAPRED
-                  (MAPCONS XK XV MAPBLACK A B)
-                  (MAPCONS ZK ZV MAPBLACK C D))
-                (A NTH MATCH 0)
-                (XK NTH MATCH 1)
-                (XV NTH MATCH 2)
-                (B NTH MATCH 3)
-                (YK NTH MATCH 4)
-                (YV NTH MATCH 5)
-                (C NTH MATCH 6)
-                (ZK NTH MATCH 7)
-                (ZV NTH MATCH 8)
-                (D NTH MATCH 9)
-                ))
-
-          (MATCH .
-            (LET (IF (EQ MATCHLL (QUOTE F))
-                     (LET (IF (EQ MATCHLR (QUOTE F))
-                              (LET (IF (EQ MATCHRL (QUOTE F))
-                                       (LET (IF (EQ MATCHRR (QUOTE F))
-                                                (QUOTE F)
-                                                MATCHRR)
-
-              (MATCHRR PATTERN M
-                (QUOTE (_ _ _ (_ _ _ (_ _ _ _ . RED) . RED) . BLACK)))
-dnl -----------         a x x  b y y  c z z d
-dnl -----------          (k,v)  (k,v)  (k,v)
-
-                                         )
-                                       MATCHRL)
-
-              (MATCHRL PATTERN M
-                (QUOTE (_ _ _ ((_ _ _ _ . RED) _ _ _ . RED) . BLACK)))
-dnl -----------         a x x   b y y c        z z d
-dnl -----------          (k,v)   (k,v)        (k,v)
-
-                                )
-                              MATCHLR)
-
-              (MATCHLR PATTERN M
-                (QUOTE ((_ _ _ (_ _ _ _ . RED) . RED) _ _ _ . BLACK)))
-dnl -----------          a x x  b y y c               z z d
-dnl -----------           (k,v)  (k,v)               (k,v)
-
-                       )
-                     MATCHLL)
-
-              (MATCHLL PATTERN M
-                (QUOTE (((_ _ _ _ . RED) _ _ _ . RED) _ _ _ . BLACK)))
-dnl -----------           a x x b        y y c        z z d
-dnl -----------            (k,v)        (k,v)        (k,v)
-
-              ))))))
+        (MATCH M (
+          (CASE (((_ _ _ _ . RED) _ _ _ . RED) _ _ _ . BLACK) (APPLY REBUILD _0))
+          (CASE ((_ _ _ (_ _ _ _ . RED) . RED) _ _ _ . BLACK) (APPLY REBUILD _0))
+          (CASE (_ _ _ ((_ _ _ _ . RED) _ _ _ . RED) . BLACK) (APPLY REBUILD _0))
+          (CASE (_ _ _ (_ _ _ (_ _ _ _ . RED) . RED) . BLACK) (APPLY REBUILD _0))
+          (CASE _ _1))))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Gets the value associated with the given key
