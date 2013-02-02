@@ -686,6 +686,9 @@ _instr_LD:
     mov     eax, [E]    ; W <-- E
     carcdr  edx, C      ; EDX <-- car(cdr(C)), C' <-- cdr(cdr(C))
 
+    test    byte [flags + edx], SECD_ATOM
+    jnz     .skiploop1
+
     carcdr  ecx, edx    ; ECX <-- car(car(cdr(C))), EDX <-- cdr(car(cdr(C)))
     ivalue  ecx
     jcxz    .endloop1
@@ -695,6 +698,8 @@ _instr_LD:
 .endloop1:
 
     car     eax, eax    ; W <-- car(W)
+
+.skiploop1:
     mov     ecx, edx    ; ECX <-- cdr(car(cdr(C)))
     ivalue  ecx
     jcxz    .endloop2
