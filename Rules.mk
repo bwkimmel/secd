@@ -41,6 +41,7 @@ $(LISPKIT): $(LISPKITDIR)/compiler.lso $(LISPKITDIR)/primitive-compiler.lob $(SE
 
 %.lob : %.lso $(LISPKIT) $(SECD)
 	$(M4) $< | cat $(LISPKIT) - | $(SECD) > $@
+	@if ( head -n 1 "$@" | grep -q '^\s*(\s*ERROR\b' ); then cat "$@"; rm -f "$@"; exit 1; fi
 
 run-% : %.lob
 	@cat $< - | $(SECD)
