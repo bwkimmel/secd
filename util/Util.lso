@@ -444,4 +444,27 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
           (PUT (CAR S))
           (PRINTSTR (CDR S)))))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Folds elements of a list using a binary operation
+  dnl | F = a function accepting two arguments
+  dnl | X = the value to return if L is empty
+  dnl | L = the list to fold
+  dnl | RETURNS (F ... (F (F X L1) L2) ... Ln)
+  dnl  -------------------------------------------------------------------------
+  (FOLD LAMBDA (F X L)
+    (IF (ISNIL L)
+        X
+        (FOLD F
+          (F X (CAR L))
+          (CDR L))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Reduces elements of a list using a binary operation
+  dnl | F = a function accepting two arguments
+  dnl | L = the list to reduce
+  dnl | RETURNS (F ... (F (F L1 L2) L3) ... Ln)
+  dnl  -------------------------------------------------------------------------
+  (REDUCE LAMBDA (F L)
+    (FOLD F (CAR L) (CDR L)))
+
 ')dnl
