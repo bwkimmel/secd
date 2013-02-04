@@ -288,9 +288,17 @@ dnl
               (QUOTE NIL)
           (IF (ATOM E)
               (LET
-                (IF (EQ INDEX (QUOTE NIL)) E (ELEM INDEX M))
+                (IF (EQ INDEX (QUOTE NIL))
+                    E
+                    (IF (ATOM INDEX)
+                        (ELEM INDEX M)
+                        (DROP (CAR INDEX) M)))
                 (INDEX FIND E A))
               (CONS (SUBST (CAR E) A M) (SUBST (CDR E) A M)))))
+        (DROP LAMBDA (N L)
+          (IF (EQ N (QUOTE 0))
+              L
+              (DROP (SUB N (QUOTE 1)) (CDR L))))
         (ELEM LAMBDA (N L)
           (IF (EQ N (QUOTE 0))
               (CAR L)
@@ -304,12 +312,8 @@ dnl
                 (IF (EQ INDEX (QUOTE NIL))
                     (LOCATIONREC X (CDR LL) (ADD ACC (QUOTE 1)))
                     (CONS ACC INDEX))
-                (INDEX FIND* X (CAR LL)))))
+                (INDEX FIND X (CAR LL)))))
         (FIND LAMBDA (X L)
-          (LET
-            (IF (ATOM INDEX) INDEX (QUOTE NIL))
-            (INDEX FIND* X L)))
-        (FIND* LAMBDA (X L)
           (FINDREC X L (QUOTE 0)))
         (FINDREC LAMBDA (X L ACC)
           (IF (EQ L (QUOTE NIL))
