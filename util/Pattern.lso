@@ -137,7 +137,7 @@ include(Util.lso)
             (PAT CAR CASE))
           (CASE CAR CASES))))
 
-  (MATCH MACRO (X CASES)
+  (MATCH MACRO (X . CASES)
     (_MATCH X (LIST . CASES)))
 
   (CASE?* MACRO (ARGS PAT P F)

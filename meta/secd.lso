@@ -22,7 +22,7 @@ include(CallCC.lso)
   dnl |        by the SECD-machine
   dnl  -------------------------------------------------------------------------
   (STEP LAMBDA (STATE STOP) (LETREC
-    (MATCH STATE (
+    (MATCH STATE
 
       dnl -- Each rule has one of the following forms:
       dnl --   (RULE <operation> <args> <pattern> <debug-info>
@@ -96,9 +96,9 @@ include(CallCC.lso)
 
       (RULE* DUM (S E C D) (_ _ (6 . _) _) (ENVSPEC E)
         (LETREC
-          (MATCH V (
+          (MATCH V
             (CASE* (STATE) (* _ . 1) STATE)
-            (CASE * (LIST S (CONS Ω E) C (CONS V D)))))
+            (CASE * (LIST S (CONS Ω E) C (CONS V D))))
           (V CALL/CC (LAMBDA (F) F))
           (Ω DELAY (CAR V))))
 
@@ -141,10 +141,10 @@ ifdef(`__TRACE__',
       (CONS (QUOTE ENV) (ENVSPECREC E)))
 
     (ENVSPECREC LAMBDA (E)
-      (MATCH E (
+      (MATCH E
         (CASE NIL (QUOTE NIL))
         (CASE? (_ . _) (RECIPE _1) (CONS (QUOTE ?) (ENVSPECREC _2)))
-        (CASE (_ . _) (CONS (LENGTH _1) (ENVSPECREC _2))))))
+        (CASE (_ . _) (CONS (LENGTH _1) (ENVSPECREC _2)))))
 
 ,dnl !__TRACE__
 

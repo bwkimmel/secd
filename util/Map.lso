@@ -118,12 +118,12 @@ include(Util.lso)
           (MAPCONS XK XV MAPBLACK A B)
           (MAPCONS ZK ZV MAPBLACK C D)))
       (BALANCE LAMBDA (M)
-        (MATCH M (
+        (MATCH M
           (CASE (((_ _ _ _ . RED) _ _ _ . RED) _ _ _ . BLACK) (APPLY REBUILD _0))
           (CASE ((_ _ _ (_ _ _ _ . RED) . RED) _ _ _ . BLACK) (APPLY REBUILD _0))
           (CASE (_ _ _ ((_ _ _ _ . RED) _ _ _ . RED) . BLACK) (APPLY REBUILD _0))
           (CASE (_ _ _ (_ _ _ (_ _ _ _ . RED) . RED) . BLACK) (APPLY REBUILD _0))
-          (CASE _ _1))))))
+          (CASE _ _1)))))
 
   dnl  -------------------------------------------------------------------------
   dnl | Gets the value associated with the given key
