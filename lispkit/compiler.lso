@@ -84,9 +84,17 @@ dnl
                       (IF (EQ E (QUOTE PUTEXP))
                           (COMP (QUOTE (LAMBDA (X) (PUTEXP X))) N C)
                       (IF (EQ E (QUOTE AND))
-                          (COMP (QUOTE (LAMBDA (A B) (AND A B))) N C)
+                          (COMP (QUOTE (LETREC F
+                            (F LAMBDA (X . REST)
+                              (IF (EQ REST (QUOTE NIL))
+                                  X
+                                  (APPLY F (CONS (AND X (CAR REST)) (CDR REST))))))) N C)
                       (IF (EQ E (QUOTE OR))
-                          (COMP (QUOTE (LAMBDA (A B) (OR A B))) N C)
+                          (COMP (QUOTE (LETREC F
+                            (F LAMBDA (X . REST)
+                              (IF (EQ REST (QUOTE NIL))
+                                  X
+                                  (APPLY F (CONS (OR X (CAR REST)) (CDR REST))))))) N C)
                           (LET
                             (STOP (CONS (QUOTE ERROR) (CONS (QUOTE Undefined) E)))
                             (STOP LAMBDA (X) (
@@ -195,9 +203,29 @@ dnl
            (IF (EQ (CAR E) (QUOTE CONS))
                 (COMP (CAR (CDR (CDR E))) N (COMP (CAR (CDR E)) N (CONS (QUOTE 13) C)))
            (IF (EQ (CAR E) (QUOTE AND))
-                (COMP (CONS (QUOTE IF) (CONS (CAR (CDR E)) (CONS (CAR (CDR (CDR E))) (CONS (QUOTE (QUOTE F)) (QUOTE NIL))))) N C)
+                (IF (EQ (CDR (CDR E)) (QUOTE NIL))
+                    (COMP (CAR (CDR E)) N C)
+                (IF (EQ (CDR (CDR (CDR E))) (QUOTE NIL))
+                    (COMP (CONS (QUOTE IF) (CONS (CAR (CDR E)) (CONS (CAR (CDR (CDR E))) (CONS (QUOTE (QUOTE F)) (QUOTE NIL))))) N C)
+                    (COMP
+                      (CONS (QUOTE AND)
+                        (CONS
+                          (CONS (QUOTE AND)
+                            (CONS (CAR (CDR E))
+                              (CONS (CAR (CDR (CDR E))) (QUOTE NIL))))
+                          (CDR (CDR (CDR E))))) N C)))
            (IF (EQ (CAR E) (QUOTE OR))
-                (COMP (CONS (QUOTE IF) (CONS (CAR (CDR E)) (CONS (QUOTE (QUOTE T)) (CONS (CAR (CDR (CDR E))) (QUOTE NIL))))) N C)
+                (IF (EQ (CDR (CDR E)) (QUOTE NIL))
+                    (COMP (CAR (CDR E)) N C)
+                (IF (EQ (CDR (CDR (CDR E))) (QUOTE NIL))
+                    (COMP (CONS (QUOTE IF) (CONS (CAR (CDR E)) (CONS (QUOTE (QUOTE T)) (CONS (CAR (CDR (CDR E))) (QUOTE NIL))))) N C)
+                    (COMP
+                      (CONS (QUOTE OR)
+                        (CONS
+                          (CONS (QUOTE OR)
+                            (CONS (CAR (CDR E))
+                              (CONS (CAR (CDR (CDR E))) (QUOTE NIL))))
+                          (CDR (CDR (CDR E))))) N C)))
            (IF (EQ (CAR E) (QUOTE IF))
                 (IF (EQ (CAR C) (QUOTE 5))
                      (LET (COMP (CAR (CDR E)) N (CONS (QUOTE 27)
