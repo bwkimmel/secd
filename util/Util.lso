@@ -467,4 +467,17 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
   (REDUCE LAMBDA (F L)
     (FOLD F (CAR L) (CDR L)))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Arithmetic operators
+  dnl  -------------------------------------------------------------------------
+  (+ MACRO ARGS (ADD . ARGS))
+  (* MACRO ARGS (MUL . ARGS))
+  (- MACRO (A B) (SUB A B))
+  (/ MACRO (A B) (DIV A B))
+
+  (+ LAMBDA ARGS (APPLY ADD ARGS))
+  (* LAMBDA ARGS (APPLY MUL ARGS))
+  (- LAMBDA (A B) (SUB A B))
+  (/ LAMBDA (A B) (DIV A B))
+
 ')dnl

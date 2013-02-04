@@ -3,12 +3,12 @@ ifdef(`stdin_lso_m4',,`define(`stdin_lso_m4',1)dnl
 
   (STDIN LAMBDA NIL
     (LETREC
-      (DELAY (-))
-      (- LAMBDA NIL
+      (DELAY (IN))
+      (IN LAMBDA NIL
         (LET
           (IF (LEQ X -1)
               (QUOTE NIL)
-              (CONS X (DELAY (-))))
+              (CONS X (DELAY (IN))))
           (X GET)))))
 
 ')dnl
