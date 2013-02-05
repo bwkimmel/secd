@@ -30,6 +30,20 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
             (REVERSECC (CDR L) (CONS (CAR L) CC))))))
 
   dnl  -------------------------------------------------------------------------
+  dnl | Flatten a list of lists
+  dnl | L = the list to flatten.  Each element of L must be a list (either NIL
+  dnl |     or a (CONS x y), where y is a list).
+  dnl | RETURNS a list formed by concatenating all of the elements in L
+  dnl  -------------------------------------------------------------------------
+  (FLATTEN LAMBDA (L)
+    (LETREC
+      (FLATTENREV (REVERSE L) (QUOTE NIL))
+      (FLATTENREV LAMBDA (L CC)
+        (IF (EQ L (QUOTE NIL))
+            CC
+            (FLATTENREV (CDR L) (APPEND (CAR L) CC))))))
+
+  dnl  -------------------------------------------------------------------------
   dnl | Gets the item in the list at the specified (zero-based) index
   dnl | L = the list to search
   dnl | N = the zero-based index into the list

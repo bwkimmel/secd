@@ -6,11 +6,11 @@ dnl --- Simple Calculator
       (MAPFROMLIST ExpressionDFA)
       (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
       (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
-      (FLATTEN EXPR))))
+      (FLATTENEXPR EXPR))))
 
   dnl --- Flattens the list, turning the beginning and end of sub-lists
   dnl     into OPENP & CLOSEP tokens, respectively.
-  (FLATTEN LAMBDA (L)
+  (FLATTENEXPR LAMBDA (L)
     (LETREC
       (FLATTENCC L (QUOTE NIL))
       (FLATTENCC LAMBDA (L CC)
