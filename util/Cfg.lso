@@ -32,6 +32,7 @@ ifdef(`cfg_util_lso_m4',,`define(`cfg_util_lso_m4', 1)dnl
 include(Set.lso)
 include(Map.lso)
 include(Util.lso)
+include(Stream.lso)
 
   dnl  -------------------------------------------------------------------------
   dnl | Creates a new CFG from a list of production rules.  The list of rules
@@ -102,7 +103,7 @@ include(Util.lso)
     (LETREC
       (CFGPARSECC TOKENS (QUOTE ((0))))
       (CFGPARSECC LAMBDA (TOKENS STACK)
-        (IF (ISNIL TOKENS)
+        (IF (SISNIL TOKENS)
             (CFGPARSECC (QUOTE ($)) STACK)
             (LET
               (LET
@@ -120,7 +121,7 @@ include(Util.lso)
                     (STOP (QUOTE ParserInvalidActionError))))))
                 (ACTION MAPGET DFA (CONS STATE TOKEN)))
               (STATE CAR (CAR STACK))
-              (TOKEN IF (EQ (CAR TOKENS) (QUOTE $))
+              (TOKEN IF (EQ (SCAR TOKENS) (QUOTE $))
                         (QUOTE $)
                         (TYPE (CAR TOKENS))))))
       (REDUCE LAMBDA (STACK RULE)
