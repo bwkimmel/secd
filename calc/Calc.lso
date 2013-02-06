@@ -1,12 +1,13 @@
 dnl --- Simple Calculator
 (LETREC TEST
   (TEST LAMBDA (EXPR)
-    (EVAL (CFGPARSE
+    (CFGPARSE
       (MAPFROMLIST ExpressionCFG)
       (MAPFROMLIST ExpressionDFA)
       (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
       (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
-      (FLATTENEXPR EXPR))))
+      (FLATTENEXPR EXPR)
+      EVAL))
 
   dnl --- Flattens the list, turning the beginning and end of sub-lists
   dnl     into OPENP & CLOSEP tokens, respectively.
@@ -28,21 +29,21 @@ dnl --- Simple Calculator
   dnl     evaluating the expressions as we ascend.
   (EVAL LAMBDA (TREE) (LET
     (MATCH TREE
-      (CASE ((C.*) _ < _)     (BINOP LT))
-      (CASE ((C.*) _ > _)     (BINOP GT))
-      (CASE ((C.*) _ <= _)    (BINOP LEQ))
-      (CASE ((C.*) _ >= _)    (BINOP GEQ))
-      (CASE ((C.*) _ == _)    (BINOP EQ))
-      (CASE ((C.*) _ != _)    (BINOP NEQ))
-      (CASE ((E.*) _ + _)     (BINOP ADD))
-      (CASE ((E.*) _ - _)     (BINOP SUB))
-      (CASE ((T.*) _ (\ *) _) (BINOP MUL))
-      (CASE ((T.*) _ / _)     (BINOP DIV))
-      (CASE ((F.*) * _ *)     (EVAL _1))
-      (CASE ((F.*) _)         _1)
-      (CASE ((*.*) _)         (EVAL _1))
-      (CASE _                 (STOP (LIST (QUOTE UnexpectedError) _1))))
-    (BINOP MACRO (OP) (OP (EVAL _1) (EVAL _2)))))
+      (CASE (_ < _)     (BINOP LT))
+      (CASE (_ > _)     (BINOP GT))
+      (CASE (_ <= _)    (BINOP LEQ))
+      (CASE (_ >= _)    (BINOP GEQ))
+      (CASE (_ == _)    (BINOP EQ))
+      (CASE (_ != _)    (BINOP NEQ))
+      (CASE (_ + _)     (BINOP ADD))
+      (CASE (_ - _)     (BINOP SUB))
+      (CASE (_ (\ *) _) (BINOP MUL))
+      (CASE (_ / _)     (BINOP DIV))
+      (CASE (* _ *)     _1)
+      (CASE (#_)        _1)
+      (CASE (_)         _1)
+      (CASE _           (STOP (LIST (QUOTE UnexpectedError) _1))))
+    (BINOP MACRO (OP) (OP _1 _2))))
 
   (ExpressionCFG QUOTE
 include(ExpressionCFG.lso)

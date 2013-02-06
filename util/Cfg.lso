@@ -98,7 +98,7 @@ include(Util.lso)
   dnl | RETURNS the parse tree if parsing succeded, or the result of the ERROR
   dnl |         function if parsing failed
   dnl  -------------------------------------------------------------------------
-  (CFGPARSE LAMBDA (CFG DFA TYPE ERROR TOKENS)
+  (CFGPARSE LAMBDA (CFG DFA TYPE ERROR TOKENS F)
     (LETREC
       (CFGPARSECC TOKENS (QUOTE ((0))))
       (CFGPARSECC LAMBDA (TOKENS STACK)
@@ -135,7 +135,7 @@ include(Util.lso)
               (LET
                 (IF (ISNIL GOTO)
                     (STOP (QUOTE ParserReduceError))
-                    (CONS (CONS GOTO (CONS (CONS LHS RULENUM) CC)) STACK))
+                    (CONS (CONS GOTO (F CC LHS RULENUM)) STACK))
                 (GOTO MAPGET DFA (CONS STATE LHS)))
               (STATE CAR (CAR STACK)))
             (REDUCECC (CDR STACK) LHS RULENUM (CDR REVRHS) (CONS (CDR (CAR STACK)) CC))))

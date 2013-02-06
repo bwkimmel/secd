@@ -6,7 +6,8 @@ dnl --- Test expression parsing
       (MAPFROMLIST ExpressionDFA)
       (LAMBDA (TOKEN) (IF (NUMBER TOKEN) (QUOTE ID) TOKEN))
       (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))
-      (FLATTENEXPR EXPR)))
+      (FLATTENEXPR EXPR)
+      TAGGED))
 
   dnl --- Flattens the list, turning the beginning and end of sub-lists
   dnl     into OPENP & CLOSEP tokens, respectively.
@@ -23,6 +24,9 @@ dnl --- Test expression parsing
                 (CONS (QUOTE OPENP) (CAR L))
                 (CONS (QUOTE CLOSEP) (CDR L)))
               CC))))))
+
+  (TAGGED LAMBDA (X LHS RULENUM)
+    (CONS (CONS LHS RULENUM) X))
 
   (ExpressionCFG QUOTE
 include(ExpressionCFG.lso)

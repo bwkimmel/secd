@@ -12,7 +12,11 @@ dnl ---------------------------------------------------------------------------
       (MAPFROMLIST SchemeDFA)
       (LAMBDA (TOKEN) (CAR TOKEN))                              dnl --- TYPE
       (LAMBDA (TOKEN) (STOP (CONS (QUOTE ParseError) TOKEN)))   dnl --- ERROR
-      (STOLIST (LEX (STDIN)))))
+      (STOLIST (LEX (STDIN)))
+      TAGGED))
+
+  (TAGGED LAMBDA (X LHS RULENUM)
+    (CONS (CONS LHS RULENUM) X))
 
   (SchemeCFG QUOTE
 include(SchemeCFG.lso)
