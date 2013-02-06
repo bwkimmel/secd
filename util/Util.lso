@@ -494,4 +494,22 @@ ifdef(`util_lso_m4',,`define(`util_lso_m4',1)dnl
   (- LAMBDA (A B) (SUB A B))
   (/ LAMBDA (A B) (DIV A B))
 
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a function with positional arguments.
+  dnl |
+  dnl | Example:
+  dnl |   (λ (+ _1 _2))
+  dnl | is equivalent to
+  dnl |   (LAMBDA (A B) (+ A B))
+  dnl | 
+  dnl | BODY = the body of the function, with _1, ..., _9 referring to the first
+  dnl |        nine arguments and _0 referring to the list containing all
+  dnl |        arguments
+  dnl  -------------------------------------------------------------------------
+  (λ MACRO (BODY)
+    (LAMBDA _0
+      (LET
+        (APPLY F _0)
+        (F LAMBDA (_1 _2 _3 _4 _5 _6 _7 _8 _9) BODY))))
+
 ')dnl
