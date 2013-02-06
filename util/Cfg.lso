@@ -64,7 +64,7 @@ include(Util.lso)
         (IF (EQ G (QUOTE NIL))
             CC
             (BUILDGRAMMARMAP (CDR G) (BUILDSYMRULES (CAR G) CC))))
-    
+ 
       (BUILDSYMRULES LAMBDA (R CC)
         (BUILDSYMRULELIST (CAR R) (CDR R) 0 CC))
     
@@ -536,5 +536,93 @@ include(Util.lso)
   dnl  -------------------------------------------------------------------------
   (CFGISTERMINAL LAMBDA (CFG SYM)
     (EQ (MAPGET CFG SYM) 0))        dnl --- terminal if no production rules
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a list of mappings from (LHS . RULENUM) pairs and their
+  dnl | corresponding reduction function.
+  dnl | LHS = the non-terminal symbol
+  dnl | FUNCS = a list of the functions associated with each production rule, in
+  dnl |         order, with NIL denoting that no function is specified for that
+  dnl |         production rule.
+  dnl | RETURNS a list of entries of the form ((LHS . RULENUM) . F), where F is
+  dnl |         the function to use to reduce production rule RULENUM for the
+  dnl |         non-terminal symbol LHS
+  dnl  -------------------------------------------------------------------------
+  (CFGFLIST LAMBDA (LHS FUNCS)
+    (LETREC
+      (FLISTCC LHS FUNCS 0 (QUOTE NIL))
+      (FLISTCC LAMBDA (LHS FUNCS N FS)
+        (IF (ISNIL FUNCS)
+            FS
+        (IF (ISNIL (CAR FUNCS))
+            (FLISTCC LHS (CDR FUNCS) (ADD N 1) FS)
+            (FLISTCC LHS (CDR FUNCS) (ADD N 1)
+              (CONS (CONS (CONS LHS N) (CAR FUNCS)) FS)))))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Extracts the grammar only (i.e., not the reduction functions) from a
+  dnl | grammar provided as a list of the production rules for each symbol.  The
+  dnl | production rules for a symbol should have the form:
+  dnl |
+  dnl |   (: {terminal})   OR
+  dnl |
+  dnl |   (: {non-terminal}
+  dnl |      {production-rule-1} ... {production-rule-n})
+  dnl |
+  dnl | Production rules have one of the following forms:
+  dnl |
+  dnl |   (=> ({symbol-1} ... {symbol-m}))
+  dnl |   (=>1 ({symbol-1} ... {symbol-m}))
+  dnl |   (=>* ({symbol-1} ... {symbol-m}) {function-body})
+  dnl |  
+  dnl | In any of the above forms, NIL may be substituted for the list of
+  dnl | symbols, indicating that the production rule LHS → ε.  The first
+  dnl | form (=>) indicates that the tree should be reduced to a list of the
+  dnl | trees for each of the children.  The second (=>1), indicates that the
+  dnl | tree should be reduced to the first symbol (useful for production rules
+  dnl | having the form A → B, and the last form (=>*) indicates that the tree
+  dnl | should be reduced according to the specified function.  The function
+  dnl | body is provided the reduced trees for each of its first (up to) 9
+  dnl | children as the arguments _1 ... _9, and _0 is the list containing all
+  dnl | of the children.  For example:
+  dnl |
+  dnl |   (=>* (TERM + TERM) (ADD _1 _3))
+  dnl |
+  dnl | The above takes the reduction of the two TERMs and adds them.
+  dnl |
+  dnl | NOTE: Reduction functions are processed by CFGREDUCE (below).
+  dnl |  
+  dnl | SYMS = a grammar specified in the format indicated above
+  dnl | RETURNS a grammar suitable to be passed to NEWCFG
+  dnl  -------------------------------------------------------------------------
+  (CFGGRAMMAR MACRO (SYMS)
+    (LET SYMS
+      (: MACRO (LHS . RULES)
+        (LET
+          (CONS (QUOTE LHS) (LIST . RULES))
+          (=>* MACRO (RHS F) (QUOTE RHS))
+          (=>1 MACRO (RHS)   (QUOTE RHS))
+          (=>  MACRO (RHS)   (QUOTE RHS))))))
+
+  dnl  -------------------------------------------------------------------------
+  dnl | Creates a reduce function to be passed to CFGPARSE from a grammar
+  dnl | specified in the form described for CFGGRAMMAR.
+  dnl | SYMS = a grammar specified in the format indicated above
+  dnl | RETURNS a reduction function to be passed to CFGPARSE
+  dnl  -------------------------------------------------------------------------
+  (CFGREDUCE MACRO (SYMS)
+    (LETREC
+      (LET
+        (LAMBDA (X LHS RULENUM)
+          (LET
+            (IF (ISNIL F) X (APPLY F X))
+            (F MAPGET FTABLE (CONS LHS RULENUM))))
+        (FTABLE MAPFROMLIST (FLATTEN SYMS)))
+      (: MACRO (LHS . RULES)
+        (LET
+          (CFGFLIST (QUOTE LHS) (LIST . RULES))
+          (=>* MACRO (RHS F) (λ F))
+          (=>1 MACRO (RHS)   (LAMBDA (X) X))
+          (=>  MACRO (RHS)   (QUOTE NIL))))))
 
 ')dnl
