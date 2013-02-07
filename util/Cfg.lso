@@ -100,8 +100,13 @@ include(Stream.lso)
   dnl |         function if parsing failed
   dnl  -------------------------------------------------------------------------
   (CFGPARSE LAMBDA (CFG DFA TYPE ERROR TOKENS F)
+    (LET
+      (PARSE TOKENS)
+      (PARSE CFGPARSER CFG DFA TYPE ERROR F)))
+
+  (CFGPARSER LAMBDA (CFG DFA TYPE ERROR F)
     (LETREC
-      (CFGPARSECC TOKENS (QUOTE ((0))))
+      (LAMBDA (TOKENS) (CFGPARSECC TOKENS (QUOTE ((0)))))
       (CFGPARSECC LAMBDA (TOKENS STACK)
         (IF (SISNIL TOKENS)
             (CFGPARSECC (QUOTE ($)) STACK)
