@@ -37,13 +37,13 @@ dnl  ---------------------------------------------------------------------------
 
   (: Identifier*
     (=> NIL)
-    (=> (Identifier* IDENT)))
+    (=>* (Identifier* IDENT) (CONS _2 _1)))
   (: Variable*
     (=> NIL)
     (=>1 (Variable+)))
   (: Variable+
-    (=>1 (VARIABLE))
-    (=> (Variable+ VARIABLE)))
+    (=> (VARIABLE))
+    (=>* (Variable+ VARIABLE) (CONS _2 _1)))
 
 
 
@@ -102,8 +102,8 @@ dnl  ---------------------------------------------------------------------------
     (=> NIL)
     (=>1 (Datum+)))
   (: Datum+
-    (=>1 (Datum))
-    (=> (Datum+ Datum)))
+    (=> (Datum))
+    (=>* (Datum+ Datum) (CONS _2 _1)))
   (: SimpleDatum
     (=>1 (BOOL))
     (=>1 (NUMBER))
@@ -165,10 +165,10 @@ dnl  ---------------------------------------------------------------------------
     (=>1 (Expression)))
   (: Operand*
     (=> NIL)
-    (=> (Operand* Operand)))
+    (=>* (Operand* Operand) (CONS _2 _1)))
   (: Operand+
-    (=>1 (Operand))
-    (=> (Operand+ Operand)))
+    (=> (Operand))
+    (=>* (Operand+ Operand) (CONS _2 _1)))
   (: LambdaExpression
     (=> (OPENP LAMBDA Formals Body CLOSEP)))
   (: Formals
@@ -184,10 +184,10 @@ dnl  ---------------------------------------------------------------------------
     (=>1 (Expression)))
   (: Command*
     (=> NIL)
-    (=> (Command* Command)))
+    (=>* (Command* Command) (CONS _2 _1)))
   (: Command+
-    (=>1 (Command))
-    (=> (Command+ Command)))
+    (=> (Command))
+    (=>* (Command+ Command) (CONS _2 _1)))
   (: Conditional
     (=> (OPENP IF Test Consequent Alternate CLOSEP)))
   (: Test
@@ -222,10 +222,10 @@ dnl  ---------------------------------------------------------------------------
     (=> (OPENP Test ARROW Recipient CLOSEP)))
   (: CondClause*
     (=> NIL)
-    (=> (CondClause* CondClause)))
+    (=>* (CondClause* CondClause) (CONS _2 _1)))
   (: CondClause+
-    (=>1 (CondClause))
-    (=> (CondClause+ CondClause)))
+    (=> (CondClause))
+    (=>* (CondClause+ CondClause) (CONS _2 _1)))
   (: Recipient
     (=>1 (Expression)))
   (: CaseClause
@@ -264,7 +264,7 @@ dnl  ---------------------------------------------------------------------------
     (=> (OPENP Pattern Template CLOSEP)))
   (: SyntaxRule*
     (=> NIL)
-    (=> (SyntaxRule* SyntaxRule)))
+    (=>* (SyntaxRule* SyntaxRule) (CONS _2 _1)))
   (: Pattern
     (=>1 (PatternIdentifier))
     (=> (OPENP Pattern* CLOSEP))
@@ -277,8 +277,8 @@ dnl  ---------------------------------------------------------------------------
     (=> NIL)
     (=>1 (Pattern+)))
   (: Pattern+
-    (=>1 (Pattern))
-    (=> (Pattern+ Pattern)))
+    (=> (Pattern))
+    (=>* (Pattern+ Pattern) (CONS _2 _1)))
   (: PatternDatum
     (=>1 (STRING))
     (=>1 (CHAR))
@@ -297,8 +297,8 @@ dnl  ---------------------------------------------------------------------------
     (=> NIL)
     (=>1 (TemplateElement+)))
   (: TemplateElement+
-    (=>1 (TemplateElement))
-    (=> (TemplateElement+ TemplateElement)))
+    (=> (TemplateElement))
+    (=>* (TemplateElement+ TemplateElement) (CONS _2 _1)))
   (: TemplateDatum
     (=>1 (PatternDatum)))
   (: PatternIdentifier
@@ -329,18 +329,18 @@ dnl    (=> (OPENP BEGIN CommandAndDefinition+ CLOSEP)))
     (=> NIL)
     (=>1 (CommandOrDefinition+)))
   (: CommandOrDefinition+
-    (=>1 (CommandOrDefinition))
-    (=> (CommandOrDefinition+ CommandOrDefinition)))
+    (=> (CommandOrDefinition))
+    (=>* (CommandOrDefinition+ CommandOrDefinition) (CONS _2 _1)))
   (: Definition
     (=> (OPENP DEFINE VARIABLE Expression CLOSEP))
     (=> (OPENP DEFINE OPENP DefFormals CLOSEP Body CLOSEP))
     (=> (OPENP BEGIN Definition+ CLOSEP)))
   (: Definition*
     (=> NIL)
-    (=> (Definition* Definition)))
+    (=>* (Definition* Definition) (CONS _2 _1)))
   (: Definition+
-    (=>1 (Definition))
-    (=> (Definition+ Definition)))
+    (=> (Definition))
+    (=>* (Definition+ Definition) (CONS _2 _1)))
   (: DefFormals
     (=> (Variable+))
     (=> (Variable+ DOT VARIABLE)))
@@ -350,20 +350,20 @@ dnl    (=> (OPENP BEGIN CommandAndDefinition+ CLOSEP)))
     (=> NIL)
     (=>1 (CaseClause+)))
   (: CaseClause+
-    (=>1 (CaseClause))
-    (=> (CaseClause+ CaseClause)))
+    (=> (CaseClause))
+    (=>* (CaseClause+ CaseClause) (CONS _2 _1)))
   (: BindingSpec*
     (=> NIL)
-    (=> (BindingSpec* BindingSpec)))
+    (=>* (BindingSpec* BindingSpec) (CONS _2 _1)))
   (: IterationSpec*
     (=> NIL)
-    (=> (IterationSpec* IterationSpec)))
+    (=>* (IterationSpec* IterationSpec) (CONS _2 _1)))
   (: SyntaxSpec*
     (=> NIL)
-    (=> (SyntaxSpec* SyntaxSpec)))
+    (=>* (SyntaxSpec* SyntaxSpec) (CONS _2 _1)))
   (: Test*
     (=> NIL)
-    (=> (Test* Test)))
+    (=>* (Test* Test) (CONS _2 _1)))
 dnl  ---------------------------------------------------------------------------
   ))
 
