@@ -21,13 +21,13 @@ dnl | production rule.
 dnl  ===========================================================================
 ifdef(`scheme_syntax_lso_m4',,`define(`scheme_syntax_lso_m4',1)dnl
 
-(SchemeGrammar QUOTE (
+(SchemeGrammar MACRO NIL (LIST
 
 dnl  ---------------------------------------------------------------------------
 dnl | Root Production Rule
 dnl  ---------------------------------------------------------------------------
 
-  (START (Program))
+  (: START (=> (Program)))
 
 
 
@@ -35,15 +35,15 @@ dnl  ---------------------------------------------------------------------------
 dnl | Helper Rules
 dnl  ---------------------------------------------------------------------------
 
-  (Identifier*
-    NIL
-    (Identifier* IDENT))
-  (Variable*
-    NIL
-    (Variable+))
-  (Variable+
-    (VARIABLE)
-    (Variable+ VARIABLE))
+  (: Identifier*
+    (=> NIL)
+    (=> (Identifier* IDENT)))
+  (: Variable*
+    (=> NIL)
+    (=> (Variable+)))
+  (: Variable+
+    (=> (VARIABLE))
+    (=> (Variable+ VARIABLE)))
 
 
 
@@ -51,43 +51,43 @@ dnl  ---------------------------------------------------------------------------
 dnl | Terminals
 dnl  ---------------------------------------------------------------------------
 
-  (AND)
-  (ARROW)
-  (BACKQUOTE)
-  (BEGIN)
-  (BOOL)
-  (CASE)
-  (CHAR)
-  (CLOSEP)
-  (COMMA)
-  (COMMAAT)
-  (COND)
-  (DEFINE)
-  (DEFINESYNTAX)
-  (DELAY)
-  (DO)
-  (DOT)
-  (ELLIPSIS)
-  (ELSE)
-  (IDENT)
-  (IF)
-  (KEYWORD)
-  (KEYWORDQUOTE)
-  (LAMBDA)
-  (LET)
-  (LETREC)
-  (LETRECSYNTAX)
-  (LETSTAR)
-  (LETSYNTAX)
-  (NUMBER)
-  (OPENP)
-  (OPENVEC)
-  (OR)
-  (QUOTE)
-  (SETBANG)
-  (STRING)
-  (SYNTAXRULES)
-  (VARIABLE)
+  (: AND)
+  (: ARROW)
+  (: BACKQUOTE)
+  (: BEGIN)
+  (: BOOL)
+  (: CASE)
+  (: CHAR)
+  (: CLOSEP)
+  (: COMMA)
+  (: COMMAAT)
+  (: COND)
+  (: DEFINE)
+  (: DEFINESYNTAX)
+  (: DELAY)
+  (: DO)
+  (: DOT)
+  (: ELLIPSIS)
+  (: ELSE)
+  (: IDENT)
+  (: IF)
+  (: KEYWORD)
+  (: KEYWORDQUOTE)
+  (: LAMBDA)
+  (: LET)
+  (: LETREC)
+  (: LETRECSYNTAX)
+  (: LETSTAR)
+  (: LETSYNTAX)
+  (: NUMBER)
+  (: OPENP)
+  (: OPENVEC)
+  (: OR)
+  (: QUOTE)
+  (: SETBANG)
+  (: STRING)
+  (: SYNTAXRULES)
+  (: VARIABLE)
 
 
 
@@ -95,39 +95,39 @@ dnl  ---------------------------------------------------------------------------
 dnl | 7.1.2  External Representations
 dnl  ---------------------------------------------------------------------------
 
-  (Datum
-    (SimpleDatum)
-    (CompoundDatum))
-  (Datum*
-    NIL
-    (Datum+))
-  (Datum+
-    (Datum)
-    (Datum+ Datum))
-  (SimpleDatum
-    (BOOL)
-    (NUMBER)
-    (CHAR)
-    (STRING)
-    (Symbol))
-  (Symbol
-    (VARIABLE))
-  (CompoundDatum
-    (List)
-    (Vector))
-  (List
-    (OPENP Datum* CLOSEP)
-    (OPENP Datum+ DOT Datum CLOSEP)
-    (Abbreviation))
-  (Abbreviation
-    (AbbrevPrefix Datum))
-  (AbbrevPrefix
-    (QUOTE)
-    (BACKQUOTE)
-    (COMMA)
-    (COMMAAT))
-  (Vector
-    (OPENVEC Datum* CLOSEP))
+  (: Datum
+    (=> (SimpleDatum))
+    (=> (CompoundDatum)))
+  (: Datum*
+    (=> NIL)
+    (=> (Datum+)))
+  (: Datum+
+    (=> (Datum))
+    (=> (Datum+ Datum)))
+  (: SimpleDatum
+    (=> (BOOL))
+    (=> (NUMBER))
+    (=> (CHAR))
+    (=> (STRING))
+    (=> (Symbol)))
+  (: Symbol
+    (=> (VARIABLE)))
+  (: CompoundDatum
+    (=> (List))
+    (=> (Vector)))
+  (: List
+    (=> (OPENP Datum* CLOSEP))
+    (=> (OPENP Datum+ DOT Datum CLOSEP))
+    (=> (Abbreviation)))
+  (: Abbreviation
+    (=> (AbbrevPrefix Datum)))
+  (: AbbrevPrefix
+    (=> (QUOTE))
+    (=> (BACKQUOTE))
+    (=> (COMMA))
+    (=> (COMMAAT)))
+  (: Vector
+    (=> (OPENVEC Datum* CLOSEP)))
 
 
 
@@ -135,122 +135,122 @@ dnl  ---------------------------------------------------------------------------
 dnl | 7.1.3  Expressions
 dnl  ---------------------------------------------------------------------------
 
-  (Expression
-    (VARIABLE)
-    (Literal)
-    (ProcedureCall)
-    (LambdaExpression)
-    (Conditional)
-    (Assignment)
-    (DerivedExpression)
-    (MacroUse)
-    (MacroBlock))
-  (Literal
-    (Quotation)
-    (SelfEvaluating))
-  (SelfEvaluating
-    (BOOL)
-    (NUMBER)
-    (CHAR)
-    (STRING))
-  (Quotation
-    (QUOTE Datum)
-    (OPENP KEYWORDQUOTE Datum CLOSEP))
-  (ProcedureCall
-    (OPENP Operator Operand+ CLOSEP)
-    (OPENP Operator CLOSEP))
-  (Operator
-    (Expression))
-  (Operand
-    (Expression))
-  (Operand*
-    NIL
-    (Operand* Operand))
-  (Operand+
-    (Operand)
-    (Operand+ Operand))
-  (LambdaExpression
-    (OPENP LAMBDA Formals Body CLOSEP))
-  (Formals
-    (OPENP Variable* CLOSEP)
-    (VARIABLE)
-    (OPENP Variable+ DOT VARIABLE CLOSEP))
-  (Body
-    (Definition* Sequence))
-  (Sequence
-    (Expression)
-    (Command+ Expression))
-  (Command
-    (Expression))
-  (Command*
-    NIL
-    (Command* Command))
-  (Command+
-    (Command)
-    (Command+ Command))
-  (Conditional
-    (OPENP IF Test Consequent Alternate CLOSEP))
-  (Test
-    (Expression))
-  (Consequent
-    (Expression))
-  (Alternate
-    (Expression)
-    NIL)
-  (Assignment
-    (OPENP SETBANG VARIABLE Expression CLOSEP))
-  (DerivedExpression
-    (OPENP COND CondClause+ CLOSEP)
-    (OPENP COND CondClause+ OPENP ELSE Sequence CLOSEP CLOSEP)
-    (OPENP COND OPENP ELSE Sequence CLOSEP CLOSEP)
-    (OPENP CASE Expression CaseClause+ CLOSEP)
-    (OPENP CASE Expression CaseClause+ OPENP ELSE Sequence CLOSEP CLOSEP)
-    (OPENP CASE Expression OPENP ELSE Sequence CLOSEP CLOSEP)
-    (OPENP AND Test* CLOSEP)
-    (OPENP OR Test* CLOSEP)
-    (OPENP LET OPENP BindingSpec* CLOSEP Body CLOSEP)
-    (OPENP LET VARIABLE OPENP BindingSpec* CLOSEP Body CLOSEP)
-    (OPENP LETSTAR OPENP BindingSpec* CLOSEP Body CLOSEP)
-    (OPENP LETREC OPENP BindingSpec* CLOSEP Body CLOSEP)
-    (OPENP BEGIN Sequence CLOSEP)
-    (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP Sequence CLOSEP)
-    (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP CLOSEP)
-    (OPENP DELAY Expression CLOSEP))
-  (CondClause
-    (OPENP Test Sequence CLOSEP)
-    (OPENP Test CLOSEP)
-    (OPENP Test ARROW Recipient CLOSEP))
-  (CondClause*
-    NIL
-    (CondClause* CondClause))
-  (CondClause+
-    (CondClause)
-    (CondClause+ CondClause))
-  (Recipient
-    (Expression))
-  (CaseClause
-    (OPENP OPENP Datum* CLOSEP Sequence CLOSEP))
-  (BindingSpec
-    (OPENP VARIABLE Expression CLOSEP))
-  (IterationSpec
-    (OPENP VARIABLE Init Step CLOSEP)
-    (OPENP VARIABLE Init CLOSEP))
-  (Init
-    (Expression))
-  (Step
-    (Expression))
-  (DoResult
-    (Sequence)
-    NIL)
-  (MacroUse
-    (OPENP Keyword Datum* CLOSEP))
-  (Keyword
-    (IDENT))
-  (MacroBlock
-    (OPENP LETSYNTAX OPENP SyntaxSpec* CLOSEP Body CLOSEP)
-    (OPENP LETRECSYNTAX OPENP SyntaxSpec* CLOSEP Body CLOSEP))
-  (SyntaxSpec
-    (OPENP Keyword TransformerSpec CLOSEP))
+  (: Expression
+    (=> (VARIABLE))
+    (=> (Literal))
+    (=> (ProcedureCall))
+    (=> (LambdaExpression))
+    (=> (Conditional))
+    (=> (Assignment))
+    (=> (DerivedExpression))
+    (=> (MacroUse))
+    (=> (MacroBlock)))
+  (: Literal
+    (=> (Quotation))
+    (=> (SelfEvaluating)))
+  (: SelfEvaluating
+    (=> (BOOL))
+    (=> (NUMBER))
+    (=> (CHAR))
+    (=> (STRING)))
+  (: Quotation
+    (=> (QUOTE Datum))
+    (=> (OPENP KEYWORDQUOTE Datum CLOSEP)))
+  (: ProcedureCall
+    (=> (OPENP Operator Operand+ CLOSEP))
+    (=> (OPENP Operator CLOSEP)))
+  (: Operator
+    (=> (Expression)))
+  (: Operand
+    (=> (Expression)))
+  (: Operand*
+    (=> NIL)
+    (=> (Operand* Operand)))
+  (: Operand+
+    (=> (Operand))
+    (=> (Operand+ Operand)))
+  (: LambdaExpression
+    (=> (OPENP LAMBDA Formals Body CLOSEP)))
+  (: Formals
+    (=> (OPENP Variable* CLOSEP))
+    (=> (VARIABLE))
+    (=> (OPENP Variable+ DOT VARIABLE CLOSEP)))
+  (: Body
+    (=> (Definition* Sequence)))
+  (: Sequence
+    (=> (Expression))
+    (=> (Command+ Expression)))
+  (: Command
+    (=> (Expression)))
+  (: Command*
+    (=> NIL)
+    (=> (Command* Command)))
+  (: Command+
+    (=> (Command))
+    (=> (Command+ Command)))
+  (: Conditional
+    (=> (OPENP IF Test Consequent Alternate CLOSEP)))
+  (: Test
+    (=> (Expression)))
+  (: Consequent
+    (=> (Expression)))
+  (: Alternate
+    (=> (Expression))
+    (=> NIL))
+  (: Assignment
+    (=> (OPENP SETBANG VARIABLE Expression CLOSEP)))
+  (: DerivedExpression
+    (=> (OPENP COND CondClause+ CLOSEP))
+    (=> (OPENP COND CondClause+ OPENP ELSE Sequence CLOSEP CLOSEP))
+    (=> (OPENP COND OPENP ELSE Sequence CLOSEP CLOSEP))
+    (=> (OPENP CASE Expression CaseClause+ CLOSEP))
+    (=> (OPENP CASE Expression CaseClause+ OPENP ELSE Sequence CLOSEP CLOSEP))
+    (=> (OPENP CASE Expression OPENP ELSE Sequence CLOSEP CLOSEP))
+    (=> (OPENP AND Test* CLOSEP))
+    (=> (OPENP OR Test* CLOSEP))
+    (=> (OPENP LET OPENP BindingSpec* CLOSEP Body CLOSEP))
+    (=> (OPENP LET VARIABLE OPENP BindingSpec* CLOSEP Body CLOSEP))
+    (=> (OPENP LETSTAR OPENP BindingSpec* CLOSEP Body CLOSEP))
+    (=> (OPENP LETREC OPENP BindingSpec* CLOSEP Body CLOSEP))
+    (=> (OPENP BEGIN Sequence CLOSEP))
+    (=> (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP Sequence CLOSEP))
+    (=> (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP CLOSEP))
+    (=> (OPENP DELAY Expression CLOSEP)))
+  (: CondClause
+    (=> (OPENP Test Sequence CLOSEP))
+    (=> (OPENP Test CLOSEP))
+    (=> (OPENP Test ARROW Recipient CLOSEP)))
+  (: CondClause*
+    (=> NIL)
+    (=> (CondClause* CondClause)))
+  (: CondClause+
+    (=> (CondClause))
+    (=> (CondClause+ CondClause)))
+  (: Recipient
+    (=> (Expression)))
+  (: CaseClause
+    (=> (OPENP OPENP Datum* CLOSEP Sequence CLOSEP)))
+  (: BindingSpec
+    (=> (OPENP VARIABLE Expression CLOSEP)))
+  (: IterationSpec
+    (=> (OPENP VARIABLE Init Step CLOSEP))
+    (=> (OPENP VARIABLE Init CLOSEP)))
+  (: Init
+    (=> (Expression)))
+  (: Step
+    (=> (Expression)))
+  (: DoResult
+    (=> (Sequence))
+    (=> NIL))
+  (: MacroUse
+    (=> (OPENP Keyword Datum* CLOSEP)))
+  (: Keyword
+    (=> (IDENT)))
+  (: MacroBlock
+    (=> (OPENP LETSYNTAX OPENP SyntaxSpec* CLOSEP Body CLOSEP))
+    (=> (OPENP LETRECSYNTAX OPENP SyntaxSpec* CLOSEP Body CLOSEP)))
+  (: SyntaxSpec
+    (=> (OPENP Keyword TransformerSpec CLOSEP)))
 
 
 
@@ -258,51 +258,51 @@ dnl  ---------------------------------------------------------------------------
 dnl | 7.1.5  Transformers
 dnl  ---------------------------------------------------------------------------
 
-  (TransformerSpec
-    (OPENP SYNTAXRULES OPENP Identifier* CLOSEP SyntaxRule* CLOSEP))
-  (SyntaxRule
-    (OPENP Pattern Template CLOSEP))
-  (SyntaxRule*
-    NIL
-    (SyntaxRule* SyntaxRule))
-  (Pattern
-    (PatternIdentifier)
-    (OPENP Pattern* CLOSEP)
-    (OPENP Pattern+ DOT Pattern CLOSEP)
-    (OPENP Pattern+ ELLIPSIS CLOSEP)
-    (OPENVEC Pattern* CLOSEP)
-    (OPENVEC Pattern+ ELLIPSIS CLOSEP)
-    (PatternDatum))
-  (Pattern*
-    NIL
-    (Pattern+))
-  (Pattern+
-    (Pattern)
-    (Pattern+ Pattern))
-  (PatternDatum
-    (STRING)
-    (CHAR)
-    (BOOL)
-    (NUMBER))
-  (Template
-    (PatternIdentifier)
-    (OPENP TemplateElement* CLOSEP)
-    (OPENP TemplateElement+ DOT Template CLOSEP)
-    (OPENVEC TemplateElement* CLOSEP)
-    (TemplateDatum))
-  (TemplateElement
-    (Template)
-    (Template ELLIPSIS))
-  (TemplateElement*
-    NIL
-    (TemplateElement+))
-  (TemplateElement+
-    (TemplateElement)
-    (TemplateElement+ TemplateElement))
-  (TemplateDatum
-    (PatternDatum))
-  (PatternIdentifier
-    (VARIABLE))         dnl --- TODO: Should accept any identifier except "..."
+  (: TransformerSpec
+    (=> (OPENP SYNTAXRULES OPENP Identifier* CLOSEP SyntaxRule* CLOSEP)))
+  (: SyntaxRule
+    (=> (OPENP Pattern Template CLOSEP)))
+  (: SyntaxRule*
+    (=> NIL)
+    (=> (SyntaxRule* SyntaxRule)))
+  (: Pattern
+    (=> (PatternIdentifier))
+    (=> (OPENP Pattern* CLOSEP))
+    (=> (OPENP Pattern+ DOT Pattern CLOSEP))
+    (=> (OPENP Pattern+ ELLIPSIS CLOSEP))
+    (=> (OPENVEC Pattern* CLOSEP))
+    (=> (OPENVEC Pattern+ ELLIPSIS CLOSEP))
+    (=> (PatternDatum)))
+  (: Pattern*
+    (=> NIL)
+    (=> (Pattern+)))
+  (: Pattern+
+    (=> (Pattern))
+    (=> (Pattern+ Pattern)))
+  (: PatternDatum
+    (=> (STRING))
+    (=> (CHAR))
+    (=> (BOOL))
+    (=> (NUMBER)))
+  (: Template
+    (=> (PatternIdentifier))
+    (=> (OPENP TemplateElement* CLOSEP))
+    (=> (OPENP TemplateElement+ DOT Template CLOSEP))
+    (=> (OPENVEC TemplateElement* CLOSEP))
+    (=> (TemplateDatum)))
+  (: TemplateElement
+    (=> (Template))
+    (=> (Template ELLIPSIS)))
+  (: TemplateElement*
+    (=> NIL)
+    (=> (TemplateElement+)))
+  (: TemplateElement+
+    (=> (TemplateElement))
+    (=> (TemplateElement+ TemplateElement)))
+  (: TemplateDatum
+    (=> (PatternDatum)))
+  (: PatternIdentifier
+    (=> (VARIABLE)))         dnl --- TODO: Should accept any identifier except "..."
 
 
 
@@ -310,12 +310,12 @@ dnl  ---------------------------------------------------------------------------
 dnl | 7.1.6  Programs and Definitions
 dnl  ---------------------------------------------------------------------------
 
-  (Program (CommandOrDefinition*))
-  (CommandOrDefinition
-    (Command)
-    (Definition)
-    (SyntaxDefinition))
-dnl    (OPENP BEGIN CommandAndDefinition+ CLOSEP))
+  (: Program (=> (CommandOrDefinition*)))
+  (: CommandOrDefinition
+    (=> (Command))
+    (=> (Definition))
+    (=> (SyntaxDefinition)))
+dnl    (=> (OPENP BEGIN CommandAndDefinition+ CLOSEP)))
         dnl ^-- This production rule causes inherent ambiguities in the Scheme
         dnl     grammar, since (OPENP BEGIN Definition+ CLOSEP) and
         dnl     (OPENP BEGIN Command+ CLOSEP) are both accounted for by
@@ -325,45 +325,45 @@ dnl    (OPENP BEGIN CommandAndDefinition+ CLOSEP))
         dnl     definitions or contain BOTH commands AND definitions.  Until we
         dnl     can implement a proper solution for this case, I am leaving this
         dnl     production rule out.
-  (CommandOrDefinition*
-    NIL
-    (CommandOrDefinition+))
-  (CommandOrDefinition+ 
-    (CommandOrDefinition)
-    (CommandOrDefinition+ CommandOrDefinition))
-  (Definition
-    (OPENP DEFINE VARIABLE Expression CLOSEP)
-    (OPENP DEFINE OPENP DefFormals CLOSEP Body CLOSEP)
-    (OPENP BEGIN Definition+ CLOSEP))
-  (Definition*
-    NIL
-    (Definition* Definition))
-  (Definition+
-    (Definition)
-    (Definition+ Definition))
-  (DefFormals
-    (Variable+)
-    (Variable+ DOT VARIABLE))
-  (SyntaxDefinition
-    (OPENP DEFINESYNTAX IDENT TransformerSpec CLOSEP))
-  (CaseClause*
-    NIL
-    (CaseClause+))
-  (CaseClause+
-    (CaseClause)
-    (CaseClause+ CaseClause))
-  (BindingSpec*
-    NIL
-    (BindingSpec* BindingSpec))
-  (IterationSpec*
-    NIL
-    (IterationSpec* IterationSpec))
-  (SyntaxSpec*
-    NIL
-    (SyntaxSpec* SyntaxSpec))
-  (Test*
-    NIL
-    (Test* Test))
+  (: CommandOrDefinition*
+    (=> NIL)
+    (=> (CommandOrDefinition+)))
+  (: CommandOrDefinition+
+    (=> (CommandOrDefinition))
+    (=> (CommandOrDefinition+ CommandOrDefinition)))
+  (: Definition
+    (=> (OPENP DEFINE VARIABLE Expression CLOSEP))
+    (=> (OPENP DEFINE OPENP DefFormals CLOSEP Body CLOSEP))
+    (=> (OPENP BEGIN Definition+ CLOSEP)))
+  (: Definition*
+    (=> NIL)
+    (=> (Definition* Definition)))
+  (: Definition+
+    (=> (Definition))
+    (=> (Definition+ Definition)))
+  (: DefFormals
+    (=> (Variable+))
+    (=> (Variable+ DOT VARIABLE)))
+  (: SyntaxDefinition
+    (=> (OPENP DEFINESYNTAX IDENT TransformerSpec CLOSEP)))
+  (: CaseClause*
+    (=> NIL)
+    (=> (CaseClause+)))
+  (: CaseClause+
+    (=> (CaseClause))
+    (=> (CaseClause+ CaseClause)))
+  (: BindingSpec*
+    (=> NIL)
+    (=> (BindingSpec* BindingSpec)))
+  (: IterationSpec*
+    (=> NIL)
+    (=> (IterationSpec* IterationSpec)))
+  (: SyntaxSpec*
+    (=> NIL)
+    (=> (SyntaxSpec* SyntaxSpec)))
+  (: Test*
+    (=> NIL)
+    (=> (Test* Test)))
 dnl  ---------------------------------------------------------------------------
   ))
 

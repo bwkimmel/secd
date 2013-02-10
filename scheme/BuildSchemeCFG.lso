@@ -1,7 +1,9 @@
 dnl ---
 (LETREC BuildSchemeCFG
   (BuildSchemeCFG LAMBDA NIL
-    (MAPTOLIST (NEWCFG SchemeGrammar)))
+    (MAPTOLIST (NEWCFG (FORCE G))))
+
+  (G DELAY (CFGGRAMMAR (SchemeGrammar)))
 
 include(SchemeSyntax.lso)
 include(Cfg.lso)
