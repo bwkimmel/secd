@@ -20,7 +20,11 @@ dnl ---------------------------------------------------------------------------
       (CASE (CommandOrDefinition . *) (BEGIN (PUTEXP X) (PUT 10) (QUOTE NIL)))
       (CASE (CommandOrDefinition+ . *) (QUOTE NIL))
       (CASE (CommandOrDefinition* . *) (QUOTE NIL))
-      (CASE * (CONS (CONS LHS RULENUM) X))))
+      (CASE * ((FORCE SchemeReduce) X LHS RULENUM))))
+
+  (SchemeReduce DELAY (CFGREDUCE (SchemeGrammar)))
+
+include(SchemeSyntax.lso)
 
   (SchemeCFG QUOTE
 include(SchemeCFG.lso)
