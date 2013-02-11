@@ -16,10 +16,10 @@ dnl ---------------------------------------------------------------------------
       TAGGED))
 
   (TAGGED LAMBDA (X LHS RULENUM)
-    (MATCH (CONS LHS RULENUM)
-      (CASE (CommandOrDefinition . *) (BEGIN (PUTEXP X) (PUT 10) (QUOTE NIL)))
-      (CASE (CommandOrDefinition+ . *) (QUOTE NIL))
-      (CASE (CommandOrDefinition* . *) (QUOTE NIL))
+    (MATCH LHS
+      (CASE CommandOrDefinition (BEGIN (PUTEXP X) (PUT 10) (QUOTE NIL)))
+      (CASE CommandOrDefinition+ (QUOTE NIL))
+      (CASE CommandOrDefinition* (QUOTE NIL))
       (CASE * ((FORCE SchemeReduce) X LHS RULENUM))))
 
   (SchemeReduce DELAY (CFGREDUCE (SchemeGrammar)))
