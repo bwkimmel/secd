@@ -116,8 +116,8 @@ dnl  ---------------------------------------------------------------------------
     (=>1 (List))
     (=>1 (Vector)))
   (: List
-    (=> (OPENP Datum* CLOSEP))
-    (=> (OPENP Datum+ DOT Datum CLOSEP))
+    (=>* (OPENP Datum* CLOSEP)              (REVERSE _2))
+    (=>* (OPENP Datum+ DOT Datum CLOSEP)    (APPEND (REVERSE _2) _4))
     (=>1 (Abbreviation)))
   (: Abbreviation
     (=> (AbbrevPrefix Datum)))
@@ -127,7 +127,7 @@ dnl  ---------------------------------------------------------------------------
     (=>1 (COMMA))
     (=>1 (COMMAAT)))
   (: Vector
-    (=> (OPENVEC Datum* CLOSEP)))
+    (=>* (OPENVEC Datum* CLOSEP)            (LIST (QUOTE Vector) (REVERSE _2))))
 
 
 
@@ -154,11 +154,11 @@ dnl  ---------------------------------------------------------------------------
     (=>1 (CHAR))
     (=>1 (STRING)))
   (: Quotation
-    (=> (QUOTE Datum))
-    (=> (OPENP KEYWORDQUOTE Datum CLOSEP)))
+    (=>* (QUOTE Datum)                           (LIST (QUOTE Quotation) _2))
+    (=>* (OPENP KEYWORDQUOTE Datum CLOSEP)       (LIST (QUOTE Quotation) _3)))
   (: ProcedureCall
-    (=> (OPENP Operator Operand+ CLOSEP))
-    (=> (OPENP Operator CLOSEP)))
+    (=>* (OPENP Operator Operand+ CLOSEP)        (LIST (QUOTE ProcedureCall) _2 (REVERSE _3)))
+    (=>* (OPENP Operator CLOSEP)                 (LIST (QUOTE ProcedureCall) _2 (QUOTE NIL))))
   (: Operator
     (=>1 (Expression)))
   (: Operand
@@ -170,16 +170,16 @@ dnl  ---------------------------------------------------------------------------
     (=> (Operand))
     (=>* (Operand+ Operand) (CONS _2 _1)))
   (: LambdaExpression
-    (=> (OPENP LAMBDA Formals Body CLOSEP)))
+    (=>* (OPENP LAMBDA Formals Body CLOSEP)      (LIST (QUOTE LambdaExpression) _3 _4)))
   (: Formals
-    (=> (OPENP Variable* CLOSEP))
+    (=>* (OPENP Variable* CLOSEP)                (REVERSE _2))
     (=>1 (VARIABLE))
-    (=> (OPENP Variable+ DOT VARIABLE CLOSEP)))
+    (=>* (OPENP Variable+ DOT VARIABLE CLOSEP)   (APPEND (REVERSE _2) _4)))
   (: Body
-    (=> (Definition* Sequence)))
+    (=>* (Definition* Sequence)                  (LIST (QUOTE Body) (REVERSE _1) _2)))
   (: Sequence
     (=>1 (Expression))
-    (=> (Command+ Expression)))
+    (=>* (Command+ Expression)                   (APPEND (REVERSE _1) _2)))
   (: Command
     (=>1 (Expression)))
   (: Command*
@@ -189,7 +189,8 @@ dnl  ---------------------------------------------------------------------------
     (=> (Command))
     (=>* (Command+ Command) (CONS _2 _1)))
   (: Conditional
-    (=> (OPENP IF Test Consequent Alternate CLOSEP)))
+    (=>* (OPENP IF Test Consequent Alternate CLOSEP)
+                                                 (LIST (QUOTE If) _3 _4 _5)))
   (: Test
     (=>1 (Expression)))
   (: Consequent
@@ -198,28 +199,40 @@ dnl  ---------------------------------------------------------------------------
     (=>1 (Expression))
     (=> NIL))
   (: Assignment
-    (=> (OPENP SETBANG VARIABLE Expression CLOSEP)))
+    (=>* (OPENP SETBANG VARIABLE Expression CLOSEP)
+                                                 (LIST (QUOTE Assignment) _3 _4)))
   (: DerivedExpression
-    (=> (OPENP COND CondClause+ CLOSEP))
-    (=> (OPENP COND CondClause+ OPENP ELSE Sequence CLOSEP CLOSEP))
-    (=> (OPENP COND OPENP ELSE Sequence CLOSEP CLOSEP))
-    (=> (OPENP CASE Expression CaseClause+ CLOSEP))
-    (=> (OPENP CASE Expression CaseClause+ OPENP ELSE Sequence CLOSEP CLOSEP))
-    (=> (OPENP CASE Expression OPENP ELSE Sequence CLOSEP CLOSEP))
-    (=> (OPENP AND Test* CLOSEP))
-    (=> (OPENP OR Test* CLOSEP))
-    (=> (OPENP LET OPENP BindingSpec* CLOSEP Body CLOSEP))
-    (=> (OPENP LET VARIABLE OPENP BindingSpec* CLOSEP Body CLOSEP))
-    (=> (OPENP LETSTAR OPENP BindingSpec* CLOSEP Body CLOSEP))
-    (=> (OPENP LETREC OPENP BindingSpec* CLOSEP Body CLOSEP))
-    (=> (OPENP BEGIN Sequence CLOSEP))
-    (=> (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP Sequence CLOSEP))
-    (=> (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP CLOSEP))
-    (=> (OPENP DELAY Expression CLOSEP)))
+    (=>* (OPENP COND CondClause+ CLOSEP)         (LIST (QUOTE Conditional) (REVERSE _3) (QUOTE NIL)))
+    (=>* (OPENP COND CondClause+ OPENP ELSE Sequence CLOSEP CLOSEP)
+                                                 (LIST (QUOTE Conditional) (REVERSE _3) _6))
+    (=>* (OPENP COND OPENP ELSE Sequence CLOSEP CLOSEP)
+                                                 (LIST (QUOTE Conditional) (QUOTE NIL) _5))
+    (=>* (OPENP CASE Expression CaseClause+ CLOSEP)
+                                                 (LIST (QUOTE Case) _3 (REVERSE _4) (QUOTE NIL)))
+    (=>* (OPENP CASE Expression CaseClause+ OPENP ELSE Sequence CLOSEP CLOSEP)
+                                                 (LIST (QUOTE Case) _3 (REVERSE _4) _7))
+    (=>* (OPENP CASE Expression OPENP ELSE Sequence CLOSEP CLOSEP)
+                                                 (LIST (QUOTE Case) _3 (QUOTE NIL) _6))
+    (=>* (OPENP AND Test* CLOSEP)                (LIST (QUOTE And) (REVERSE _3)))
+    (=>* (OPENP OR Test* CLOSEP)                 (LIST (QUOTE Or) (REVERSE _3)))
+    (=>* (OPENP LET OPENP BindingSpec* CLOSEP Body CLOSEP)
+                                                 (LIST (QUOTE Let) (QUOTE NIL) (REVERSE _4) _6))
+    (=>* (OPENP LET VARIABLE OPENP BindingSpec* CLOSEP Body CLOSEP)
+                                                 (LIST (QUOTE Let) _3 (REVERSE _5) _7))
+    (=>* (OPENP LETSTAR OPENP BindingSpec* CLOSEP Body CLOSEP)
+                                                 (LIST (QUOTE Let*) (REVERSE _4) _6))
+    (=>* (OPENP LETREC OPENP BindingSpec* CLOSEP Body CLOSEP)
+                                                 (LIST (QUOTE LetRec) (REVERSE _4) _6))
+    (=>* (OPENP BEGIN Sequence CLOSEP)           (LIST (QUOTE Sequence) _3))
+    (=>* (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP Sequence CLOSEP)
+                                                 (LIST (QUOTE Do) (REVERSE _4) _7 _8 (NTH _0 10)))
+    (=>* (OPENP DO OPENP IterationSpec* CLOSEP OPENP Test DoResult CLOSEP CLOSEP)
+                                                 (LIST (QUOTE Do) (REVERSE _4) _7 _8 (QUOTE NIL)))
+    (=>* (OPENP DELAY Expression CLOSEP)         (LIST (QUOTE Delay) _3)))
   (: CondClause
-    (=> (OPENP Test Sequence CLOSEP))
-    (=> (OPENP Test CLOSEP))
-    (=> (OPENP Test ARROW Recipient CLOSEP)))
+    (=>* (OPENP Test Sequence CLOSEP)            (LIST (QUOTE CondClause) (QUOTE Sequence) _2 _3))
+    (=>* (OPENP Test CLOSEP)                     (LIST (QUOTE CondClause) (QUOTE Self) _2))
+    (=>* (OPENP Test ARROW Recipient CLOSEP)     (LIST (QUOTE CondClause) (QUOTE Recipient) _2 _4)))
   (: CondClause*
     (=> NIL)
     (=>* (CondClause* CondClause) (CONS _2 _1)))
@@ -229,12 +242,13 @@ dnl  ---------------------------------------------------------------------------
   (: Recipient
     (=>1 (Expression)))
   (: CaseClause
-    (=> (OPENP OPENP Datum* CLOSEP Sequence CLOSEP)))
+    (=>* (OPENP OPENP Datum* CLOSEP Sequence CLOSEP)
+                                                 (LIST (QUOTE CaseClause) (REVERSE _3) _5)))
   (: BindingSpec
-    (=> (OPENP VARIABLE Expression CLOSEP)))
+    (=>* (OPENP VARIABLE Expression CLOSEP)      (LIST (QUOTE BindingSpec) _2 _3)))
   (: IterationSpec
-    (=> (OPENP VARIABLE Init Step CLOSEP))
-    (=> (OPENP VARIABLE Init CLOSEP)))
+    (=>* (OPENP VARIABLE Init Step CLOSEP)       (LIST (QUOTE IterationSpec) _2 _3 _4))
+    (=>* (OPENP VARIABLE Init CLOSEP)            (LIST (QUOTE IterationSpec) _2 _3)))
   (: Init
     (=>1 (Expression)))
   (: Step
@@ -243,9 +257,9 @@ dnl  ---------------------------------------------------------------------------
     (=>1 (Sequence))
     (=> NIL))
   (: MacroUse
-    (=> (OPENP Keyword Datum* CLOSEP)))
+    (=>* (OPENP Keyword Datum* CLOSEP)           (LIST (QUOTE MacroUse) _2 (REVERSE _3))))
   (: Keyword
-    (=> (IDENT)))
+    (=>1 (IDENT)))
   (: MacroBlock
     (=> (OPENP LETSYNTAX OPENP SyntaxSpec* CLOSEP Body CLOSEP))
     (=> (OPENP LETRECSYNTAX OPENP SyntaxSpec* CLOSEP Body CLOSEP)))
@@ -259,20 +273,21 @@ dnl | 7.1.5  Transformers
 dnl  ---------------------------------------------------------------------------
 
   (: TransformerSpec
-    (=> (OPENP SYNTAXRULES OPENP Identifier* CLOSEP SyntaxRule* CLOSEP)))
+    (=> (OPENP SYNTAXRULES OPENP Identifier* CLOSEP SyntaxRule* CLOSEP)
+                                                  (LIST (QUOTE TransformerSpec) (REVERSE _4) (REVERSE _6))))
   (: SyntaxRule
-    (=> (OPENP Pattern Template CLOSEP)))
+    (=>* (OPENP Pattern Template CLOSEP)          (LIST (QUOTE SyntaxRule) _2 _3)))
   (: SyntaxRule*
     (=> NIL)
     (=>* (SyntaxRule* SyntaxRule) (CONS _2 _1)))
   (: Pattern
-    (=>1 (PatternIdentifier))
-    (=> (OPENP Pattern* CLOSEP))
-    (=> (OPENP Pattern+ DOT Pattern CLOSEP))
-    (=> (OPENP Pattern+ ELLIPSIS CLOSEP))
-    (=> (OPENVEC Pattern* CLOSEP))
-    (=> (OPENVEC Pattern+ ELLIPSIS CLOSEP))
-    (=>1 (PatternDatum)))
+    (=>* (PatternIdentifier)                      (LIST (QUOTE Pattern) (QUOTE SExp) (QUOTE F) _1))
+    (=>* (OPENP Pattern* CLOSEP)                  (LIST (QUOTE Pattern) (QUOTE SExp) (QUOTE F) (REVERSE _2)))
+    (=>* (OPENP Pattern+ DOT Pattern CLOSEP)      (LIST (QUOTE Pattern) (QUOTE SExp) (QUOTE F) (APPEND (REVERSE _2) _4)))
+    (=>* (OPENP Pattern+ ELLIPSIS CLOSEP)         (LIST (QUOTE Pattern) (QUOTE SExp) (QUOTE T) (REVERSE _2)))
+    (=>* (OPENVEC Pattern* CLOSEP)                (LIST (QUOTE Pattern) (QUOTE Vector) (QUOTE F) (REVERSE _2)))
+    (=>* (OPENVEC Pattern+ ELLIPSIS CLOSEP)       (LIST (QUOTE Pattern) (QUOTE Vector) (QUOTE T) (REVERSE _2)))
+    (=>* (PatternDatum)                           (LIST (QUOTE Pattern) (QUOTE SExp) (QUOTE F) _1)))
   (: Pattern*
     (=> NIL)
     (=>1 (Pattern+)))
@@ -332,9 +347,11 @@ dnl    (=> (OPENP BEGIN CommandAndDefinition+ CLOSEP)))
     (=> (CommandOrDefinition))
     (=>* (CommandOrDefinition+ CommandOrDefinition) (CONS _2 _1)))
   (: Definition
-    (=> (OPENP DEFINE VARIABLE Expression CLOSEP))
-    (=> (OPENP DEFINE OPENP DefFormals CLOSEP Body CLOSEP))
-    (=> (OPENP BEGIN Definition+ CLOSEP)))
+    (=>* (OPENP DEFINE VARIABLE Expression CLOSEP)
+                                                 (LIST (QUOTE Definition) _3 _4))
+    (=>* (OPENP DEFINE OPENP DefFormals CLOSEP Body CLOSEP)
+                                                 (LIST (QUOTE Definition) (CAR _4) (LIST (QUOTE LambdaExpression) (CDR _4) _6)))
+    (=>* (OPENP BEGIN Definition+ CLOSEP)        _3))
   (: Definition*
     (=> NIL)
     (=>* (Definition* Definition) (CONS _2 _1)))
@@ -342,10 +359,11 @@ dnl    (=> (OPENP BEGIN CommandAndDefinition+ CLOSEP)))
     (=> (Definition))
     (=>* (Definition+ Definition) (CONS _2 _1)))
   (: DefFormals
-    (=> (Variable+))
-    (=> (Variable+ DOT VARIABLE)))
+    (=>* (Variable+)                             (REVERSE _1))
+    (=>* (Variable+ DOT VARIABLE)                (APPEND (REVERSE _1) _3)))
   (: SyntaxDefinition
-    (=> (OPENP DEFINESYNTAX IDENT TransformerSpec CLOSEP)))
+    (=>* (OPENP DEFINESYNTAX IDENT TransformerSpec CLOSEP)
+                                                 (LIST (QUOTE SyntaxDefinition) _3 _4)))
   (: CaseClause*
     (=> NIL)
     (=>1 (CaseClause+)))
